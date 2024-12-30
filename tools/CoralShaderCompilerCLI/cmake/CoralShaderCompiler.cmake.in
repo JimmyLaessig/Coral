@@ -1,0 +1,37 @@
+function(target_compile_shader TARGET_NAME)
+
+    set(oneValueArgs NAME NAMESPACE INPUT OUTPUT WORKING_DIRECTORY STAGE ENTRYPOINT LANGUAGE)
+
+    cmake_parse_arguments(PARSE_ARGV 0 arg "" "${oneValueArgs}" "" )
+
+        # Create a placeholder for the generated file
+    get_filename_component(OUTPUT_DIRECTORY_PATH ${arg_OUTPUT} DIRECTORY)
+    file(MAKE_DIRECTORY ${OUTPUT_DIRECTORY_PATH})
+    file(TOUCH ${arg_OUTPUT})
+
+    # Add the file to the target
+    target_sources(${TARGET_NAME} 
+        PRIVATE
+            ${arg_INPUT}
+    )
+
+    # Prevent Visual Studio from trying to build the HLSL shader source
+    set_property(SOURCE ${arg_INPUT} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
+
+    add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
+        COMMAND "@CORAL_SHADER_COMPILER_EXECUTABLE@"
+        -n "${arg_NAME}"
+        --namespace "${arg_NAMESPACE}"
+        -o "${arg_OUTPUT}"
+        -i "${arg_INPUT}"
+        -s ${arg_STAGE}
+        -e ${arg_ENTRYPOINT}
+        -l ${arg_LANGUAGE}
+        DEPENDS "@CORAL_SHADER_COMPILER_EXECUTABLE@" "${arg_INPUT}"
+        WORKING_DIRECTORY ${arg_WORKING_DIRECTORY}
+        COMMENT "Executing Shader Compiler for shader '${arg_NAME}'"
+    )
+
+    message(STATUS "Added shader '${arg_NAME}' to compile list ('${arg_OUTPUT}')")
+endfunction(target_compile_shader)
+
