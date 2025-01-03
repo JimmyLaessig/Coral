@@ -80,9 +80,8 @@ set(CORAL_VULKAN_INCLUDES
     ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceWin32.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/VulkanFormat.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/VulkanWrapper.hpp)
+    ${CORAL_SOURCE_DIR}/Vulkan/Vulkan.hpp)
 
 # Definition of all Vulkan source files of the Coral library
 set(CORAL_VULKAN_SOURCES
@@ -100,9 +99,16 @@ set(CORAL_VULKAN_SOURCES
     ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceWin32.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/VulkanWrapper.cpp
 )
+
+if(WIN32)
+    list(APPEND CORAL_VULKAN_SOURCES
+         ${CORAL_SOURCE_DIR}/Vulkan/VulkanWin32.cpp)
+         else()
+    list(APPEND CORAL_VULKAN_SOURCES
+         ${CORAL_SOURCE_DIR}/Vulkan/VulkanLinux.cpp)
+         
+endif()
 
 ###############################################################################
 # Link the Coral library with the following libraries

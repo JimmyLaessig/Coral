@@ -1,7 +1,7 @@
 #ifndef CORAL_VULKAN_FORMAT_HPP
 #define CORAL_VULKAN_FORMAT_HPP
 
-#include "VulkanWrapper.hpp"
+#include "Vulkan.hpp"
 
 #include <cassert>
 	

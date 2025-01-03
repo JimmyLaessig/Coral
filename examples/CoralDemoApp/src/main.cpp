@@ -390,7 +390,7 @@ int main()
 
 		Coral::DrawIndexInfo drawInfo{};
 		drawInfo.firstIndex = 0;
-		drawInfo.indexCount = indexBufferView->numElements();
+		drawInfo.indexCount = indexBufferView->count();
 		commandBuffer->cmdDrawIndexed(drawInfo);
 
 		commandBuffer->cmdEndRenderPass();

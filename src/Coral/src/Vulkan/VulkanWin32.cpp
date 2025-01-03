@@ -1,4 +1,7 @@
-#include "SurfaceWin32.hpp"
+#include "Vulkan.hpp"
+
+#define VMA_IMPLEMENTATION
+#include <vk_mem_alloc.h>
 
 #include <Windows.h>
 #include <vulkan/vulkan_win32.h>

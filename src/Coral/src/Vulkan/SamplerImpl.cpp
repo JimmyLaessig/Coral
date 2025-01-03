@@ -1,6 +1,6 @@
 #include "SamplerImpl.hpp"
 
-#include "VulkanWrapper.hpp"
+#include "Vulkan.hpp"
 #include "ImageImpl.hpp"
 
 #include <cassert>

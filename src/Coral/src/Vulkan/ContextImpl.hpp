@@ -5,7 +5,7 @@
 #include <Coral/RAII.hpp>
 
 #include "../BufferPool.hpp"
-#include "VulkanWrapper.hpp"
+#include "Vulkan.hpp"
 
 #include <map>
 #include <memory>

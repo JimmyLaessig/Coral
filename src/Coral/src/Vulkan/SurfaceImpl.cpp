@@ -3,7 +3,6 @@
 #include "FenceImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
-#include "SurfaceWin32.hpp"
 #include "VulkanFormat.hpp"
 
 #include <algorithm>
