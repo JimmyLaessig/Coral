@@ -2,7 +2,7 @@ include(FetchContent)
 
 FetchContent_Declare(
   spirv-reflect
-  GIT_REPOSITORY git@github.com:KhronosGroup/SPIRV-Reflect.git
+  GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
   GIT_TAG vulkan-sdk-1.3.275.0
 )
 

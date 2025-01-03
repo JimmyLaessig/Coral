@@ -1,0 +1,58 @@
+name: Build and test Coral
+
+on:
+    pull_request:
+    workflow_dispatch:
+
+env:
+    BUILD_TYPE: Release
+
+jobs:
+    build:
+        name: Build and test Coral ${{ matrix.name }}
+        runs-on: ${{ matrix.os }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - name: Windows MSVC 2022
+                      os: windows-latest
+                      cmake-generator: Visual Studio 17 2022
+
+        steps:
+            # Checkout the Coral repository
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                lfs: true
+
+            # Install Conan to obtain third-party libraries
+            # Note: Conan dependencies are fetched during CMake configure step
+            - name: Install Conan
+              uses: turtlebrowser/get-conan@v1.2
+              with:
+                version: 1.60.2
+
+            # Configure the Coral CMake project
+            - name: Configure CMake
+              run: >
+                cmake
+                -G "${{ matrix.cmake-generator }}"
+                -B "${{ github.workspace }}/build"
+                -D CMAKE_CONFIGURATION_TYPES=${{ env.BUILD_TYPE }}
+            
+            # Build the Coral CMake project
+            - name: Build Coral
+              run: >
+                cmake
+                --build "${{ github.workspace }}/build"
+                --config ${{ env.BUILD_TYPE }}
+
+            # Install the Coral CMake project
+            - name: Install Coral
+              run: >
+                cmake
+                --install "${{ github.workspace }}/build"
+                --config ${{ env.BUILD_TYPE }}
+                --prefix "${{ github.workflow}}/install"
+                --component Coral

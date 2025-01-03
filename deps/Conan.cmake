@@ -20,7 +20,9 @@ set(CORAL_TOOLS_CONAN_PACKAGES
     shaderc/2023.6)
 
 set(CORAL_TEST_CONAN_PACKAGES
-    catch2/3.7.1)
+    catch2/3.7.1
+    glm/cci.20220420
+    stb/cci.20240531)
 
 set(CORAL_EXAMPLES_CONAN_PACKAGES
     glfw/3.3.8
@@ -36,13 +38,13 @@ if (CORAL_BUILD_TESTS)
 endif()
 
 if (CORAL_BUILD_EXAMPLES)
-    list(APPEND CORAL_CONAN_PACKAGES ${CORAL_TEST_CONAN_PACKAGES})
+    list(APPEND CORAL_CONAN_PACKAGES ${CORAL_EXAMPLES_CONAN_PACKAGES})
 endif()
 
 conan_cmake_configure(
     REQUIRES
         ${CORAL_CONAN_PACKAGES}
-  GENERATORS
+    GENERATORS
         cmake_find_package_multi)
 
 foreach(TYPE ${CMAKE_CONFIGURATION_TYPES})
