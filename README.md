@@ -1,3 +1,3 @@
 # Coral
 
-Compute and Rendering Abstraction Layer
+**Co**mpute and **R**endering **A**bstraction **L**ayer
