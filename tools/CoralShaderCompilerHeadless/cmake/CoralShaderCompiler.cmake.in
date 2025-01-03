@@ -2,15 +2,13 @@ function(target_compile_shader TARGET_NAME)
 
     set(oneValueArgs NAME NAMESPACE INPUT OUTPUT WORKING_DIRECTORY STAGE ENTRYPOINT LANGUAGE)
 
-    # Ensure ShaderCompilerHeadless is built before the target
+    # Ensure The Shader Compiler executable is built before the target
     add_dependencies(${TARGET_NAME} @CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME@)
 
     cmake_parse_arguments(PARSE_ARGV 0 arg "" "${oneValueArgs}" "" )
 
-    # Create a placeholder for the generated file
-    get_filename_component(OUTPUT_DIRECTORY_PATH ${arg_OUTPUT} DIRECTORY)
-    file(MAKE_DIRECTORY ${OUTPUT_DIRECTORY_PATH})
-    file(TOUCH ${arg_OUTPUT})
+    # Set the GENERATED property for the output file so that CMake won't complain if the file is missing during generation time
+    set_source_files_properties(${arg_OUTPUT} PROPERTIES GENERATED true)
 
     # Add the file to the target
     target_sources(${TARGET_NAME} 
