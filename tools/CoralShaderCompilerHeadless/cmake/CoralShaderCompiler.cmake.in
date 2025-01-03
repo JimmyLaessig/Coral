@@ -2,9 +2,12 @@ function(target_compile_shader TARGET_NAME)
 
     set(oneValueArgs NAME NAMESPACE INPUT OUTPUT WORKING_DIRECTORY STAGE ENTRYPOINT LANGUAGE)
 
+    # Ensure ShaderCompilerHeadless is built before the target
+    add_dependencies(${TARGET_NAME} @CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME@)
+
     cmake_parse_arguments(PARSE_ARGV 0 arg "" "${oneValueArgs}" "" )
 
-        # Create a placeholder for the generated file
+    # Create a placeholder for the generated file
     get_filename_component(OUTPUT_DIRECTORY_PATH ${arg_OUTPUT} DIRECTORY)
     file(MAKE_DIRECTORY ${OUTPUT_DIRECTORY_PATH})
     file(TOUCH ${arg_OUTPUT})
@@ -19,7 +22,7 @@ function(target_compile_shader TARGET_NAME)
     set_property(SOURCE ${arg_INPUT} PROPERTY VS_SETTINGS "ExcludedFromBuild=true")
 
     add_custom_command(TARGET ${TARGET_NAME} PRE_BUILD
-        COMMAND "@CORAL_SHADER_COMPILER_EXECUTABLE@"
+        COMMAND "@CORAL_SHADER_COMPILER_HEADLESS_EXECUTABLE@"
         -n "${arg_NAME}"
         --namespace "${arg_NAMESPACE}"
         -o "${arg_OUTPUT}"
@@ -27,7 +30,7 @@ function(target_compile_shader TARGET_NAME)
         -s ${arg_STAGE}
         -e ${arg_ENTRYPOINT}
         -l ${arg_LANGUAGE}
-        DEPENDS "@CORAL_SHADER_COMPILER_EXECUTABLE@" "${arg_INPUT}"
+        DEPENDS "${arg_INPUT}" 
         WORKING_DIRECTORY ${arg_WORKING_DIRECTORY}
         COMMENT "Executing Shader Compiler for shader '${arg_NAME}'"
     )

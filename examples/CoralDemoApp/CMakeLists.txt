@@ -35,7 +35,7 @@ target_compile_shader(${CORAL_DEMO_APP_TARGET_NAME}
     NAME UniformColorVertexShader
     NAMESPACE Shaders
     INPUT ${CORAL_DEMO_APP_SHADER_DIR}/UniformColor.hlsl
-    OUTPUT ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorVertexShader.h
+    OUTPUT ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorVertexShader.hpp
     STAGE vertex
     ENTRYPOINT VS_main
     LANGUAGE HLSL
@@ -45,15 +45,15 @@ target_compile_shader(${CORAL_DEMO_APP_TARGET_NAME}
     NAME UniformColorFragmentShader
     NAMESPACE Shaders
     INPUT ${CORAL_DEMO_APP_SHADER_DIR}/UniformColor.hlsl
-    OUTPUT ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorFragmentShader.h
+    OUTPUT ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorFragmentShader.hpp
     STAGE fragment
     ENTRYPOINT PS_main
     LANGUAGE HLSL
     WORKING_DIRECTORY ${CORAL_DEMO_APP_SHADER_DIR})
 
 set(CORAL_DEMO_APP_GENERATED_SHADER_HEADERS
-    ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorVertexShader.h
-    ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorFragmentShader.h)
+    ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorVertexShader.hpp
+    ${CORAL_DEMO_APP_GENERATED_INCLUDE_DIR}/Shaders/UniformColorFragmentShader.hpp)
 
 ###############################################################################
 # Organize files in the IDE

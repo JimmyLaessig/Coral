@@ -1,5 +1,5 @@
-#include <Shaders/UniformColorVertexShader.h>
-#include <Shaders/UniformColorFragmentShader.h>
+#include <Shaders/UniformColorVertexShader.hpp>
+#include <Shaders/UniformColorFragmentShader.hpp>
 
 #include "../../../resources/Cube.hpp"
 

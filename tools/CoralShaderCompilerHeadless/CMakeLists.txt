@@ -21,6 +21,7 @@ source_group("cmake/" FILES ${CORAL_SHADER_COMPILER_HEADLESS_CMAKE_FILE})
 
 add_executable(${CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME})
 
+
 ###############################################################################
 # Configure the target
 ###############################################################################
@@ -34,7 +35,7 @@ coral_configure_target(${CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME}
         CLI11::CLI11)
 
 ###############################################################################
-# Create the Cmake shader compiler command
+# Create the CMake shader compiler command
 ###############################################################################
 
 set(CORAL_SHADER_COMPILER_HEADLESS_EXECUTABLE ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/${CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME}.exe)
