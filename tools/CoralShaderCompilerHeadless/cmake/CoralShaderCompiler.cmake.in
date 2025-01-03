@@ -32,7 +32,6 @@ function(target_compile_shader TARGET_NAME)
         -l ${arg_LANGUAGE}
         DEPENDS "${arg_INPUT}" 
         WORKING_DIRECTORY ${arg_WORKING_DIRECTORY}
-        COMMENT "Executing Shader Compiler for shader '${arg_NAME}'"
     )
 
     message(STATUS "Added shader '${arg_NAME}' to compile list ('${arg_OUTPUT}')")

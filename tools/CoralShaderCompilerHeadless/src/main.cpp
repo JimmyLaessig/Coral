@@ -69,14 +69,14 @@ int main(int argc, char** argv)
 	Coral::ShaderStage type;
 	Coral::ShaderLanguage language;
 
-	CLI::App app{ "HLSL Shader Compiler" };
+	CLI::App app{ "Coral Shader Compiler" };
 
 	std::map<std::string, Coral::ShaderStage> shaderStageMap{ { "vertex", Coral::ShaderStage::VERTEX }, { "fragment", Coral::ShaderStage::FRAGMENT } };
 
 	std::map<std::string, Coral::ShaderLanguage> languageMap{ { "glsl", Coral::ShaderLanguage::GLSL }, { "hlsl", Coral::ShaderLanguage::HLSL } };
 
 	app.add_option("-n,--name",		  shaderName,	   "The name of the compiled shader")->required(true);
-	app.add_option("--namespace",    shaderNamespace, "The optional namespace of the compiled shader header")->required(true);
+	app.add_option("--namespace",     shaderNamespace, "The optional namespace of the compiled shader header")->required(true);
 	app.add_option("-o,--output",	  outputPath,	   "The path to the compiled shader header")->required(true);
 	app.add_option("-i,--input",	  inputPath,	   "The path to the HLSL shader file")->required(true);
 	app.add_option("-e,--entrypoint", entryPoint,	   "The name of the shader entry point function")->required(true);
@@ -91,6 +91,8 @@ int main(int argc, char** argv)
 	{
 		return app.exit(e);
 	}
+
+	std::cout << "Executing Coral Shader Compiler for shader '" << shaderName << "'..." << std::endl;
 
 	auto content = loadFile(inputPath);
 
@@ -119,10 +121,10 @@ int main(int argc, char** argv)
 
 	if (!writeFile(fileContent, outputPath))
 	{
-		std::cerr << "Failed to write output file '" << outputPath << "'." << std::endl;
+		std::cerr << "Failed to write output file " << outputPath << "." << std::endl;
 		return EXIT_FAILURE;
 	}
 
-	std::cout << "Successfully written shader '"<< shaderName << "' to '" << outputPath << "'." << std::endl;
+	std::cout << "Successfully written shader '"<< shaderName << "' to " << outputPath << "." << std::endl;
 	return EXIT_SUCCESS;
 }
