@@ -9,7 +9,7 @@ env:
 
 jobs:
     build:
-        name: Build and test Coral ${{ matrix.name }}
+        name: Build and test Coral (${{ matrix.name }})
         runs-on: ${{ matrix.os }}
         strategy:
             fail-fast: false
@@ -18,6 +18,9 @@ jobs:
                     - name: Windows MSVC 2022
                       os: windows-latest
                       cmake-generator: Visual Studio 17 2022
+                    - name: Ubuntu Clang 19
+                      os: ubuntu-latest
+                      cmake-generator: Unix Makefiles
 
         steps:
             # Checkout the Coral repository
@@ -26,12 +29,27 @@ jobs:
               with:
                 lfs: true
 
+            # Install Clang 19 (Ubuntu only)
+            - name: Install Clang 19 (Ubuntu)
+              if: runner.os == 'linux' 
+              uses:  egor-tensin/setup-clang@v1
+              with:
+                version: 19
+                platform: x64
+
             # Install Conan to obtain third-party libraries
             # Note: Conan dependencies are fetched during CMake configure step
             - name: Install Conan
               uses: turtlebrowser/get-conan@v1.2
               with:
                 version: 1.60.2
+
+            - name: Create default Conan profile
+              run: conan profile new default --detect
+
+            - name: Update Conan profile
+              if: runner.os == 'linux' 
+              run: conan profile update settings.compiler=clang default
 
             # Configure the Coral CMake project
             - name: Configure CMake
