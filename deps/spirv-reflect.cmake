@@ -10,4 +10,4 @@ set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "" FORCE)
 set(SPIRV_REFLECT_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(SPIRV_REFLECT_EXECUTABLE OFF CACHE BOOL "" FORCE)
 
-FETCHContent_MakeAvailable(spirv-reflect)
+FetchContent_MakeAvailable(spirv-reflect)

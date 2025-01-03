@@ -54,8 +54,9 @@ if (NOT(${TARGET_TYPE} STREQUAL "EXECUTABLE"))
         EXPORT_FILE_NAME ${EXPORT_HEADER}
         EXPORT_MACRO_NAME ${TARGET_NAME_UPPERCASE}_API)
 
-    target_compile_definitions(${TARGET_NAME}
-        PUBLIC "$<$<NOT:$<BOOL:${SHARED_LIBRARY}>>:${TARGET_NAME_UPPERCASE}_STATIC_DEFINE>")
+    if (${TARGET_TYPE} STREQUAL "STATIC_LIBRARY")
+        target_compile_definitions(${TARGET_NAME} PUBLIC "${TARGET_NAME_UPPERCASE}_STATIC_DEFINE")
+    endif()
 
     list(APPEND INPUT_PUBLIC_HEADERS ${EXPORT_HEADER})
 
@@ -119,7 +120,9 @@ endif()
 # when a target provides C++20 modules and the target will be installed 
 target_compile_features(${TARGET_NAME} PUBLIC cxx_std_23)
 
-set_target_properties(${TARGET_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    target_compile_options(${TARGET_NAME} PUBLIC -stdlib=libc++)
+endif()
 
 # The visual studio compiler creates a .pdb files containing the debug 
 # information of the library. Setting the following property ensures the

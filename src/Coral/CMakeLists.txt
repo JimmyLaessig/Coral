@@ -114,7 +114,7 @@ endif()
 # Link the Coral library with the following libraries
 ###############################################################################
 
-find_package(VulkanHeaders REQUIRED)
+find_package(VulkanHeaders CONFIG REQUIRED)
 find_package(volk CONFIG REQUIRED)
 find_package(vk-bootstrap REQUIRED)
 find_package(vulkan-memory-allocator REQUIRED)

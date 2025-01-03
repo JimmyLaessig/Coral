@@ -102,6 +102,20 @@ foreach(FILE ${CORAL_UNIT_TESTS_RESOURCES})
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FILE} ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/resources/)
 endforeach()
 
+###############################################################################
+# Copy the shared library files
+###############################################################################
+
+get_target_property(CORAL_TARGET_TYPE Coral TYPE)
+if(${CORAL_TARGET_TYPE} STREQUAL "SHARED_LIBRARY")
+    add_custom_command(TARGET ${CORAL_UNIT_TESTS_TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Coral> ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/)
+endif()
+
+###############################################################################
+# Configure CTest and Catch
+###############################################################################
+
 include(CTest)
 include(Catch)
 catch_discover_tests(${CORAL_UNIT_TESTS_TARGET_NAME})

@@ -17,6 +17,16 @@ option(CORAL_BUILD_EXAMPLES "Build the Coral examples" ON)
 option(CORAL_BUILD_TESTS "Build the Coral tests" ON)
 option(CORAL_SKIP_CONAN_DEPENDENCIES "If enabled, skip downloading the Coral dependencies via Conan." OFF)
 
+get_property(generator_is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+
+if (generator_is_multi_config)
+    set(CORAL_CONFIGURATION_TYPES ${CMAKE_CONFIGURATION_TYPES} CACHE STRING "The build types of the Coral library (Debug, Release, RelWithDebInfo)" )
+    set(CMAKE_CONFIGURATION_TYPES ${CORAL_CONFIGURATION_TYPES})
+else()
+    set(CORAL_CONFIGURATION_TYPES ${CMAKE_BUILD_TYPE} CACHE STRING "The build types of the Coral library (Debug, Release)")
+    set(CMAKE_BUILD_TYPE ${CORAL_CONFIGURATION_TYPES})
+endif()
+
 include(cmake/ConfigureTarget.cmake)
 
 set(CORAL_RESOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources)

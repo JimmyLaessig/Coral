@@ -131,6 +131,11 @@ constexpr inline uint32_t sizeInBytes(PixelFormat format)
 		case PixelFormat::RG16_F:			return 4;
 		case PixelFormat::RGB16_F:			return 6;
 		case PixelFormat::RGBA16_F:			return 8;
+
+		case PixelFormat::R8_SRGB:			return 2;
+		case PixelFormat::RG8_SRGB:			return 4;
+		case PixelFormat::RGB8_SRGB:		return 6;
+		case PixelFormat::RGBA8_SRGB:		return 8;
 	}
 
 	return 0;

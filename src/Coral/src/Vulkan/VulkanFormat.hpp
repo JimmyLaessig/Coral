@@ -2,10 +2,10 @@
 #define CORAL_VULKAN_FORMAT_HPP
 
 #include "Vulkan.hpp"
-
-#include <cassert>
 	
 #include <Coral/Types.hpp>
+
+#include <utility>
 
 namespace Coral::Vulkan
 {
@@ -123,11 +123,9 @@ convert(VkFormat format)
 		case VK_FORMAT_R8G8B8_SRGB:					return Coral::PixelFormat::RGB8_SRGB;
 		case VK_FORMAT_R8G8_SRGB:					return Coral::PixelFormat::RG8_SRGB;
 		case VK_FORMAT_R8_SRGB:						return Coral::PixelFormat::R8_SRGB;
-
-	default:
-		assert(false);
-		return{};
 	}
+
+	std::unreachable();
 };
 
 

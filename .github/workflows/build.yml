@@ -4,12 +4,9 @@ on:
     pull_request:
     workflow_dispatch:
 
-env:
-    BUILD_TYPE: Release
-
 jobs:
     build:
-        name: Build and test Coral ${{ matrix.name }}
+        name: Build and test Coral (${{ matrix.name }})
         runs-on: ${{ matrix.os }}
         strategy:
             fail-fast: false
@@ -18,7 +15,12 @@ jobs:
                     - name: Windows MSVC 2022
                       os: windows-latest
                       cmake-generator: Visual Studio 17 2022
-
+                      additional-cmake-args:
+                      cmake-args: "-DCMAKE_CONFIGURATION_TYPES=Release"
+                    - name: Linux Clang 17
+                      os: ubuntu-latest
+                      cmake-generator: Unix Makefiles
+                      cmake-args: "-DCMAKE_BUILD_TYPE=Release -DCORAL_BUILD_TESTS=OFF -DCORAL_BUILD_EXAMPLES=OFF"
         steps:
             # Checkout the Coral repository
             - name: Checkout
@@ -26,12 +28,35 @@ jobs:
               with:
                 lfs: true
 
+            # Install GCC (Linux only)
+            - name: Install GCC 17 (Linux)
+              if: runner.os == 'linux' 
+              uses:  egor-tensin/setup-gcc@v1
+              with:
+                version: 12
+                platform: x64
+
+            # Install Clang 17 (Linux only)
+            #- name: Install Clang 17 (Linux)
+            #  if: runner.os == 'linux' 
+            #  uses:  egor-tensin/setup-clang@v1
+            #  with:
+            #    version: 17
+            #    platform: x64
+
             # Install Conan to obtain third-party libraries
             # Note: Conan dependencies are fetched during CMake configure step
             - name: Install Conan
               uses: turtlebrowser/get-conan@v1.2
               with:
-                version: 1.60.2
+                version: 1.66
+
+            - name: Create default Conan profile
+              run: conan profile new default --detect
+
+            - name: Update Conan profile
+              if: runner.os == 'linux' 
+              run: conan profile update settings.compiler=clang default
 
             # Configure the Coral CMake project
             - name: Configure CMake
@@ -39,20 +64,21 @@ jobs:
                 cmake
                 -G "${{ matrix.cmake-generator }}"
                 -B "${{ github.workspace }}/build"
-                -D CMAKE_CONFIGURATION_TYPES=${{ env.BUILD_TYPE }}
-            
+                ${{ matrix.cmake-args }}
+                
             # Build the Coral CMake project
             - name: Build Coral
               run: >
                 cmake
                 --build "${{ github.workspace }}/build"
-                --config ${{ env.BUILD_TYPE }}
+                --config Release
+                --parallel 4
 
             # Install the Coral CMake project
             - name: Install Coral
               run: >
                 cmake
                 --install "${{ github.workspace }}/build"
-                --config ${{ env.BUILD_TYPE }}
+                --config Release
                 --prefix "${{ github.workflow}}/install"
                 --component Coral

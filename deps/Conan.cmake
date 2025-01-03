@@ -15,7 +15,7 @@ set(CORAL_CONAN_PACKAGES
     vulkan-headers/1.3.268.0
     vulkan-memory-allocator/cci.20231120)
 
-set(CORAL_TOOLS_CONAN_PACKAGES
+set(CORAL_SHADER_COMPILER_CONAN_PACKAGES
     cli11/2.4.2
     shaderc/2023.6)
 
@@ -30,7 +30,7 @@ set(CORAL_EXAMPLES_CONAN_PACKAGES
     stb/cci.20240531)
 
 if (CORAL_BUILD_TOOLS OR CORAL_BUILD_EXAMPLES)
-    list(APPEND CORAL_CONAN_PACKAGES ${CORAL_TOOLS_CONAN_PACKAGES})
+    list(APPEND CORAL_CONAN_PACKAGES ${CORAL_SHADER_COMPILER_CONAN_PACKAGES})
 endif()
 
 if (CORAL_BUILD_TESTS)
@@ -47,7 +47,7 @@ conan_cmake_configure(
     GENERATORS
         cmake_find_package_multi)
 
-foreach(TYPE ${CMAKE_CONFIGURATION_TYPES})
+foreach(TYPE ${CORAL_CONFIGURATION_TYPES})
     conan_cmake_autodetect(settings BUILD_TYPE ${TYPE})
     conan_cmake_install(PATH_OR_REFERENCE .
                         BUILD missing

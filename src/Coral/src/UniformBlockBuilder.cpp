@@ -1,10 +1,13 @@
 #include <Coral/UniformBlockBuilder.hpp>
 
+#include <algorithm>
 #include <cassert>
+#include <cstring>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+#include <utility>
 
 using namespace Coral;
 
@@ -22,10 +25,9 @@ byteStride(ValueType type)
 		case ValueType::VEC4F:	return 16;
 		case ValueType::MAT33F:	return 48;
 		case ValueType::MAT44F:	return 64;
-		default:
-			assert(false);
-			return 0;
 	};
+
+	std::unreachable();
 }
 
 
@@ -42,10 +44,9 @@ byteSize(ValueType type)
 		case ValueType::VEC4F:	return 16;
 		case ValueType::MAT33F:	return 36;
 		case ValueType::MAT44F:	return 64;
-		default:
-			assert(false);
-			return 0;
 	};
+
+	std::unreachable();
 }
 
 

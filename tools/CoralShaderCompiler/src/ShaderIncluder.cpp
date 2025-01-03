@@ -114,7 +114,7 @@ private:
 
 		for (auto& path : candidates)
 		{
-			std::ifstream file(path, std::ios::in, std::ios::binary);
+			std::ifstream file(path, std::ios::in | std::ios::binary);
 
 			if (file.good())
 			{
@@ -144,7 +144,7 @@ private:
 		{
 			if (includeResult->user_data)
 			{
-				delete includeResult->user_data;
+				delete static_cast<ResultUserData*>(includeResult->user_data);
 			}
 
 			delete includeResult;

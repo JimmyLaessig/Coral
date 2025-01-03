@@ -2,22 +2,20 @@
 
 #include <Coral/ShaderIncluder.h>
 
-#include <optional>
-#include <span>
-#include <unordered_map>
-#include <array>
-#include <string_view>
-#include <algorithm>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
-#include <iostream>
-#include <functional>
-#include <cassert>
-#include <sstream>
-#include <ranges>
-
 #include <shaderc/shaderc.h>
+
+#include <algorithm>
+#include <cstring>
+#include <filesystem>
+#include <functional>
+#include <iostream>
+#include <optional>
+#include <ranges>
+#include <span>
+#include <sstream>
+#include <string_view>
+#include <unordered_map>
+#include <utility>
 
 namespace
 {
@@ -33,10 +31,9 @@ convert(Coral::ShaderStage type)
 		case Coral::ShaderStage::COMPUTE:				return shaderc_compute_shader;
 		case Coral::ShaderStage::TESSELLATION_CONTROL:	return shaderc_tess_control_shader;
 		case Coral::ShaderStage::TESSELLATION_EVAL:		return shaderc_tess_evaluation_shader;
-		default:
-			assert(false);
-			return {};
 	}
+
+	std::unreachable();
 }
 
 shaderc_source_language
@@ -95,7 +92,6 @@ compileHLSLToSpirV(const ShaderModuleCompileInfo& compileInfo)
 
 	auto bytes = shaderc_result_get_bytes(result);
 	auto size = shaderc_result_get_length(result);
-	assert(size % sizeof(uint32_t) == 0);
 
 	compiledShader.spirVCode.resize(size / sizeof(uint32_t));
 	std::memcpy(compiledShader.spirVCode.data(), bytes, size);

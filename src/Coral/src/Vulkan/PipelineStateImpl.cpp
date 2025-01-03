@@ -369,7 +369,7 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	for (const auto& [set, bindingDescriptions] : descriptorSets)
 	{
 		std::vector<VkDescriptorSetLayoutBinding> bindings;
-		for (auto [binding, bindingDescription] : bindingDescriptions)
+		for (auto [_, bindingDescription] : bindingDescriptions)
 		{
 			auto& binding			= bindings.emplace_back();
 			binding.binding			= bindingDescription.binding;

@@ -1,29 +1,24 @@
-#include <istream>
 
-#include <optional>
-#include <span>
-#include <unordered_map>
-#include <array>
-#include <string_view>
-#include <algorithm>
-#include <fstream>
-#include <sstream>
-#include <filesystem>
-#include <iostream>
-#include <memory>
-
-#include <Coral/ShaderCompiler.h>
 #include <Coral/HeaderGenerator.h>
-
-#include <regex>
+#include <Coral/ShaderCompiler.h>
 
 #include <CLI/CLI.hpp>
+
+#include <algorithm>
+#include <filesystem>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <span>
+#include <sstream>
+#include <string_view>
 
 
 std::optional<std::string>
 loadFile(const std::filesystem::path& path)
 {
-	std::ifstream file(path);
+	std::ifstream file(path, std::ios::in | std::ios::binary);
 	if (!file.good())
 	{
 		return {};
