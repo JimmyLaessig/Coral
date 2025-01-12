@@ -1,5 +1,6 @@
 #include "DescriptorSetImpl.hpp"
 
+#include "DescriptorSetPool.hpp"
 #include "BufferImpl.hpp"
 #include "SamplerImpl.hpp"
 #include "ImageImpl.hpp"
@@ -15,10 +16,7 @@ DescriptorSetImpl::~DescriptorSetImpl()
 {
 	if (mContext)
 	{
-		if (mDescriptorSet)
-		{
-			vkFreeDescriptorSets(mContext->getVkDevice(), mContext->getVkDescriptorPool(), 1, &mDescriptorSet);
-		}
+		mContext->getDescriptorSetPool().freeDescriptorSet(mDescriptorSet);
 
 		if (mDescriptorSetLayout)
 		{
@@ -65,12 +63,9 @@ DescriptorSetImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Descri
 		return Coral::DescriptorSetCreationError::INTERNAL_ERROR;
 	}
 	 
-	VkDescriptorSetAllocateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-	info.descriptorPool		= mContext->getVkDescriptorPool();
-	info.descriptorSetCount = 1;
-	info.pSetLayouts		= &mDescriptorSetLayout;
+	mDescriptorSet = mContext->getDescriptorSetPool().allocateDescriptorSet(mDescriptorSetLayout);
 
-	if (vkAllocateDescriptorSets(mContext->getVkDevice(), &info, &mDescriptorSet) != VK_SUCCESS)
+	if (mDescriptorSet == VK_NULL_HANDLE)
 	{
 		return Coral::DescriptorSetCreationError::INTERNAL_ERROR;
 	}

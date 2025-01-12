@@ -4,7 +4,6 @@
 #include <Coral/Context.hpp>
 #include <Coral/RAII.hpp>
 
-#include "../BufferPool.hpp"
 #include "Vulkan.hpp"
 
 #include <map>
@@ -12,9 +11,15 @@
 #include <mutex>
 #include <span>
 
+namespace Coral
+{
+class BufferPool;
+}
 
 namespace Coral::Vulkan
 {
+
+class DescriptorSetPool;
 
 class CommandQueueImpl;
 
@@ -66,7 +71,7 @@ public:
 
 	VmaAllocator getVmaAllocator();
 
-	VkDescriptorPool getVkDescriptorPool();
+	DescriptorSetPool& getDescriptorSetPool() { return *mDescriptorSetPool; }
 
 	uint32_t getQueueFamilyIndex();
 
@@ -138,8 +143,6 @@ private:
 
 	VkCommandPool mCommandPool{ VK_NULL_HANDLE };
 
-	VkDescriptorPool mDescriptorPool{ VK_NULL_HANDLE };
-
 	uint32_t mQueueFamilyIndex{ 0 };
 
 	std::shared_ptr<CommandQueueImpl> mTransferQueue;
@@ -151,6 +154,8 @@ private:
 	std::mutex mCommandPoolsProtection;
 
 	std::unique_ptr<BufferPool> mStagingBufferPool;
+
+	std::unique_ptr<DescriptorSetPool> mDescriptorSetPool;
 
 	VkPhysicalDeviceProperties mProperties;
 };

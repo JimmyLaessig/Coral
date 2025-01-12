@@ -1,5 +1,7 @@
 #include "ContextImpl.hpp"
 
+#include "../BufferPool.hpp"
+#include "DescriptorSetPool.hpp"
 #include "CommandQueueImpl.hpp"
 #include "BufferImpl.hpp"
 #include "BufferViewImpl.hpp"
@@ -26,15 +28,12 @@ using namespace Coral::Vulkan;
 
 ContextImpl::~ContextImpl()
 {
+	mDescriptorSetPool.reset();
+	mStagingBufferPool.reset();
+
 	mTransferQueue.reset();	 
 	mGraphicsQueue.reset();
 	mComputeQueue.reset();
-	mStagingBufferPool.reset();
-
-	if (mDescriptorPool != VK_NULL_HANDLE)
-	{
-		vkDestroyDescriptorPool(mDevice, mDescriptorPool, nullptr);
-	}
 
 	if (mAllocator != VK_NULL_HANDLE)
 	{
@@ -271,25 +270,8 @@ ContextImpl::init(const ContextCreateConfig& config)
 		return false;
 	}
 
-	std::array<VkDescriptorPoolSize, 3> poolSizes 
-	{
-		VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER , 32u },
-		VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER , 32u },
-		VkDescriptorPoolSize{ VK_DESCRIPTOR_TYPE_STORAGE_BUFFER , 32u },
-	};
-	
-	VkDescriptorPoolCreateInfo descriptorPoolCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-	descriptorPoolCreateInfo.poolSizeCount = static_cast<uint32_t>(poolSizes.size());
-	descriptorPoolCreateInfo.pPoolSizes	   = poolSizes.data();
-	descriptorPoolCreateInfo.maxSets	   = 256;
-	descriptorPoolCreateInfo.flags		   = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
-
-	if (vkCreateDescriptorPool(mDevice, &descriptorPoolCreateInfo, nullptr, &mDescriptorPool) != VK_SUCCESS)
-	{
-		return false;
-	}
-
 	mStagingBufferPool = std::make_unique<BufferPool>(*this, Coral::BufferType::STORAGE_BUFFER, true);
+	mDescriptorSetPool = std::make_unique<DescriptorSetPool>(*this);
 
 	vkGetPhysicalDeviceProperties(mPhysicalDevice, &mProperties);
 
@@ -399,13 +381,6 @@ VmaAllocator
 ContextImpl::getVmaAllocator()
 {
 	return mAllocator;
-}
-
-
-VkDescriptorPool
-ContextImpl::getVkDescriptorPool()
-{
-	return mDescriptorPool;
 }
 
 

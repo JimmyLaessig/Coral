@@ -72,6 +72,7 @@ set(CORAL_VULKAN_INCLUDES
     ${CORAL_SOURCE_DIR}/Vulkan/CommandQueueImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/ContextImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetImpl.hpp
+    ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetPool.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/FenceImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/FramebufferImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/ImageImpl.hpp
@@ -80,8 +81,8 @@ set(CORAL_VULKAN_INCLUDES
     ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/VulkanFormat.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/Vulkan.hpp)
+    ${CORAL_SOURCE_DIR}/Vulkan/Vulkan.hpp
+    ${CORAL_SOURCE_DIR}/Vulkan/VulkanFormat.hpp)
 
 # Definition of all Vulkan source files of the Coral library
 set(CORAL_VULKAN_SOURCES
@@ -91,6 +92,7 @@ set(CORAL_VULKAN_SOURCES
     ${CORAL_SOURCE_DIR}/Vulkan/CommandQueueImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ContextImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetImpl.cpp
+    ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetPool.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/FenceImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/FramebufferImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ImageImpl.cpp
@@ -98,8 +100,7 @@ set(CORAL_VULKAN_SOURCES
     ${CORAL_SOURCE_DIR}/Vulkan/SamplerImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.cpp
-)
+    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.cpp)
 
 if(WIN32)
     list(APPEND CORAL_VULKAN_SOURCES
