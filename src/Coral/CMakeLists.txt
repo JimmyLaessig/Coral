@@ -115,14 +115,14 @@ endif()
 # Link the Coral library with the following libraries
 ###############################################################################
 
-find_package(VulkanHeaders CONFIG REQUIRED)
-find_package(volk CONFIG REQUIRED)
-find_package(vk-bootstrap REQUIRED)
-find_package(vulkan-memory-allocator REQUIRED)
+#find_package(VulkanHeaders CONFIG REQUIRED)
+#find_package(volk CONFIG REQUIRED)
+#find_package(vk-bootstrap REQUIRED)
+#find_package(vulkan-memory-allocator REQUIRED)
 
-if (CORAL_SKIP_CONAN_DEPENDENCIES)
-    find_package(spirv-reflect REQUIRED)
-endif()
+#if (CORAL_SKIP_CONAN_DEPENDENCIES)
+#    find_package(spirv-reflect REQUIRED)
+#endif()
 
 coral_configure_target(${CORAL_TARGET_NAME}
      PUBLIC_HEADERS 
@@ -136,8 +136,8 @@ coral_configure_target(${CORAL_TARGET_NAME}
      PRIVATE_DEPENDENCIES
         spirv-reflect-static
         vk-bootstrap::vk-bootstrap
-        volk::volk
-        vulkan-memory-allocator::vulkan-memory-allocator
+        volk_headers
+        VulkanMemoryAllocator
         Vulkan::Headers
     )
 

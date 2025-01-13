@@ -70,11 +70,6 @@ source_group("Shaders" FILES ${CORAL_UNIT_TESTS_SHADER_SOURCES})
 # Configure the target
 ###############################################################################
 
-find_package(glm)
-find_package(glfw3)
-find_package(stb)
-find_package(Catch2)
-
 coral_configure_target(${CORAL_UNIT_TESTS_TARGET_NAME}
     SOURCES
         ${CORAL_UNIT_TESTS_SOURCES}
@@ -83,7 +78,6 @@ coral_configure_target(${CORAL_UNIT_TESTS_TARGET_NAME}
         ${CORAL_UNIT_TESTS_GENERATED_SHADER_HEADERS}
     PRIVATE_DEPENDENCIES
         glm::glm
-        glfw::glfw
         stb::stb
         Coral
         Catch2::Catch2WithMain)

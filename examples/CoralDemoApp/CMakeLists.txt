@@ -15,15 +15,15 @@ set(CORAL_DEMO_APP_GENERATED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CORAL_DEM
 
 add_executable(${CORAL_DEMO_APP_TARGET_NAME})
 
-find_package(glm)
-find_package(glfw3)
-find_package(stb)
+#find_package(glm REQUIRED)
+#find_package(glfw3 REQUIRED)
+#find_package(stb REQUIRED)
 
 ###############################################################################
 # Add the target source files
 ###############################################################################
 
-set (CORAL_DEMO_APP_INCLUDES ${CORAL_RESOURCE_DIRECTORY}/Cube.hpp)
+set (CORAL_DEMO_APP_INCLUDES ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp)
 
 set (CORAL_DEMO_APP_SOURCES ${CORAL_DEMO_APP_SRC_DIR}/main.cpp)
 
@@ -76,8 +76,8 @@ coral_configure_target(${CORAL_DEMO_APP_TARGET_NAME}
         ${CORAL_DEMO_APP_GENERATED_SHADER_HEADERS}
     PRIVATE_DEPENDENCIES
         glm::glm
-        glfw::glfw
-        stb::stb
+        glfw
+        stb
         Coral)
 
 ###############################################################################

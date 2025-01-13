@@ -193,7 +193,7 @@ ContextImpl::init(const ContextCreateConfig& config)
 
 	std::vector<float> priorities(numDedicatedQueues, 1.f);
 
-	vkb::CustomQueueDescription queueDescription{ mQueueFamilyIndex, numDedicatedQueues, priorities };
+	vkb::CustomQueueDescription queueDescription{ mQueueFamilyIndex, priorities };
 
 	vkb::DeviceBuilder deviceBuilder{ physicalDevice.value()};
 	auto device = deviceBuilder.custom_queue_setup({ queueDescription })

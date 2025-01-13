@@ -1,0 +1,15 @@
+include(FetchContent)
+
+FetchContent_Declare(
+  vma
+  GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator.git
+  GIT_TAG v3.2.0
+)
+
+set(VMA_STATIC_VULKAN_FUNCTIONS OFF CACHE BOOL "" FORCE)
+set(VMA_DYNAMIC_VULKAN_FUNCTIONS OFF CACHE BOOL "" FORCE)
+set(VMA_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(VMA_BUILD_DOCUMENTATION OFF CACHE BOOL "" FORCE)
+set(VMA_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)
+
+FetchContent_MakeAvailable(vma)

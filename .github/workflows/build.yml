@@ -17,10 +17,12 @@ jobs:
                       cmake-generator: Visual Studio 17 2022
                       additional-cmake-args:
                       cmake-args: "-DCMAKE_CONFIGURATION_TYPES=Release"
-                    - name: Linux Clang 17
+                      compiler: "msvc"
+                    - name: Linux GCC 12
                       os: ubuntu-latest
                       cmake-generator: Unix Makefiles
                       cmake-args: "-DCMAKE_BUILD_TYPE=Release -DCORAL_BUILD_TESTS=OFF -DCORAL_BUILD_EXAMPLES=OFF"
+                      compiler: "gcc"
         steps:
             # Checkout the Coral repository
             - name: Checkout
@@ -28,8 +30,14 @@ jobs:
               with:
                 lfs: true
 
+            - name: Install Ubuntu build dependencies
+              if: runner.os == 'linux' 
+              run: |
+                    sudo apt update
+                    sudo apt install libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev libwayland-dev libxkbcommon-dev
+
             # Install GCC (Linux only)
-            - name: Install GCC 17 (Linux)
+            - name: Install GCC 12 (Linux)
               if: runner.os == 'linux' 
               uses:  egor-tensin/setup-gcc@v1
               with:
@@ -43,20 +51,6 @@ jobs:
             #  with:
             #    version: 17
             #    platform: x64
-
-            # Install Conan to obtain third-party libraries
-            # Note: Conan dependencies are fetched during CMake configure step
-            - name: Install Conan
-              uses: turtlebrowser/get-conan@v1.2
-              with:
-                version: 1.66
-
-            - name: Create default Conan profile
-              run: conan profile new default --detect
-
-            - name: Update Conan profile
-              if: runner.os == 'linux' 
-              run: conan profile update settings.compiler=clang default
 
             # Configure the Coral CMake project
             - name: Configure CMake

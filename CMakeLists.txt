@@ -31,15 +31,11 @@ include(cmake/ConfigureTarget.cmake)
 
 set(CORAL_RESOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources)
 
-# Download the Conan dependencies
-if (NOT CORAL_SKIP_CONAN_DEPENDENCIES)
-    add_subdirectory(deps)
-endif()
-
+add_subdirectory(deps)
 add_subdirectory(src)
-
+add_subdirectory(tools)
 if(CORAL_BUILD_EXAMPLES OR CORAL_BUILD_TOOLS)
-    add_subdirectory(tools)
+#    add_subdirectory(tools)
 endif()
 
 if(CORAL_BUILD_EXAMPLES)

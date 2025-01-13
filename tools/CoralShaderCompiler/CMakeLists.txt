@@ -28,7 +28,7 @@ source_group("cmake/" FILES ${CORAL_SHADER_COMPILER_CMAKE_FILE})
 
 add_library(${CORAL_SHADER_COMPILER_TARGET_NAME} STATIC)
 
-find_package(shaderc)
+#find_package(shaderc)
 
 coral_configure_target(${CORAL_SHADER_COMPILER_TARGET_NAME}
           PUBLIC_HEADERS
@@ -36,4 +36,4 @@ coral_configure_target(${CORAL_SHADER_COMPILER_TARGET_NAME}
           SOURCES
             ${CORAL_SHADER_COMPILER_SOURCES}
         PRIVATE_DEPENDENCIES
-            shaderc::shaderc)
+            shaderc)
