@@ -158,13 +158,6 @@ DescriptorSetPool::freeDescriptorSet(VkDescriptorSet descriptorSet)
 
 DescriptorSetPool::~DescriptorSetPool()
 {
-	for (auto& pool : mPools)
-	{
-		if (pool->mPool != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorPool(mContext->getVkDevice(), pool->mPool, nullptr);
-		}
-	}
 }
 
 

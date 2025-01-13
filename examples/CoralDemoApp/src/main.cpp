@@ -109,7 +109,7 @@ createBuffer(Coral::Context* context, const std::array<T, S>& elements, Coral::B
 
 	Coral::BufferViewCreateConfig bufferViewConfig{};
 	bufferViewConfig.buffer      = buffer.get();
-	bufferViewConfig.count = elements.size();
+	bufferViewConfig.count		 = static_cast<uint32_t>(elements.size());
 	bufferViewConfig.offset		 = 0;
 	bufferViewConfig.stride		 = 0;
 	bufferViewConfig.attribute   = toAttributeFormat<T>();
@@ -123,8 +123,8 @@ createBuffer(Coral::Context* context, const std::array<T, S>& elements, Coral::B
 	Coral::UpdateBufferDataInfo updateInfo{};
 	updateInfo.buffer = buffer.get();
 	updateInfo.offset = 0;
-	updateInfo.data   = { reinterpret_cast<const std::byte*>(elements.data()), elements.size() * sizeof(T)};
-
+	updateInfo.data   = std::as_bytes(std::span(elements));
+	
 	commandBuffer->begin();
 	commandBuffer->cmdUpdateBufferData(updateInfo);
 	commandBuffer->end();

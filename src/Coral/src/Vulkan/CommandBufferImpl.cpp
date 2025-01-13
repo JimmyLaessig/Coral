@@ -204,7 +204,7 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
 	}
 
 	VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-	renderingInfo.colorAttachmentCount		= attachments.size();
+	renderingInfo.colorAttachmentCount		= static_cast<uint32_t>(attachments.size());
 	renderingInfo.pColorAttachments			= attachments.data();
 	renderingInfo.layerCount				= 1;
 	renderingInfo.renderArea.offset.x		= 0;
@@ -447,20 +447,20 @@ CommandBufferImpl::cmdSetViewport(const Coral::ViewportInfo& info)
 	}
 
 	VkViewport viewport;
-	viewport.x			= info.viewport.x;
-	viewport.y			= info.viewport.y;
-	viewport.width		= info.viewport.width;
-	viewport.height		= info.viewport.height;
-	viewport.minDepth	= info.minDepth;
-	viewport.maxDepth	= info.maxDepth;
+	viewport.x			= static_cast<float>(info.viewport.x);
+	viewport.y			= static_cast<float>(info.viewport.y);
+	viewport.width		= static_cast<float>(info.viewport.width);
+	viewport.height		= static_cast<float>(info.viewport.height);
+	viewport.minDepth	= static_cast<float>(info.minDepth);
+	viewport.maxDepth	= static_cast<float>(info.maxDepth);
 
 	// Vulkan and OpenGL use different coordinate systems. Per default, the Vulkan coordinate system is y-down. To
 	// combat the inverted image, we need to flip the viewport by passing negative height and adjust the y-offset.
 	if (info.mode == Coral::ViewportMode::Y_UP)
 	{
-		viewport.x		= info.viewport.x;
+		//viewport.x		= info.viewport.x;
 		viewport.y		= viewport.height + viewport.y;
-		viewport.width	= info.viewport.width;
+		viewport.width	= viewport.width;
 		viewport.height = -viewport.height;
 	}
 
