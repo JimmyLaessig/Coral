@@ -20,10 +20,10 @@ add_executable(${CORAL_UNIT_TESTS_TARGET_NAME})
 ###############################################################################
 
 set(CORAL_UNIT_TESTS_INCLUDES
-    ${CORAL_RESOURCE_DIRECTORY}/Cube.hpp 
-    ${CORAL_UNIT_TESTS_SRC_DIR}/Catch.hpp)
+    ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp)
 
 set(CORAL_UNIT_TESTS_SOURCES
+    ${CORAL_UNIT_TESTS_SRC_DIR}/Catch.hpp
     ${CORAL_UNIT_TESTS_SRC_DIR}/Catch.cpp
     ${CORAL_UNIT_TESTS_SRC_DIR}/ContextTests.cpp
     ${CORAL_UNIT_TESTS_SRC_DIR}/BufferTests.cpp
@@ -78,7 +78,7 @@ coral_configure_target(${CORAL_UNIT_TESTS_TARGET_NAME}
         ${CORAL_UNIT_TESTS_GENERATED_SHADER_HEADERS}
     PRIVATE_DEPENDENCIES
         glm::glm
-        stb::stb
+        stb
         Coral
         Catch2::Catch2WithMain)
 

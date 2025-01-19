@@ -9,31 +9,26 @@ include(volk.cmake)
 include(cli11.cmake)
 include(shaderc.cmake)
 
+include(catch2.cmake)
 include(glfw.cmake)
 include(glm.cmake)
 include(stb.cmake)
 
-# To cleanup the project files, put all third-party dependencies into a separate folders
+# Put all third-party dependencies into a separate folders to cleanup the IDE project explorer.
 
-# Helper macro to get all targets of the third-party dependencies
-macro(get_all_targets_recursive targets dir)
-    get_property(subdirectories DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
-    foreach(subdir ${subdirectories})
-        get_all_targets_recursive(${targets} ${subdir})
+function (get_all_targets result_var directory)
+    get_property(targets DIRECTORY ${directory} PROPERTY BUILDSYSTEM_TARGETS)
+    get_property(sub_directories DIRECTORY ${directory} PROPERTY SUBDIRECTORIES)
+
+    foreach(sub_directory ${sub_directories})
+        get_all_targets(sub_directory_targets ${sub_directory})
+        list(APPEND targets ${sub_directory_targets})
     endforeach()
 
-    get_property(current_targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
-    list(APPEND ${targets} ${current_targets})
-endmacro()
+    set(${result_var} ${targets} PARENT_SCOPE)
+endfunction()
 
-# Helper function to get all targets of the third-party dependencies
-macro(get_all_targets var)
-    set(targets)
-    get_all_targets_recursive(targets ${CMAKE_CURRENT_SOURCE_DIR})
-    set(${var} ${targets} PARENT_SCOPE)
-endmacro()
-
-get_all_targets(all_targets)
+get_all_targets(all_targets ${CMAKE_CURRENT_SOURCE_DIR})
 
 foreach (target ${all_targets})
     get_target_property(folder ${target} FOLDER)
@@ -43,6 +38,5 @@ foreach (target ${all_targets})
     else()
         set(new_folder "deps/${folder}")
     endif()
-
     set_target_properties(${target} PROPERTIES FOLDER "${new_folder}")
 endforeach()

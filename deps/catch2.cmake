@@ -1,5 +1,3 @@
-
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -21,3 +19,7 @@ set(CATCH_CONFIG_CPP17_VARIANT ON CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(catch2)
 
 list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/extras)
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} PARENT_SCOPE)
+
+target_compile_features(Catch2 PUBLIC cxx_std_17)
+target_compile_features(Catch2WithMain PUBLIC cxx_std_17)

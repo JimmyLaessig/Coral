@@ -1,18 +1,12 @@
 #include "Catch.hpp"
 
-
-std::string
-Catch::StringMaker<std::byte>::convert(std::byte value)
-{
-	return std::to_string((uint8_t)value);
-}
-
 namespace UnitTests
 {
 
 std::string
 createRandomString(size_t size)
 {
+	constexpr std::string_view characters{ "aAbBcCdDeEfFgGhHiIjJkKlLmMnNoOpPqQrRsStTuUvVwWxXyYzZ0123456789" };
 	return std::string(size, '0');
 }
 
