@@ -63,10 +63,9 @@ convert(Coral::PixelFormat format)
 		case Coral::PixelFormat::RGB8_SRGB:			return VK_FORMAT_R8G8B8_SRGB;
 		case Coral::PixelFormat::RG8_SRGB:			return VK_FORMAT_R8G8_SRGB;
 		case Coral::PixelFormat::R8_SRGB:			return VK_FORMAT_R8_SRGB;
-
-		default:
-			return VK_FORMAT_UNDEFINED;
 	}
+
+	std::unreachable();
 };
 
 
@@ -123,9 +122,10 @@ convert(VkFormat format)
 		case VK_FORMAT_R8G8B8_SRGB:					return Coral::PixelFormat::RGB8_SRGB;
 		case VK_FORMAT_R8G8_SRGB:					return Coral::PixelFormat::RG8_SRGB;
 		case VK_FORMAT_R8_SRGB:						return Coral::PixelFormat::R8_SRGB;
-	}
 
-	std::unreachable();
+		default:
+			std::unreachable();
+	}
 };
 
 
