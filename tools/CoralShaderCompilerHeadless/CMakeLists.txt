@@ -25,8 +25,6 @@ add_executable(${CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME})
 # Configure the target
 ###############################################################################
 
-#find_package(CLI11)
-
 coral_configure_target(${CORAL_SHADER_COMPILER_HEADLESS_TARGET_NAME}
     SOURCES ${CORAL_SHADER_COMPILER_HEADLESS_SOURCES}
     PRIVATE_DEPENDENCIES

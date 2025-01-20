@@ -6,7 +6,7 @@
 namespace Coral
 {
 
-std::optional<std::string> resolveIncludes(const ShaderModuleCompileInfo& compileInfo);
+CORALSHADERCOMPILER_API std::optional<std::string> resolveIncludes(const ShaderModuleCompileInfo& compileInfo);
 
 } // namespace ShaderCompiler
 

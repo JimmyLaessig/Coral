@@ -9,7 +9,7 @@
 namespace Coral
 {
 
-std::string CORALSHADERCOMPILER_API buildShaderHeader(std::string_view className, 
+CORALSHADERCOMPILER_API std::string buildShaderHeader(std::string_view className,
 												      const std::optional<std::string_view>& classNamespace,
 												      const Coral::ShaderModuleCompileInfo& compileInfo,
 												      const Coral::CompiledShaderModule& shaderProgram);

@@ -8,8 +8,6 @@
 #include <string>
 #include <vector>
 
-class GLFWwindow;
-
 namespace Coral
 {
 
@@ -31,7 +29,7 @@ enum class ShaderLanguage
 };
 
 
-struct ShaderModuleCompileInfo
+struct CORALSHADERCOMPILER_API ShaderModuleCompileInfo
 {
 	std::string sourceCode;
 	std::filesystem::path filePath;
@@ -42,7 +40,7 @@ struct ShaderModuleCompileInfo
 };
 
 
-struct CompiledShaderModule
+struct CORALSHADERCOMPILER_API CompiledShaderModule
 {
 	std::string sourceCodePreprocessed;
 	std::vector<uint32_t> spirVCode;
@@ -50,7 +48,7 @@ struct CompiledShaderModule
 };
 
 
-std::optional<CompiledShaderModule> CORALSHADERCOMPILER_API compileHLSLToSpirV(const ShaderModuleCompileInfo& program);
+CORALSHADERCOMPILER_API std::optional<CompiledShaderModule> compileHLSLToSpirV(const ShaderModuleCompileInfo& program);
 
 } // namespace Coral
 
