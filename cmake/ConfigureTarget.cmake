@@ -83,7 +83,7 @@ if (INPUT_PRIVATE_HEADERS)
         FILE_SET private_headers
         TYPE HEADERS
         BASE_DIRS ${PRIVATE_INCLUDE_DIRECTORIES}
-        PRIVATE ${INPUT_PRIVATE_HEADERS})
+        FILES ${INPUT_PRIVATE_HEADERS})
 endif()
 
 if (INPUT_SOURCES)
@@ -119,10 +119,6 @@ endif()
 # CMake requires the language standard to be specified as compile feature
 # when a target provides C++20 modules and the target will be installed 
 target_compile_features(${TARGET_NAME} PUBLIC cxx_std_23)
-
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(${TARGET_NAME} PUBLIC -stdlib=libc++)
-endif()
 
 # The visual studio compiler creates a .pdb files containing the debug 
 # information of the library. Setting the following property ensures the

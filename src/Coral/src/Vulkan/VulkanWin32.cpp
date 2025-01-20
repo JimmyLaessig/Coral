@@ -1,10 +1,14 @@
 #include "Vulkan.hpp"
 
+#define VOLK_IMPLEMENTATION
+#include <volk.h>
+
 #define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
 #include <Windows.h>
 #include <vulkan/vulkan_win32.h>
+
 #undef min
 
 namespace Coral::Vulkan

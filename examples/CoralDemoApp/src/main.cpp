@@ -1,7 +1,7 @@
 #include <Shaders/UniformColorVertexShader.hpp>
 #include <Shaders/UniformColorFragmentShader.hpp>
 
-#include "../../../resources/Cube.hpp"
+#include "Cube.hpp"
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
