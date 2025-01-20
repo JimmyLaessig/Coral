@@ -120,10 +120,6 @@ endif()
 # when a target provides C++20 modules and the target will be installed 
 target_compile_features(${TARGET_NAME} PUBLIC cxx_std_23)
 
-if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
-    target_compile_options(${TARGET_NAME} PUBLIC -stdlib=libc++)
-endif()
-
 # The visual studio compiler creates a .pdb files containing the debug 
 # information of the library. Setting the following property ensures the
 # correct naming and output directory of the .pdb file.
