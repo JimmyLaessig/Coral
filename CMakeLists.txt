@@ -12,7 +12,6 @@ set(CORAL_PROJECT_VERSION "${CORAL_VERSION_MAJOR}.${CORAL_VERSION_MINOR}.${CORAL
 project(${PROJECT_NAME} VERSION ${CORAL_PROJECT_VERSION})
 
 option(CORAL_BUILD_SHARED_LIBRARY "Build and link ${CORAL_TARGET_NAME} as a shared library" OFF)
-option(CORAL_BUILD_TOOLS "Build the Coral tools" ON)
 option(CORAL_BUILD_EXAMPLES "Build the Coral examples" ON)
 option(CORAL_BUILD_TESTS "Build the Coral tests" ON)
 option(CORAL_SKIP_CONAN_DEPENDENCIES "If enabled, skip downloading the Coral dependencies via Conan." OFF)
@@ -33,10 +32,6 @@ set(CORAL_RESOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources)
 
 add_subdirectory(deps)
 add_subdirectory(src)
-add_subdirectory(tools)
-if(CORAL_BUILD_EXAMPLES OR CORAL_BUILD_TOOLS)
-#    add_subdirectory(tools)
-endif()
 
 if(CORAL_BUILD_EXAMPLES)
     add_subdirectory(examples)

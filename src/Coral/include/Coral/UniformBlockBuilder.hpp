@@ -46,6 +46,15 @@ public:
 	template<typename Vec4F>
 	bool setVec4F(size_t index, const Vec4F& value);
 
+	template<typename Vec2I>
+	bool setVec2I(size_t index, const Vec2I& value);
+
+	template<typename Vec3I>
+	bool setVec3I(size_t index, const Vec3I& value);
+
+	template<typename Vec4I>
+	bool setVec4I(size_t index, const Vec4I& value);
+
 	template<typename Mat33F>
 	bool setMat33F(size_t index, const Mat33F& value);
 
@@ -108,6 +117,30 @@ bool
 Coral::UniformBlockBuilder::setVec4F(size_t index, const Vec4F& value)
 {
 	return setScalar(index, ValueType::VEC4F, reinterpret_cast<const std::byte*>(&value));
+}
+
+
+template<typename Vec2I>
+bool
+Coral::UniformBlockBuilder::setVec2I(size_t index, const Vec2I& value)
+{
+	return setScalar(index, ValueType::VEC2I, reinterpret_cast<const std::byte*>(&value));
+}
+
+
+template<typename Vec3I>
+bool
+Coral::UniformBlockBuilder::setVec3I(size_t index, const Vec3I& value)
+{
+	return setScalar(index, ValueType::VEC3I, reinterpret_cast<const std::byte*>(&value));
+}
+
+
+template<typename Vec4I>
+bool
+Coral::UniformBlockBuilder::setVec4I(size_t index, const Vec4I& value)
+{
+	return setScalar(index, ValueType::VEC4I, reinterpret_cast<const std::byte*>(&value));
 }
 
 

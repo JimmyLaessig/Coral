@@ -70,6 +70,9 @@ enum class ValueType
 	VEC2F,
 	VEC3F,
 	VEC4F,
+	VEC2I,
+	VEC3I,
+	VEC4I,
 	MAT33F,
 	MAT44F
 };
@@ -88,6 +91,7 @@ struct MemberDefinition
 /// Defines a uniform block descriptor
 struct UniformBlockDefinition
 {
+	std::string name;
 	std::vector<MemberDefinition> members;
 };
 
