@@ -278,23 +278,13 @@ int main()
 	auto farPlane		  = 1000.f;
 	auto projectionMatrix = glm::perspective(fov, static_cast<float>(WIDTH) / HEIGHT, nearPlane, farPlane);
 
+	Coral::UniformBlockBuilder uniformBlock(TexturedWithLightingShaderUniformBlockDefinition());
+	uniformBlock.setVec3F("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
+	uniformBlock.setVec3F("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
+	uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+	uniformBlock.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
 
-	Coral::UniformBlockBuilder uniformData(Coral::UniformBlockDefinition{ 
-		"Uniforms",
-		{
-			{ Coral::ValueType::MAT44F, "modelViewProjectionMatrix",  1 },
-			{ Coral::ValueType::MAT33F, "normalMatrix",  1 },
-			{ Coral::ValueType::VEC3F, "lightColor", 1 },
-			{ Coral::ValueType::VEC3F, "lightDirection",  1 },
-		}
-	});
-
-	uniformData.setVec3F("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
-	uniformData.setVec3F("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
-	uniformData.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-	uniformData.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-
-	auto uniformBuffer = createUniformBuffer(*context, uniformData);
+	auto uniformBuffer = createUniformBuffer(*context, uniformBlock);
 
 	auto [texture, sampler] = createTexture(*context, "resources/uvtest.png");
 
@@ -357,10 +347,10 @@ int main()
 
 		projectionMatrix = glm::perspective(fov, static_cast<float>(width) / height, nearPlane, farPlane);
 
-		uniformData.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-		uniformData.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+		uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+		uniformBlock.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
 
-		updateUniformBuffer(*uniformBuffer, uniformData);
+		updateUniformBuffer(*uniformBuffer, uniformBlock);
 
 		auto index = swapchain->getCurrentSwapchainImageIndex();
 
