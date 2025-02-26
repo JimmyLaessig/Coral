@@ -46,7 +46,8 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 	constexpr auto IntFlags = SPV_REFLECT_TYPE_FLAG_INT;
 	constexpr auto FloatFlags = SPV_REFLECT_TYPE_FLAG_FLOAT;
 	constexpr auto MatrixFlags = SPV_REFLECT_TYPE_FLAG_MATRIX | SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
-	constexpr auto VectorFlags = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
+	constexpr auto FloatVectorFlags = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
+	constexpr auto IntVectorFlags = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_INT;
 	constexpr auto StructFlags = SPV_REFLECT_TYPE_FLAG_STRUCT | SPV_REFLECT_TYPE_FLAG_EXTERNAL_BLOCK;
 	switch (variable.type_description->type_flags)
 	{
@@ -59,7 +60,7 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 	case FloatFlags:
 		result.members.push_back({ Coral::ValueType::FLOAT, fullName , 1 });
 		break;
-	case VectorFlags:
+	case FloatVectorFlags:
 		switch (traits.numeric.vector.component_count)
 		{
 		case 2:
@@ -70,6 +71,22 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 			break;
 		case 4:
 			result.members.push_back({ Coral::ValueType::VEC4F, fullName , 1 });
+			break;
+		default:
+			assert(false);
+		}
+		break;
+	case IntVectorFlags:
+		switch (traits.numeric.vector.component_count)
+		{
+		case 2:
+			result.members.push_back({ Coral::ValueType::VEC2I, fullName , 1 });
+			break;
+		case 3:
+			result.members.push_back({ Coral::ValueType::VEC3I, fullName , 1 });
+			break;
+		case 4:
+			result.members.push_back({ Coral::ValueType::VEC4I, fullName , 1 });
 			break;
 		default:
 			assert(false);

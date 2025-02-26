@@ -4,7 +4,7 @@ FetchContent_Declare(
   shaderc
   GIT_REPOSITORY https://github.com/google/shaderc.git
   GIT_TAG v2024.4
-  PATCH_COMMAND git checkout . && git apply --ignore-whitespace "${CMAKE_SOURCE_DIR}/deps/shaderc.patch" && python ./utils/git-sync-deps
+  PATCH_COMMAND git checkout . && git apply --ignore-whitespace "${CMAKE_CURRENT_SOURCE_DIR}/shaderc.patch" && python ./utils/git-sync-deps
 )
 
 set(GLSLANG_ENABLE_INSTALL OFF CACHE BOOL "" FORCE)

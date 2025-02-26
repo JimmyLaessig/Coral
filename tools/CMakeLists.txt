@@ -1,2 +1,0 @@
-add_subdirectory(CoralShaderCompilerHeadless)
-add_subdirectory(CoralShaderCompiler)

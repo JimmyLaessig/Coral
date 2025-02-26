@@ -1,7 +1,5 @@
-#include <Shaders/UniformColorVertexShader.hpp>
-#include <Shaders/UniformColorFragmentShader.hpp>
-
 #include "Cube.hpp"
+#include "TexturedWithLightingShader.h"
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -28,6 +26,8 @@
 
 #include <Coral/Coral.hpp>
 #include <Coral/UniformBlockBuilder.hpp>
+#include <Coral/ShaderLanguage.hpp>
+#include <Coral/ShaderGraph/CompilerSPV.hpp>
 
 namespace
 {
@@ -218,6 +218,7 @@ createTexture(Coral::Context& context, const std::string& path)
 
 } // namespace
 
+
 int main()
 {
 	if (glfwInit() != GLFW_TRUE)
@@ -248,18 +249,25 @@ int main()
 	auto fence     = context->createFence().value();
 	auto queue     = context->getGraphicsQueue();
 
+	auto shader = TexturedWithLightingShader();
+
+	if (!shader)
+	{
+		return EXIT_FAILURE;
+	}
+
 	Coral::ShaderModuleCreateConfig vertexShaderConfig{};
-	vertexShaderConfig.name		  = "UniformColorVertexShader";
+	vertexShaderConfig.name		  = "VertexShader";
 	vertexShaderConfig.stage	  = Coral::ShaderStage::VERTEX;
-	vertexShaderConfig.entryPoint = Shaders::UniformColorVertexShader::entryPoint;
-	vertexShaderConfig.source	  = std::as_bytes(std::span{ Shaders::UniformColorVertexShader::shaderSourceSpirV });
+	vertexShaderConfig.entryPoint = "main";
+	vertexShaderConfig.source	  = std::as_bytes(std::span{ shader->vertexShader });
 	auto vertexShader             = context->createShaderModule(vertexShaderConfig).value();
 
 	Coral::ShaderModuleCreateConfig fragmentShaderConfig{};
-	fragmentShaderConfig.name		= "UniformColorFragmentShader";
+	fragmentShaderConfig.name		= "FragmentShader";
 	fragmentShaderConfig.stage		= Coral::ShaderStage::FRAGMENT;
-	fragmentShaderConfig.entryPoint	= Shaders::UniformColorFragmentShader::entryPoint;
-	fragmentShaderConfig.source		= std::as_bytes(std::span{ Shaders::UniformColorFragmentShader::shaderSourceSpirV });
+	fragmentShaderConfig.entryPoint	= "main";
+	fragmentShaderConfig.source		= std::as_bytes(std::span{ shader->fragmentShader });
 	auto fragmentShader             = context->createShaderModule(fragmentShaderConfig).value();
 
 	glm::mat4 modelMatrix(1.f);
@@ -270,36 +278,30 @@ int main()
 	auto farPlane		  = 1000.f;
 	auto projectionMatrix = glm::perspective(fov, static_cast<float>(WIDTH) / HEIGHT, nearPlane, farPlane);
 
-	//auto vertexShaderBindings = vertexShader->descriptorBindingDefinitions();
-	//auto fragmentShaderBindings = fragmentShader->descriptorBindingDefinitions();
 
-	Coral::UniformBlockBuilder lightData({{ 
-		{ Coral::ValueType::VEC3F, "lightData.color", 1 }, 
-		{ Coral::ValueType::VEC3F, "lightData.direction",  1 }
-	}});
+	Coral::UniformBlockBuilder uniformData(Coral::UniformBlockDefinition{ 
+		"Uniforms",
+		{
+			{ Coral::ValueType::MAT44F, "modelViewProjectionMatrix",  1 },
+			{ Coral::ValueType::MAT33F, "normalMatrix",  1 },
+			{ Coral::ValueType::VEC3F, "lightColor", 1 },
+			{ Coral::ValueType::VEC3F, "lightDirection",  1 },
+		}
+	});
 
-	lightData.setVec3F("lightData.color", glm::vec3{ 1.f, 1.f, 1.f });
-	lightData.setVec3F("lightData.direction", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
+	uniformData.setVec3F("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
+	uniformData.setVec3F("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
+	uniformData.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+	uniformData.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
 
-	Coral::UniformBlockBuilder instanceData({{
-		{ Coral::ValueType::MAT44F, "modelViewProjectionMatrix", 1 },
-		{ Coral::ValueType::MAT33F, "normalMatrix",  1 }
-	}});
-
-	instanceData.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-	instanceData.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-
-	auto lightDataUniform = createUniformBuffer(*context, lightData);
-	auto instanceDataUniform = createUniformBuffer(*context, instanceData);
+	auto uniformBuffer = createUniformBuffer(*context, uniformData);
 
 	auto [texture, sampler] = createTexture(*context, "resources/uvtest.png");
 
 	Coral::DescriptorSetCreateConfig descriptorSetConfig{};
 	descriptorSetConfig.bindings = {
-		{ 0, instanceDataUniform.get() },
-		{ 1, lightDataUniform.get() },
-		{ 2, texture.get() },
-		{ 3, sampler.get() },
+		{ 0, uniformBuffer.get() },
+		{ 1, Coral::CombinedTextureSampler{ texture.get(), sampler.get() } },
 	};
 	auto descriptorSet = context->createDescriptorSet(descriptorSetConfig).value();
 
@@ -355,10 +357,10 @@ int main()
 
 		projectionMatrix = glm::perspective(fov, static_cast<float>(width) / height, nearPlane, farPlane);
 
-		instanceData.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-		instanceData.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+		uniformData.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+		uniformData.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
 
-		updateUniformBuffer(*instanceDataUniform, instanceData);
+		updateUniformBuffer(*uniformBuffer, uniformData);
 
 		auto index = swapchain->getCurrentSwapchainImageIndex();
 
