@@ -18,21 +18,22 @@ namespace
 {
 
 constexpr std::string_view
-getTypeShortName(ShaderTypeId typeId)
+getTypeShortName(ValueTypeId typeId)
 {
 	switch (typeId)
 	{
-		case ShaderTypeId::INT:      return "i";
-		case ShaderTypeId::INT2:     return "iv";
-		case ShaderTypeId::INT3:     return "iv";
-		case ShaderTypeId::INT4:     return "iv";
-		case ShaderTypeId::FLOAT:    return "f";
-		case ShaderTypeId::FLOAT2:   return "v";
-		case ShaderTypeId::FLOAT3:   return "v";
-		case ShaderTypeId::FLOAT4:   return "v";
-		case ShaderTypeId::FLOAT3X3: return "m";
-		case ShaderTypeId::FLOAT4X4: return "m";
-		case ShaderTypeId::SAMPLER2D: return "s";
+		case ValueTypeId::BOOL:    	 return "b";
+		case ValueTypeId::INT:       return "i";
+		case ValueTypeId::INT2:      return "iv";
+		case ValueTypeId::INT3:      return "iv";
+		case ValueTypeId::INT4:      return "iv";
+		case ValueTypeId::FLOAT:     return "f";
+		case ValueTypeId::FLOAT2:    return "v";
+		case ValueTypeId::FLOAT3:    return "v";
+		case ValueTypeId::FLOAT4:    return "v";
+		case ValueTypeId::FLOAT3X3:  return "m";
+		case ValueTypeId::FLOAT4X4:  return "m";
+		case ValueTypeId::SAMPLER2D: return "s";
 	}
 
 	std::unreachable();
@@ -40,21 +41,22 @@ getTypeShortName(ShaderTypeId typeId)
 
 
 constexpr std::string_view
-toString(ShaderTypeId typeId)
+toString(ValueTypeId typeId)
 {
 	switch (typeId)
 	{
-		case ShaderTypeId::INT:       return "int";
-		case ShaderTypeId::INT2:      return "ivec2";
-		case ShaderTypeId::INT3:      return "ivec3";
-		case ShaderTypeId::INT4:      return "ivec5";
-		case ShaderTypeId::FLOAT:     return "float";
-		case ShaderTypeId::FLOAT2:    return "vec2";
-		case ShaderTypeId::FLOAT3:    return "vec3";
-		case ShaderTypeId::FLOAT4:    return "vec4";
-		case ShaderTypeId::FLOAT3X3:  return "mat3";
-		case ShaderTypeId::FLOAT4X4:  return "mat4";
-		case ShaderTypeId::SAMPLER2D: return "sampler2D";
+		case ValueTypeId::BOOL:      return "bool";
+		case ValueTypeId::INT:       return "int";
+		case ValueTypeId::INT2:      return "ivec2";
+		case ValueTypeId::INT3:      return "ivec3";
+		case ValueTypeId::INT4:      return "ivec5";
+		case ValueTypeId::FLOAT:     return "float";
+		case ValueTypeId::FLOAT2:    return "vec2";
+		case ValueTypeId::FLOAT3:    return "vec3";
+		case ValueTypeId::FLOAT4:    return "vec4";
+		case ValueTypeId::FLOAT3X3:  return "mat3";
+		case ValueTypeId::FLOAT4X4:  return "mat4";
+		case ValueTypeId::SAMPLER2D: return "sampler2D";
 	}
 
 	std::unreachable();
@@ -62,21 +64,22 @@ toString(ShaderTypeId typeId)
 
 
 constexpr Coral::ValueType
-convert(ShaderTypeId typeId)
+convert(ValueTypeId typeId)
 {
 	switch (typeId)
 	{
-	case ShaderTypeId::INT:       return Coral::ValueType::INT;
-	case ShaderTypeId::INT2:      return Coral::ValueType::VEC2I;
-	case ShaderTypeId::INT3:      return Coral::ValueType::VEC3I;
-	case ShaderTypeId::INT4:      return Coral::ValueType::VEC4I;
-	case ShaderTypeId::FLOAT:     return Coral::ValueType::FLOAT;
-	case ShaderTypeId::FLOAT2:    return Coral::ValueType::VEC2F;
-	case ShaderTypeId::FLOAT3:    return Coral::ValueType::VEC3F;
-	case ShaderTypeId::FLOAT4:    return Coral::ValueType::VEC4F;
-	case ShaderTypeId::FLOAT3X3:  return Coral::ValueType::MAT33F;
-	case ShaderTypeId::FLOAT4X4:  return Coral::ValueType::MAT44F;
-	case ShaderTypeId::SAMPLER2D: assert(false); return Coral::ValueType::INT;
+		case ValueTypeId::BOOL:      return Coral::ValueType::BOOL;
+		case ValueTypeId::INT:       return Coral::ValueType::INT;
+		case ValueTypeId::INT2:      return Coral::ValueType::VEC2I;
+		case ValueTypeId::INT3:      return Coral::ValueType::VEC3I;
+		case ValueTypeId::INT4:      return Coral::ValueType::VEC4I;
+		case ValueTypeId::FLOAT:     return Coral::ValueType::FLOAT;
+		case ValueTypeId::FLOAT2:    return Coral::ValueType::VEC2F;
+		case ValueTypeId::FLOAT3:    return Coral::ValueType::VEC3F;
+		case ValueTypeId::FLOAT4:    return Coral::ValueType::VEC4F;
+		case ValueTypeId::FLOAT3X3:  return Coral::ValueType::MAT33F;
+		case ValueTypeId::FLOAT4X4:  return Coral::ValueType::MAT44F;
+		case ValueTypeId::SAMPLER2D: assert(false); return Coral::ValueType::INT;
 	}
 
 	std::unreachable();
@@ -112,7 +115,7 @@ toString(Operator op)
 	{
 		case Operator::MULTIPLY: return "*";
 		case Operator::DIVIDE:   return "/";
-		case Operator::ADD:	   return "+";
+		case Operator::ADD:	     return "+";
 		case Operator::SUBTRACT: return "-";
 	}
 
@@ -353,8 +356,8 @@ CompilerGLSL::createUniformBlockDefinitions()
 {
 	std::vector<ParameterExpressionPtr> parameters;
 	std::unordered_set<ParameterExpressionPtr> inserted;
-	for (auto shaderModule : { mShaderProgram->shaderModule(ShaderStage::VERTEX),
-							   mShaderProgram->shaderModule(ShaderStage::FRAGMENT) })
+	for (auto shaderModule : { mShaderProgram->vertexShader(),
+							   mShaderProgram->fragmentShader()})
 	{
 		if (!shaderModule)
 		{
@@ -390,7 +393,7 @@ CompilerGLSL::createUniformBlockDefinitions()
 		auto block = std::ranges::find_if(view,
 			[&](const auto& binding) { return std::visit(v, binding.definition); });
 		
-		if (block == view.end() && parameter->outputShaderTypeId() != ShaderTypeId::SAMPLER2D)
+		if (block == view.end() && parameter->outputShaderTypeId() != ValueTypeId::SAMPLER2D)
 		{
 			defaultUniformBlock.members.push_back(Coral::MemberDefinition{ convert(parameter->outputShaderTypeId()), parameter->name(), 1 });
 		}
@@ -413,7 +416,7 @@ CompilerGLSL::createUniformBlockDefinitions()
 	// Add sampler parameters separately
 	for (auto parameter : parameters)
 	{
-		if (parameter->outputShaderTypeId() == ShaderTypeId::SAMPLER2D)
+		if (parameter->outputShaderTypeId() == ValueTypeId::SAMPLER2D)
 		{
 			uint32_t binding{ 0 };
 			for (; mDescriptorBindings.find(binding) != mDescriptorBindings.end(); ++binding) {}
@@ -434,8 +437,7 @@ CompilerGLSL::createUniformBlockDefinitions()
 bool
 CompilerGLSL::createAttributeLocationDefinitions()
 {
-	auto shaderModules = std::array{ ShaderStage::VERTEX, ShaderStage::FRAGMENT } 
-		| std::views::transform([&](auto stage) { return mShaderProgram->shaderModule(stage); })
+	auto shaderModules = std::array{ mShaderProgram->vertexShader(), mShaderProgram->fragmentShader() }
 		| std::views::filter([&](auto shaderModule) { return shaderModule != nullptr; })
 		| std::ranges::to<std::vector>();
 
@@ -655,10 +657,10 @@ CompilerGLSL::compile()
 	}
 	CompilerResult result;
 
-	for (auto [shaderStage, source] : { std::pair{ ShaderStage::VERTEX, &result.vertexShader }, 
-									    std::pair{ ShaderStage::FRAGMENT, &result.fragmentShader } })
+	for (auto [shaderModule, source] : { std::pair{ mShaderProgram->vertexShader(), &result.vertexShader},
+									     std::pair{ mShaderProgram->fragmentShader(), &result.fragmentShader } })
 	{
-		if (auto shaderModule = mShaderProgram->shaderModule(shaderStage))
+		if (shaderModule)
 		{
 			auto inputAttributes  = buildInputAttributeDefinitionsString(*shaderModule);
 			auto outputAttributes = buildOutputAttributeDefinitionsString(*shaderModule);
