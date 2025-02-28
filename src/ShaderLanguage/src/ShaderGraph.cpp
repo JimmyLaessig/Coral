@@ -9,14 +9,14 @@
 using namespace Coral::ShaderLanguage::ShaderGraph;
 
 
-ShaderTypeId
+ValueTypeId
 ExpressionBase::outputShaderTypeId() const
 { 
 	return mOutputTypeId;
 }
 
 
-std::vector<ShaderTypeId>
+std::vector<ValueTypeId>
 ExpressionBase::inputTypeIds() const
 {
 	auto getOutputTypeId = [](Expression expression) { return std::visit([](auto expr)
@@ -148,26 +148,48 @@ ShaderModule::buildExpressionList() const
 
 
 void
-ShaderProgram::addOutput(ShaderStage shaderStage, std::string_view name, Expression expression)
+ShaderProgram::addVertexShaderOutput(std::string_view name, Expression expression)
 {
-	if (!mShaderModules.contains(shaderStage))
+	if (!mVertexShader)
 	{
-		mShaderModules.emplace(shaderStage, shaderStage);
+		mVertexShader.emplace(Coral::ShaderStage::VERTEX);
 	}
 
-	mShaderModules[shaderStage].addOutput(name, expression);
+	mVertexShader->addOutput(name, expression);
+}
+
+
+void
+ShaderProgram::addFragmentShaderOutput(std::string_view name, Expression expression)
+{
+	if (!mFragmentShader)
+	{
+		mFragmentShader.emplace(Coral::ShaderStage::FRAGMENT);
+	}
+
+	mFragmentShader->addOutput(name, expression);
 }
 
 
 const ShaderModule*
-ShaderProgram::shaderModule(ShaderStage stage) const
+ShaderProgram::vertexShader() const
 {
-	auto iter = mShaderModules.find(stage);
-	if (iter == mShaderModules.end())
+	if (mVertexShader)
 	{
-		return nullptr;
+		return &*mVertexShader;
 	}
 
-	return &iter->second;
+	return nullptr;
 }
 
+
+const ShaderModule*
+ShaderProgram::fragmentShader() const
+{
+	if (mFragmentShader)
+	{
+		return &*mFragmentShader;
+	}
+
+	return nullptr;
+}

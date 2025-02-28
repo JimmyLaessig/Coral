@@ -129,6 +129,7 @@ createUniformBlockBinding(const SpvReflectDescriptorBinding& binding)
 	assert(binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	assert(binding.type_description->type_flags & SPV_REFLECT_TYPE_FLAG_STRUCT);
 
+	result.name = binding.type_description->type_name;
 	for (const auto& member : std::span{ binding.block.members, binding.block.member_count })
 	{
 		insertUniformBlockBindingRecursive(member, "", result);

@@ -249,7 +249,7 @@ int main()
 	auto fence     = context->createFence().value();
 	auto queue     = context->getGraphicsQueue();
 
-	auto shader = TexturedWithLightingShader();
+	auto shader = TexturedWithLightingShader::shaderSource();
 
 	if (!shader)
 	{
@@ -278,7 +278,7 @@ int main()
 	auto farPlane		  = 1000.f;
 	auto projectionMatrix = glm::perspective(fov, static_cast<float>(WIDTH) / HEIGHT, nearPlane, farPlane);
 
-	Coral::UniformBlockBuilder uniformBlock(TexturedWithLightingShaderUniformBlockDefinition());
+	Coral::UniformBlockBuilder uniformBlock(TexturedWithLightingShader::uniformBlockDefinition());
 	uniformBlock.setVec3F("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
 	uniformBlock.setVec3F("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
 	uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);

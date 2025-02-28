@@ -1,7 +1,6 @@
 #ifndef CORAL_SHADERGRAPH_SHADERGRAPH_HPP
 #define CORAL_SHADERGRAPH_SHADERGRAPH_HPP
 
-#include <array>
 #include <concepts>
 #include <memory>
 #include <ranges>
@@ -9,36 +8,37 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include <set>
-#include <map>
 
 #include <Coral/Coral.hpp>
+
 namespace Coral::ShaderLanguage::ShaderGraph
 {
 
-enum class ShaderTypeId
+enum class ValueTypeId
 {
-	/// 32-bit integer
+	/// Conditional type
+	BOOL,
+	/// 32-bit signed integer
 	INT,
-	/// 2-component 32-bit integer vector
+	/// 2-component 32-bit signed integer vector
 	INT2,
-	/// 3-component 32-bit integer vector
+	/// 3-component 32-bit signed integer vector
 	INT3,
-	/// 4-component 32-bit integer vector
+	/// 4-component 32-bit signed integer vector
 	INT4,
-	/// 32-bit floating-point type
+	/// 32-bit single-precision floating-point number
 	FLOAT,
-	/// 2-component 32-bit floating-point vector
+	/// 2-component 32-bit single-precision floating-point vector
 	FLOAT2,
-	/// 3-component 32-bit floating-point vector
+	/// 3-component 32-bit single-precision floating-point vector
 	FLOAT3,
-	/// 4-component 32-bit floating-point vector
+	/// 4-component 32-bit single-precision floating-point vector
 	FLOAT4,
-	/// 3x3 32-bit floating-point matrix
+	/// 3x3 32-bit single-precision floating-point matrix
 	FLOAT3X3,
-	/// 4x4 32-bit floating-point matrix
+	/// 4x4 32-bit single-precision floating-point matrix
 	FLOAT4X4,
-	/// 2D texture
+	/// 2D texture sampler
 	SAMPLER2D,
 };
 
@@ -67,27 +67,27 @@ using CastExpressionPtr			   = std::shared_ptr<CastExpression>;
 using SwizzleExpressionPtr		   = std::shared_ptr<SwizzleExpression>;
 
 
-using Expression = std::variant<
-	ConstantPtr<float>,
-	ConstantPtr<int>,
-	AttributeExpressionPtr,
-	ParameterExpressionPtr,
-	OperatorExpressionPtr,
-	NativeFunctionExpressionPtr,
-	ConstructorExpressionPtr,
-	CastExpressionPtr,
-	SwizzleExpressionPtr>;
+using Expression = std::variant<ConstantPtr<float>,
+							    ConstantPtr<int>,
+							    AttributeExpressionPtr,
+							    ParameterExpressionPtr,
+							    OperatorExpressionPtr,
+							    NativeFunctionExpressionPtr,
+							    ConstructorExpressionPtr,
+							    CastExpressionPtr,
+							    SwizzleExpressionPtr>;
 
 
+/// Base class for a shader graph expression
 class ExpressionBase
 {
 public:
 
 	/// Get the ShaderTypeId of the expression's output
-	ShaderTypeId outputShaderTypeId() const;
+	ValueTypeId outputShaderTypeId() const;
 
 	/// Get the ShaderTypeIds of the expression's inputs
-	std::vector<ShaderTypeId> inputTypeIds() const;
+	std::vector<ValueTypeId> inputTypeIds() const;
 
 	/// Get the inputs of the expression
 	std::span<const Expression> inputs() const;
@@ -95,7 +95,7 @@ public:
 protected:
 
 	template<typename ...Expressions>
-	ExpressionBase(ShaderTypeId outputTypeId, Expressions... inputs)
+	ExpressionBase(ValueTypeId outputTypeId, Expressions... inputs)
 		: mOutputTypeId(outputTypeId)
 	{
 		(mInputs.push_back(inputs), ...);
@@ -108,7 +108,7 @@ protected:
 
 private:
 
-	ShaderTypeId mOutputTypeId;
+	ValueTypeId mOutputTypeId;
 
 	std::vector<Expression> mInputs;
 };
@@ -121,14 +121,14 @@ class Constant : public ShaderGraph::ExpressionBase
 public:
 	static std::shared_ptr<Constant> create(Scalar value)
 	{
-		ShaderTypeId id;
+		ValueTypeId id;
 		if constexpr (std::is_same_v<Scalar, float>)
 		{
-			id = ShaderTypeId::FLOAT;
+			id = ValueTypeId::FLOAT;
 		}
 		else if constexpr (std::is_same_v<Scalar, int>)
 		{
-			id = ShaderTypeId::INT;
+			id = ValueTypeId::INT;
 		}
 		else
 		{
@@ -156,7 +156,7 @@ class AttributeExpression : public ShaderGraph::ExpressionBase
 public:
 
 	// Create a new Vertex shader input attribute
-	static inline std::shared_ptr<AttributeExpression> create(ShaderTypeId resultType, std::string_view name)
+	static inline std::shared_ptr<AttributeExpression> create(ValueTypeId resultType, std::string_view name)
 	{
 		std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType));
 		expr->mName = std::string(name.begin(), name.end());
@@ -187,7 +187,7 @@ class ParameterExpression : public ShaderGraph::ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<ParameterExpression> create(ShaderTypeId resultType, std::string_view name)
+	static inline std::shared_ptr<ParameterExpression> create(ValueTypeId resultType, std::string_view name)
 	{
 		std::shared_ptr<ParameterExpression> expr(new ParameterExpression(resultType));
 		expr->mName = std::string(name.begin(), name.end());
@@ -224,7 +224,7 @@ public:
 
 	using ShaderGraph::ExpressionBase::ExpressionBase;
 
-	static inline std::shared_ptr<OperatorExpression> create(ShaderTypeId resultType, Operator op, Expression lhs, Expression rhs)
+	static inline std::shared_ptr<OperatorExpression> create(ValueTypeId resultType, Operator op, Expression lhs, Expression rhs)
 	{
 		std::shared_ptr<OperatorExpression> expr(new OperatorExpression(resultType, lhs, rhs));
 		expr->mOperator = op;
@@ -244,7 +244,7 @@ class CastExpression : public ShaderGraph::ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<CastExpression> create(ShaderTypeId resultType, Expression input)
+	static inline std::shared_ptr<CastExpression> create(ValueTypeId resultType, Expression input)
 	{
 		return std::shared_ptr<CastExpression>(new CastExpression(resultType, input ));
 	}
@@ -262,7 +262,7 @@ class NativeFunctionExpression : public ShaderGraph::ExpressionBase
 public:
 
 	template<typename ...Expressions>
-	static inline std::shared_ptr<NativeFunctionExpression> create(ShaderTypeId resultType, 
+	static inline std::shared_ptr<NativeFunctionExpression> create(ValueTypeId resultType, 
 																   std::string_view functionName, 
 																   Expressions ...inputs)
 	{
@@ -287,7 +287,7 @@ class ConstructorExpression : public ShaderGraph::ExpressionBase
 public:
 
 	template<typename ...Expressions>
-	static inline std::shared_ptr<ConstructorExpression> create(ShaderTypeId resultType, Expressions... inputs)
+	static inline std::shared_ptr<ConstructorExpression> create(ValueTypeId resultType, Expressions... inputs)
 	{
 		auto expr = std::shared_ptr<ConstructorExpression>(new ConstructorExpression(resultType, inputs...));
 
@@ -315,7 +315,7 @@ class SwizzleExpression : public ShaderGraph::ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<SwizzleExpression> create(ShaderTypeId resultType, Swizzle swizzle, Expression input)
+	static inline std::shared_ptr<SwizzleExpression> create(ValueTypeId resultType, Swizzle swizzle, Expression input)
 	{
 		std::shared_ptr<SwizzleExpression> expr(new SwizzleExpression(resultType, input));
 		expr->mSwizzle = swizzle;
@@ -332,11 +332,11 @@ private:
 };
 
 
-enum class ShaderStage
-{
-	VERTEX = 0,
-	FRAGMENT = 1,
-};
+//enum class ShaderStage
+//{
+//	VERTEX = 0,
+//	FRAGMENT = 1,
+//};
 
 
 namespace DefaultSemantics
@@ -356,8 +356,6 @@ class ShaderModule
 {
 public:
 
-	ShaderModule() = default;
-
 	explicit ShaderModule(ShaderStage shaderStage)
 		: mShaderStage(shaderStage)
 	{}
@@ -372,10 +370,11 @@ public:
 
 	std::vector<Expression> buildExpressionList() const;
 
-	ShaderStage shaderStage() const { return mShaderStage; }
+	Coral::ShaderStage shaderStage() const { return mShaderStage; }
+
 private:
 
-	ShaderStage mShaderStage{ ShaderStage::VERTEX };
+	Coral::ShaderStage mShaderStage{ Coral::ShaderStage::VERTEX };
 	std::vector<std::pair<std::string, AttributeExpressionPtr>> mOutputs;
 };
 
@@ -385,13 +384,18 @@ class ShaderProgram
 {
 public:
 
-	void addOutput(ShaderStage shaderStage, std::string_view name, Expression expression);
+	void addVertexShaderOutput(std::string_view name, Expression expression);
 
-	const ShaderModule* shaderModule(ShaderStage stage) const;
+	void addFragmentShaderOutput(std::string_view name, Expression expression);
+
+	const ShaderModule* vertexShader() const;
+
+	const ShaderModule* fragmentShader() const;
 
 private:
 
-	std::map<ShaderStage, ShaderModule> mShaderModules;
+	std::optional<ShaderModule> mVertexShader;
+	std::optional<ShaderModule> mFragmentShader;
 };
 
 } // namespace Coral::Slang::ShaderGraph
