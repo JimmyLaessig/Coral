@@ -23,7 +23,7 @@ ExpressionBase::inputValueTypes() const
 		return expr->outputValueType(); }, expression);
 	};
 
-	return mInputs | std::views::transform(getOutputTypeId) | std::ranges::to<std::vector>();
+	return mInputs | std::views::transform(getOutputTypeId) | std::ranges::to<std::vector<ValueType>>();
 }
 
 
@@ -195,7 +195,7 @@ ShaderModule::buildExpressionList() const
 		}
 	}
 
-	return std::views::reverse(result) | std::ranges::to<std::vector>();
+	return std::views::reverse(result) | std::ranges::to<std::vector<Expression>>();
 }
 
 

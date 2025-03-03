@@ -457,7 +457,7 @@ CompilerGLSL::createAttributeLocationDefinitions()
 {
 	auto shaderModules = std::array{ mShaderProgram->vertexShader(), mShaderProgram->fragmentShader() }
 		| std::views::filter([&](auto shaderModule) { return shaderModule != nullptr; })
-		| std::ranges::to<std::vector>();
+		| std::ranges::to<std::vector<const ShaderGraph::ShaderModule*>>();
 
 	for (auto[i, shaderModule]: std::views::enumerate(shaderModules))
 	{
