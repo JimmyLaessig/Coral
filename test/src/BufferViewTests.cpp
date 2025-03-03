@@ -29,7 +29,7 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 
 		// Create a buffer with 10 3-component vectors
 		Coral::BufferCreateConfig config{};
-		config.size = 10 * Coral::sizeInBytes(Coral::AttributeFormat::VEC3);
+		config.size = 10 * Coral::sizeInBytes(Coral::AttributeFormat::VEC3F);
 		config.type = bufferType;
 		config.cpuVisible = false;
 		auto buf = ctx.createBuffer(config);
@@ -39,7 +39,7 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 		SECTION("Buffer is nullptr - creation should fail")
 		{
 			Coral::BufferViewCreateConfig config{};
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count = 10;
 			config.offset = 0;
 			config.buffer = nullptr;
@@ -52,7 +52,7 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 		SECTION("Empty buffer view - creation should fail")
 		{
 			Coral::BufferViewCreateConfig config{};
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count = 0;
 			config.offset = 0;
 			config.buffer = buffer;
@@ -65,7 +65,7 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 		SECTION("Offset too large - creation should fail")
 		{
 			Coral::BufferViewCreateConfig config{};
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count = 10;
 			config.offset = 1;
 			config.buffer = buffer;
@@ -78,7 +78,7 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 		SECTION("Create tightly packed buffer view")
 		{
 			Coral::BufferViewCreateConfig config{};
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count = 10;
 			config.offset = 0;
 			config.buffer = buffer;
@@ -92,9 +92,9 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 		SECTION("Create tightly packed buffer view with offset")
 		{
 			Coral::BufferViewCreateConfig config{};
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count     = 5;
-			config.offset    = 5 * Coral::sizeInBytes(Coral::AttributeFormat::VEC3);
+			config.offset    = 5 * Coral::sizeInBytes(Coral::AttributeFormat::VEC3F);
 			config.buffer    = buffer;
 			auto bufferView  = ctx.createBufferView(config);
 
@@ -107,10 +107,10 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 		{
 			// Instead of treating the buffer as 10 Vec3 vertices, interpret the data has 5 vertices with interleaved
 			// position and normal attributes.
-			constexpr uint32_t vertexSize = Coral::sizeInBytes(Coral::AttributeFormat::VEC3) * 2;
+			constexpr uint32_t vertexSize = Coral::sizeInBytes(Coral::AttributeFormat::VEC3F) * 2;
 
 			Coral::BufferViewCreateConfig config{};
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count = 5;
 			config.offset = 0;
 			config.stride = vertexSize;
@@ -121,9 +121,9 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer View creation 
 			REQUIRE(view1->get());
 			checkBufferView(**view1, config);
 
-			config.attribute = Coral::AttributeFormat::VEC3;
+			config.attribute = Coral::AttributeFormat::VEC3F;
 			config.count = 5;
-			config.offset = Coral::sizeInBytes(Coral::AttributeFormat::VEC3);
+			config.offset = Coral::sizeInBytes(Coral::AttributeFormat::VEC3F);
 			config.stride = vertexSize;
 			config.buffer = buffer;
 			auto view2 = ctx.createBufferView(config);

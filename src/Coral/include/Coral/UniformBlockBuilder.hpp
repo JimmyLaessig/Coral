@@ -33,9 +33,9 @@ public:
 
 	bool setScalar(std::string_view name, float value);
 
-	bool setScalar(std::string_view name, ValueType type, const std::byte* value);
+	bool setValue(std::string_view name, UniformFormat type, const std::byte* value);
 
-	bool setScalar(size_t index, ValueType type, const std::byte* value);
+	bool setValue(size_t index, UniformFormat type, const std::byte* value);
 
 	template<typename Vec2F>
 	bool setVec2F(size_t index, const Vec2F& value);
@@ -88,7 +88,7 @@ private:
 
 	UniformBlockDefinition mDefinition;
 
-	std::vector<size_t> mByteOffsets;
+	std::vector<uint32_t> mByteOffsets;
 
 	std::vector<std::byte> mData;
 };
@@ -100,7 +100,7 @@ template<typename Vec2F>
 bool
 Coral::UniformBlockBuilder::setVec2F(size_t index, const Vec2F& value)
 {
-	return setScalar(index, ValueType::VEC2F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::VEC2F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -108,7 +108,7 @@ template<typename Vec3F>
 bool 
 Coral::UniformBlockBuilder::setVec3F(size_t index, const Vec3F& value)
 {
-	return setScalar(index, ValueType::VEC3F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::VEC3F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -116,7 +116,7 @@ template<typename Vec4F>
 bool 
 Coral::UniformBlockBuilder::setVec4F(size_t index, const Vec4F& value)
 {
-	return setScalar(index, ValueType::VEC4F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::VEC4F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -124,7 +124,7 @@ template<typename Vec2I>
 bool
 Coral::UniformBlockBuilder::setVec2I(size_t index, const Vec2I& value)
 {
-	return setScalar(index, ValueType::VEC2I, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::VEC2I, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -132,7 +132,7 @@ template<typename Vec3I>
 bool
 Coral::UniformBlockBuilder::setVec3I(size_t index, const Vec3I& value)
 {
-	return setScalar(index, ValueType::VEC3I, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::VEC3I, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -140,7 +140,7 @@ template<typename Vec4I>
 bool
 Coral::UniformBlockBuilder::setVec4I(size_t index, const Vec4I& value)
 {
-	return setScalar(index, ValueType::VEC4I, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::VEC4I, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -148,7 +148,7 @@ template<typename Mat33F>
 bool
 Coral::UniformBlockBuilder::setMat33F(size_t index, const Mat33F& value)
 {
-	return setScalar(index, ValueType::MAT33F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::MAT33F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -156,7 +156,7 @@ template<typename Mat44F>
 bool
 Coral::UniformBlockBuilder::setMat44F(size_t index, const Mat44F& value)
 {
-	return setScalar(index, ValueType::MAT44F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(index, UniformFormat::MAT44F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -164,7 +164,7 @@ template<typename Vec2F>
 bool 
 Coral::UniformBlockBuilder::setVec2F(std::string_view name, const Vec2F& value)
 {
-	return setScalar(name, ValueType::VEC2F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(name, UniformFormat::VEC2F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -172,7 +172,7 @@ template<typename Vec3F>
 bool 
 Coral::UniformBlockBuilder::setVec3F(std::string_view name, const Vec3F& value)
 {
-	return setScalar(name, ValueType::VEC3F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(name, UniformFormat::VEC3F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -180,15 +180,15 @@ template<typename Vec4F>
 bool 
 Coral::UniformBlockBuilder::setVec4F(std::string_view name, const Vec4F& value)
 {
-	return setScalar(name, ValueType::VEC4F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(name, UniformFormat::VEC4F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
 template<typename Mat33F>
-bool 
+bool
 Coral::UniformBlockBuilder::setMat33F(std::string_view name, const Mat33F& value)
 {
-	return setScalar(name, ValueType::MAT33F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(name, UniformFormat::MAT33F, reinterpret_cast<const std::byte*>(&value));
 }
 
 
@@ -196,7 +196,7 @@ template<typename Mat44F>
 bool 
 Coral::UniformBlockBuilder::setMat44F(std::string_view name, const Mat44F& value)
 {
-	return setScalar(name, ValueType::MAT44F, reinterpret_cast<const std::byte*>(&value));
+	return setValue(name, UniformFormat::MAT44F, reinterpret_cast<const std::byte*>(&value));
 }
 
 #endif // !CORAL_UNIFORMBLOCKBUILDER_HPP

@@ -8,20 +8,8 @@
 #include <optional>
 #include <string>
 
-namespace Coral::ShaderLanguage::ShaderGraph
+namespace Coral::ShaderGraph
 {
-
-//struct UniformTextureDefinition
-//{
-//	/// The shader binding of the texture
-//	uint32_t binding{ 0 };
-//
-//	/// The name of the uniform block
-//	std::string name;
-//
-//	/// The type of texture/sampler
-//	ShaderTypeId textureType;
-//};
 
 
 struct CompilerResult
@@ -36,19 +24,22 @@ class Compiler
 public:
 
 	/// Set the shader program to compile
-	virtual Compiler& setShaderProgram(const ShaderProgram& shaderProgram) = 0;
+	virtual Compiler& setShaderProgram(const Program& shaderProgram) = 0;
 
 	/// Force the shader to use a specific uniform block for parameters
-	virtual Compiler& addUniformBlockOverride(const Coral::UniformBlockDefinition& override) = 0;
+	virtual Compiler& addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& override) = 0;
 
 	/// Set the name of the default uniform block
 	virtual Compiler& setDefaultUniformBlockName(std::string_view name) = 0;
+
+	/// Set the default descriptor set of the default uniforms
+	virtual Compiler& setDefaultDescriptorSet(uint32_t set) = 0;
 
 	/// Compile the shader program
 	virtual std::optional<CompilerResult> compile() = 0;
 
 };
 
-} // namespace Coral::Slang::ShaderGraph
+} // namespace Coral::ShaderGraph
 
 #endif // !CORAL_SHADERGRAPH_COMPILER_HPP

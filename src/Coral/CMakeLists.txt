@@ -57,6 +57,7 @@ set(CORAL_PUBLIC_INCLUDES
 set(CORAL_SOURCES
     ${CORAL_SOURCE_DIR}/BufferPool.cpp
     ${CORAL_SOURCE_DIR}/BufferPool.hpp
+    ${CORAL_SOURCE_DIR}/Finally.hpp
     ${CORAL_SOURCE_DIR}/Context.cpp
     ${CORAL_SOURCE_DIR}/PipelineState.cpp
     ${CORAL_SOURCE_DIR}/UniformBlockBuilder.cpp)

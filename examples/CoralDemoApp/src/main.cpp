@@ -92,10 +92,10 @@ bool loadImage(const char* path, Image& image)
 template<typename T>
 Coral::AttributeFormat toAttributeFormat();
 
-template<> Coral::AttributeFormat toAttributeFormat<glm::vec3>() { return Coral::AttributeFormat::VEC3; }
-template<> Coral::AttributeFormat toAttributeFormat<glm::vec2>() { return Coral::AttributeFormat::VEC2; }
-template<> Coral::AttributeFormat toAttributeFormat<uint32_t>() { return Coral::AttributeFormat::UINT32; }
-template<> Coral::AttributeFormat toAttributeFormat<uint16_t>() { return Coral::AttributeFormat::UINT16; }
+template<> Coral::AttributeFormat toAttributeFormat<glm::vec3>() { return Coral::AttributeFormat::VEC3F; }
+template<> Coral::AttributeFormat toAttributeFormat<glm::vec2>() { return Coral::AttributeFormat::VEC2F; }
+template<> Coral::AttributeFormat toAttributeFormat<uint32_t>()  { return Coral::AttributeFormat::UINT32; }
+template<> Coral::AttributeFormat toAttributeFormat<uint16_t>()  { return Coral::AttributeFormat::UINT16; }
 
 template<typename T, size_t S>
 std::pair<Coral::BufferPtr, Coral::BufferViewPtr>

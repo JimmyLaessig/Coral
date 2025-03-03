@@ -61,37 +61,24 @@ struct AttributeBindingDescription
 	std::string name;
 };
 
-
-enum class ValueType
-{
-	BOOL,
-	INT,
-	FLOAT,
-	VEC2F,
-	VEC3F,
-	VEC4F,
-	VEC2I,
-	VEC3I,
-	VEC4I,
-	MAT33F,
-	MAT44F
-};
-
 /// Description of one member value of a uniform block
 struct MemberDefinition
 {
 	/// The type of the value
-	ValueType type;
+	UniformFormat type;
 	/// The name of the value
 	std::string name;
-	/// The number of elements of 'type' in the member. A count > 1 defines an array 'count values
-	size_t count{ 1 };
+	/// The number of elements in the member. A count > 1 defines an array with `count` values
+	uint32_t count{ 1 };
+	/// The size in bytes of the member
+	uint32_t size{ 0 };
+	/// The padded size in bytes
+	uint32_t paddedSize{ 0 };
 };
 
 /// Defines a uniform block descriptor
 struct UniformBlockDefinition
 {
-	std::string name;
 	std::vector<MemberDefinition> members;
 };
 
@@ -111,7 +98,7 @@ struct CombinedTextureSamplerDefinition
 };
 
 
-using DescriptorTypeDefinition = std::variant<UniformBlockDefinition, SamplerDefinition, TextureDefinition, CombinedTextureSamplerDefinition>;
+using DescriptorDefinition = std::variant<UniformBlockDefinition, SamplerDefinition, TextureDefinition, CombinedTextureSamplerDefinition>;
 
 /// Definition of a descriptor required by the shader
 struct DescriptorBindingDefinition
@@ -129,8 +116,9 @@ struct DescriptorBindingDefinition
 	size_t byteSize{ 0 };
 
 	/// The type definition of the descriptor
-	DescriptorTypeDefinition definition{ SamplerDefinition{} };
+	DescriptorDefinition definition{ SamplerDefinition{} };
 };
+
 
 class CORAL_API ShaderModule
 {
@@ -156,8 +144,6 @@ public:
 	/// Get a list of descriptor binding definitions required by this shader
 	virtual std::span<const DescriptorBindingDefinition> descriptorBindingDefinitions() const = 0;
 };
-
-
 
 } // namespace Coral
 

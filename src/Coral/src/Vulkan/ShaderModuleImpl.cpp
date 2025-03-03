@@ -1,5 +1,7 @@
 #include "ShaderModuleImpl.hpp"
 
+#include "../Finally.hpp"
+
 #include <spirv_reflect.h>
 
 #include <algorithm>
@@ -24,9 +26,9 @@ convert(SpvReflectFormat format)
 		case SPV_REFLECT_FORMAT_R16_SINT:				return Coral::AttributeFormat::INT16;
 		case SPV_REFLECT_FORMAT_R32_SINT:				return Coral::AttributeFormat::INT32;
 		case SPV_REFLECT_FORMAT_R32_SFLOAT:				return Coral::AttributeFormat::FLOAT;
-		case SPV_REFLECT_FORMAT_R32G32_SFLOAT:			return Coral::AttributeFormat::VEC2;
-		case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:		return Coral::AttributeFormat::VEC3;
-		case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:	return Coral::AttributeFormat::VEC4;
+		case SPV_REFLECT_FORMAT_R32G32_SFLOAT:			return Coral::AttributeFormat::VEC2F;
+		case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:		return Coral::AttributeFormat::VEC3F;
+		case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:	return Coral::AttributeFormat::VEC4F;
 		default:
 			return {};
 	}
@@ -42,35 +44,35 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 	
 	auto& traits = variable.type_description->traits;
 
-	constexpr auto BoolFlags = SPV_REFLECT_TYPE_FLAG_BOOL;
-	constexpr auto IntFlags = SPV_REFLECT_TYPE_FLAG_INT;
-	constexpr auto FloatFlags = SPV_REFLECT_TYPE_FLAG_FLOAT;
-	constexpr auto MatrixFlags = SPV_REFLECT_TYPE_FLAG_MATRIX | SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
+	constexpr auto BoolFlags		= SPV_REFLECT_TYPE_FLAG_BOOL;
+	constexpr auto IntFlags			= SPV_REFLECT_TYPE_FLAG_INT;
+	constexpr auto FloatFlags		= SPV_REFLECT_TYPE_FLAG_FLOAT;
+	constexpr auto MatrixFlags		= SPV_REFLECT_TYPE_FLAG_MATRIX | SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
 	constexpr auto FloatVectorFlags = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
-	constexpr auto IntVectorFlags = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_INT;
-	constexpr auto StructFlags = SPV_REFLECT_TYPE_FLAG_STRUCT | SPV_REFLECT_TYPE_FLAG_EXTERNAL_BLOCK;
+	constexpr auto IntVectorFlags	= SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_INT;
+	constexpr auto StructFlags		= SPV_REFLECT_TYPE_FLAG_STRUCT | SPV_REFLECT_TYPE_FLAG_EXTERNAL_BLOCK;
 	switch (variable.type_description->type_flags)
 	{
 	case BoolFlags:
-		result.members.push_back({ Coral::ValueType::BOOL, fullName , 1 });
+		result.members.push_back({ Coral::UniformFormat::BOOL, fullName , 1, variable.size, variable.padded_size });
 		break;
 	case IntFlags:
-		result.members.push_back({ Coral::ValueType::INT, fullName , 1 });
+		result.members.push_back({ Coral::UniformFormat::INT32, fullName , 1, variable.size, variable.padded_size });
 		break;
 	case FloatFlags:
-		result.members.push_back({ Coral::ValueType::FLOAT, fullName , 1 });
+		result.members.push_back({ Coral::UniformFormat::FLOAT, fullName , 1, variable.size, variable.padded_size });
 		break;
 	case FloatVectorFlags:
 		switch (traits.numeric.vector.component_count)
 		{
 		case 2:
-			result.members.push_back({ Coral::ValueType::VEC2F, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::VEC2F, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 3:
-			result.members.push_back({ Coral::ValueType::VEC3F, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::VEC3F, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 4:
-			result.members.push_back({ Coral::ValueType::VEC4F, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::VEC4F, fullName , 1, variable.size, variable.padded_size });
 			break;
 		default:
 			assert(false);
@@ -80,13 +82,13 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 		switch (traits.numeric.vector.component_count)
 		{
 		case 2:
-			result.members.push_back({ Coral::ValueType::VEC2I, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::VEC2I, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 3:
-			result.members.push_back({ Coral::ValueType::VEC3I, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::VEC3I, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 4:
-			result.members.push_back({ Coral::ValueType::VEC4I, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::VEC4I, fullName , 1, variable.size, variable.padded_size });
 			break;
 		default:
 			assert(false);
@@ -95,11 +97,11 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 	case MatrixFlags:
 		if (traits.numeric.matrix.column_count == 4 && traits.numeric.matrix.row_count == 4)
 		{
-			result.members.push_back({ Coral::ValueType::MAT44F, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::MAT44F, fullName , 1, variable.size, variable.padded_size });
 		}
 		else if (traits.numeric.matrix.column_count == 3 && traits.numeric.matrix.row_count == 3)
 		{
-			result.members.push_back({ Coral::ValueType::MAT33F, fullName , 1 });
+			result.members.push_back({ Coral::UniformFormat::MAT33F, fullName , 1, variable.size, variable.padded_size });
 		}
 		else
 		{
@@ -128,8 +130,6 @@ createUniformBlockBinding(const SpvReflectDescriptorBinding& binding)
 	Coral::UniformBlockDefinition result;
 	assert(binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
 	assert(binding.type_description->type_flags & SPV_REFLECT_TYPE_FLAG_STRUCT);
-
-	result.name = binding.type_description->type_name;
 	for (const auto& member : std::span{ binding.block.members, binding.block.member_count })
 	{
 		insertUniformBlockBindingRecursive(member, "", result);
@@ -149,7 +149,7 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 		return false;
 	}
 
-	//Finally finally = [&] { spvReflectDestroyShaderModule(&module); };
+	Finally cleanup([&]() { spvReflectDestroyShaderModule(&module); });
 
 	if (module.entry_point_name == nullptr)
 	{
