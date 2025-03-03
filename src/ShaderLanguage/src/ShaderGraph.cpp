@@ -34,6 +34,59 @@ ExpressionBase::inputs() const
 }
 
 
+std::shared_ptr<AttributeExpression>
+AttributeExpression::create(ValueType resultType, std::string_view name)
+{
+	std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType));
+	expr->mName = std::string(name.begin(), name.end());
+	return expr;
+}
+
+
+std::shared_ptr<AttributeExpression>
+AttributeExpression::create(Expression source, std::string_view name)
+{
+	auto resultType = std::visit([](auto expr) { return expr->outputValueType(); }, source);
+	std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType, source));
+	expr->mName = std::string(name.begin(), name.end());
+	return expr;
+}
+
+
+std::shared_ptr<ParameterExpression> 
+ParameterExpression::create(ValueType resultType, std::string_view name)
+{
+	std::shared_ptr<ParameterExpression> expr(new ParameterExpression(resultType));
+	expr->mName = std::string(name.begin(), name.end());
+	return expr;
+}
+
+
+std::shared_ptr<OperatorExpression>
+OperatorExpression::create(ValueType resultType, Operator op, Expression lhs, Expression rhs)
+{
+	std::shared_ptr<OperatorExpression> expr(new OperatorExpression(resultType, lhs, rhs));
+	expr->mOperator = op;
+	return expr;
+}
+
+
+std::shared_ptr<CastExpression>
+CastExpression::create(ValueType resultType, Expression input)
+{
+	return std::shared_ptr<CastExpression>(new CastExpression(resultType, input));
+}
+
+
+std::shared_ptr<SwizzleExpression> 
+SwizzleExpression::create(ValueType resultType, Swizzle swizzle, Expression input)
+{
+	std::shared_ptr<SwizzleExpression> expr(new SwizzleExpression(resultType, input));
+	expr->mSwizzle = swizzle;
+	return expr;
+}
+
+
 void
 ShaderModule::addOutput(std::string_view name, Expression expression)
 {

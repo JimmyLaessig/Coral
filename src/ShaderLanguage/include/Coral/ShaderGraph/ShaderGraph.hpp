@@ -156,21 +156,10 @@ class AttributeExpression : public ExpressionBase
 public:
 
 	// Create a new Vertex shader input attribute
-	static inline std::shared_ptr<AttributeExpression> create(ValueType resultType, std::string_view name)
-	{
-		std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType));
-		expr->mName = std::string(name.begin(), name.end());
-		return expr;
-	}
+	static std::shared_ptr<AttributeExpression> create(ValueType resultType, std::string_view name);
 
 	// Create a new shader output attribute
-	static inline std::shared_ptr<AttributeExpression> create(Expression source, std::string_view name)
-	{
-		auto resultType = std::visit([](auto expr) { return expr->outputValueType(); }, source);
-		std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType, source));
-		expr->mName = std::string(name.begin(), name.end());
-		return expr;
-	}
+	static std::shared_ptr<AttributeExpression> create(Expression source, std::string_view name);
 
 	const std::string& name() const { return mName; }
 
@@ -187,12 +176,7 @@ class ParameterExpression : public ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<ParameterExpression> create(ValueType resultType, std::string_view name)
-	{
-		std::shared_ptr<ParameterExpression> expr(new ParameterExpression(resultType));
-		expr->mName = std::string(name.begin(), name.end());
-		return expr;
-	}
+	static std::shared_ptr<ParameterExpression> create(ValueType resultType, std::string_view name);
 
 	const std::string& name() const { return mName; }
 
@@ -224,12 +208,7 @@ public:
 
 	using ExpressionBase::ExpressionBase;
 
-	static inline std::shared_ptr<OperatorExpression> create(ValueType resultType, Operator op, Expression lhs, Expression rhs)
-	{
-		std::shared_ptr<OperatorExpression> expr(new OperatorExpression(resultType, lhs, rhs));
-		expr->mOperator = op;
-		return expr;
-	}
+	static std::shared_ptr<OperatorExpression> create(ValueType resultType, Operator op, Expression lhs, Expression rhs);
 
 	Operator getOperator() const { return mOperator; }
 
@@ -244,10 +223,7 @@ class CastExpression : public ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<CastExpression> create(ValueType resultType, Expression input)
-	{
-		return std::shared_ptr<CastExpression>(new CastExpression(resultType, input ));
-	}
+	static std::shared_ptr<CastExpression> create(ValueType resultType, Expression input);
 
 private:
 
@@ -287,12 +263,7 @@ class ConstructorExpression : public ExpressionBase
 public:
 
 	template<typename ...Expressions>
-	static inline std::shared_ptr<ConstructorExpression> create(ValueType resultType, Expressions... inputs)
-	{
-		auto expr = std::shared_ptr<ConstructorExpression>(new ConstructorExpression(resultType, inputs...));
-
-		return expr;
-	}
+	static std::shared_ptr<ConstructorExpression> create(ValueType resultType, Expressions... inputs);
 
 private:
 
@@ -315,13 +286,7 @@ class SwizzleExpression : public ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<SwizzleExpression> create(ValueType resultType, Swizzle swizzle, Expression input)
-	{
-		std::shared_ptr<SwizzleExpression> expr(new SwizzleExpression(resultType, input));
-		expr->mSwizzle = swizzle;
-		return expr;
-
-	}
+	static std::shared_ptr<SwizzleExpression> create(ValueType resultType, Swizzle swizzle, Expression input);
 
 	Swizzle swizzle() const { return mSwizzle; }
 
@@ -331,6 +296,12 @@ private:
 	Swizzle mSwizzle{ Swizzle::X };
 };
 
+
+template<typename ...Expressions>
+std::shared_ptr<ConstructorExpression> ConstructorExpression::create(ValueType resultType, Expressions... inputs)
+{
+	return std::shared_ptr<ConstructorExpression>(new ConstructorExpression(resultType, inputs...));
+}
 
 namespace DefaultSemantics
 {
