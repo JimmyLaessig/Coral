@@ -3,6 +3,7 @@
 #include "Visitor.hpp"
 
 #include <cassert>
+#include <cmath>
 #include <format>
 #include <iostream>
 #include <map>
