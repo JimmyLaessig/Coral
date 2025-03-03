@@ -174,7 +174,7 @@ constexpr inline uint32_t sizeInBytes(Coral::AttributeFormat format)
 }
 
 /// Get the size in bytes of the uniform format
-constexpr inline size_t sizeInBytes(UniformFormat format)
+constexpr inline uint32_t sizeInBytes(UniformFormat format)
 {
 	switch (format)
 	{
