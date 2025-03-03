@@ -35,9 +35,9 @@ public:
 	}
 
 	/// Get the type id of the value
-	ShaderGraph::ValueTypeId typeId() const
+	ShaderGraph::ValueType typeId() const
 	{ 
-		return std::visit([](auto expr) { return expr->outputShaderTypeId(); }, mSource);
+		return std::visit([](auto expr) { return expr->outputValueType(); }, mSource);
 	}
 
 private:
@@ -52,7 +52,7 @@ struct Scalar : ValueTypeBase
 {
 	using ValueTypeBase::ValueTypeBase;
 
-	static constexpr ShaderGraph::ValueTypeId toShaderTypeId();
+	static constexpr ShaderGraph::ValueType toShaderTypeId();
 
 	/// Create a new scalar from a constant
 	Scalar(T v)
@@ -68,9 +68,9 @@ struct Scalar : ValueTypeBase
 };
 
 
-template<> constexpr ShaderGraph::ValueTypeId Scalar<float>::toShaderTypeId() { return ShaderGraph::ValueTypeId::FLOAT; }
-template<> constexpr ShaderGraph::ValueTypeId Scalar<int>::toShaderTypeId() { return ShaderGraph::ValueTypeId::INT; }
-template<> constexpr ShaderGraph::ValueTypeId Scalar<bool>::toShaderTypeId() { return ShaderGraph::ValueTypeId::BOOL; }
+template<> constexpr ShaderGraph::ValueType Scalar<float>::toShaderTypeId() { return ShaderGraph::ValueType::FLOAT; }
+template<> constexpr ShaderGraph::ValueType Scalar<int>::toShaderTypeId() { return ShaderGraph::ValueType::INT; }
+template<> constexpr ShaderGraph::ValueType Scalar<bool>::toShaderTypeId() { return ShaderGraph::ValueType::BOOL; }
 
 
 template<typename T1, typename T2>
@@ -99,7 +99,7 @@ struct Vector : public ValueTypeBase
 public:
 	using ValueTypeBase::ValueTypeBase;
 
-	static constexpr ShaderGraph::ValueTypeId toShaderTypeId();
+	static constexpr ShaderGraph::ValueType toShaderTypeId();
 
 	/// Create a new Vector from scalars
 	template<typename ...Ts> requires (sizeof...(Ts) == S)
@@ -159,13 +159,13 @@ public:
 };
 
 
-template<> constexpr ShaderGraph::ValueTypeId Vector<float, 2>::toShaderTypeId() { return ShaderGraph::ValueTypeId::FLOAT2; }
-template<> constexpr ShaderGraph::ValueTypeId Vector<float, 3>::toShaderTypeId() { return ShaderGraph::ValueTypeId::FLOAT3; }
-template<> constexpr ShaderGraph::ValueTypeId Vector<float, 4>::toShaderTypeId() { return ShaderGraph::ValueTypeId::FLOAT4; }
+template<> constexpr ShaderGraph::ValueType Vector<float, 2>::toShaderTypeId() { return ShaderGraph::ValueType::FLOAT2; }
+template<> constexpr ShaderGraph::ValueType Vector<float, 3>::toShaderTypeId() { return ShaderGraph::ValueType::FLOAT3; }
+template<> constexpr ShaderGraph::ValueType Vector<float, 4>::toShaderTypeId() { return ShaderGraph::ValueType::FLOAT4; }
 
-template<> constexpr ShaderGraph::ValueTypeId Vector<int, 2>::toShaderTypeId() { return ShaderGraph::ValueTypeId::INT2; }
-template<> constexpr ShaderGraph::ValueTypeId Vector<int, 3>::toShaderTypeId() { return ShaderGraph::ValueTypeId::INT3; }
-template<> constexpr ShaderGraph::ValueTypeId Vector<int, 4>::toShaderTypeId() { return ShaderGraph::ValueTypeId::INT4; }
+template<> constexpr ShaderGraph::ValueType Vector<int, 2>::toShaderTypeId() { return ShaderGraph::ValueType::INT2; }
+template<> constexpr ShaderGraph::ValueType Vector<int, 3>::toShaderTypeId() { return ShaderGraph::ValueType::INT3; }
+template<> constexpr ShaderGraph::ValueType Vector<int, 4>::toShaderTypeId() { return ShaderGraph::ValueType::INT4; }
 
 
 /// Class representing a vector in the shader graph
@@ -175,7 +175,7 @@ struct Matrix : public ValueTypeBase
 public:
 	using ValueTypeBase::ValueTypeBase;
 
-	static constexpr ShaderGraph::ValueTypeId toShaderTypeId();
+	static constexpr ShaderGraph::ValueType toShaderTypeId();
 
 	/// Create a new Matrix with the diagonal filled with the value
 	Matrix(T v)
@@ -203,8 +203,8 @@ public:
 };
 
 
-template<> constexpr ShaderGraph::ValueTypeId Matrix<float, 3, 3>::toShaderTypeId() { return ShaderGraph::ValueTypeId::FLOAT3X3; }
-template<> constexpr ShaderGraph::ValueTypeId Matrix<float, 4, 4>::toShaderTypeId() { return ShaderGraph::ValueTypeId::FLOAT4X4; }
+template<> constexpr ShaderGraph::ValueType Matrix<float, 3, 3>::toShaderTypeId() { return ShaderGraph::ValueType::FLOAT3X3; }
+template<> constexpr ShaderGraph::ValueType Matrix<float, 4, 4>::toShaderTypeId() { return ShaderGraph::ValueType::FLOAT4X4; }
 
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -452,21 +452,21 @@ using Float3x3 = Matrix<float, 3, 3>;
 inline Float3 normalize(const Float3& v)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueTypeId::FLOAT3, "normalize", v.source()) };
+	return { NativeFunctionExpression::create(ValueType::FLOAT3, "normalize", v.source()) };
 }
 
 
 inline Float dot(const Float3& v1, const Float3& v2)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueTypeId::FLOAT, "dot", v1.source(), v2.source()) };
+	return { NativeFunctionExpression::create(ValueType::FLOAT, "dot", v1.source(), v2.source()) };
 }
 
 
 inline Float3 cross(const Float3& v1, const Float3& v2)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueTypeId::FLOAT3, "cross", v1.source(), v2.source()) };
+	return { NativeFunctionExpression::create(ValueType::FLOAT3, "cross", v1.source(), v2.source()) };
 }
 
 
@@ -474,7 +474,7 @@ template<size_t S>
 inline Float length(const Vector<float, S>& v)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueTypeId::FLOAT, "length", v.source()) };
+	return { NativeFunctionExpression::create(ValueType::FLOAT, "length", v.source()) };
 }
 
 
@@ -482,7 +482,7 @@ template<size_t S>
 inline Float distance(const Vector<float, S>& p0, const Vector<float, S>& p1)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueTypeId::FLOAT, "distance", p0.source(), p1.source())};
+	return { NativeFunctionExpression::create(ValueType::FLOAT, "distance", p0.source(), p1.source())};
 }
 
 
@@ -509,22 +509,50 @@ struct Sampler2D : ValueTypeBase
 {
 	using ValueTypeBase::ValueTypeBase;
 
-	static constexpr ShaderGraph::ValueTypeId toShaderTypeId() { return ShaderGraph::ValueTypeId::SAMPLER2D; }
+	static constexpr ShaderGraph::ValueType toShaderTypeId() { return ShaderGraph::ValueType::SAMPLER2D; }
 
 	Float4 sample(Float2 uv)
 	{
 		using namespace ShaderGraph;
-		return { ShaderGraph::NativeFunctionExpression::create(ValueTypeId::FLOAT4, "texture", source(), uv.source()) };
+		return { ShaderGraph::NativeFunctionExpression::create(ValueType::FLOAT4, "texture", source(), uv.source()) };
 	}
 
-	Int2 size(Scalar<int> lod)
+	Int2 size(Int lod)
 	{
 		using namespace ShaderGraph;
-		return { ShaderGraph::NativeFunctionExpression::create(ValueTypeId::FLOAT3, "textureSize", source(), lod.source()) };
+		return { ShaderGraph::NativeFunctionExpression::create(ValueType::FLOAT3, "textureSize", source(), lod.source()) };
 	}
 };
 
-namespace DefaultSemantics = Coral::ShaderLanguage::ShaderGraph::DefaultSemantics;
+
+namespace DefaultSemantics = Coral::ShaderGraph::DefaultSemantics;
+
+
+class ShaderProgram
+{
+public:
+
+	template<typename T>
+	void addVertexShaderOutput(std::string_view name, T value)
+	{
+		mShaderGraphProgram.addVertexShaderOutput(name, value.source());
+	}
+
+	template<typename T>
+	void addFragmentShaderOutput(std::string_view name, T value)
+	{
+		mShaderGraphProgram.addFragmentShaderOutput(name, value.source());
+	}
+
+	ShaderGraph::Program& getShaderGraphProgram()
+	{
+		return mShaderGraphProgram;
+	}
+
+private:
+
+	ShaderGraph::Program mShaderGraphProgram;
+};
 
 } // namespace ShaderLanguage 
 

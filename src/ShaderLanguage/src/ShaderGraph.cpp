@@ -2,26 +2,25 @@
 
 #include "Visitor.hpp"
 
-#include <cassert>
 #include <algorithm>
 #include <unordered_set>
 
-using namespace Coral::ShaderLanguage::ShaderGraph;
+using namespace Coral::ShaderGraph;
 
 
-ValueTypeId
-ExpressionBase::outputShaderTypeId() const
+ValueType
+ExpressionBase::outputValueType() const
 { 
 	return mOutputTypeId;
 }
 
 
-std::vector<ValueTypeId>
-ExpressionBase::inputTypeIds() const
+std::vector<ValueType>
+ExpressionBase::inputValueTypes() const
 {
 	auto getOutputTypeId = [](Expression expression) { return std::visit([](auto expr)
 	{
-		return expr->outputShaderTypeId(); }, expression);
+		return expr->outputValueType(); }, expression);
 	};
 
 	return mInputs | std::views::transform(getOutputTypeId) | std::ranges::to<std::vector>();
@@ -133,7 +132,7 @@ ShaderModule::buildExpressionList() const
 {
 	auto outputs = this->outputs();
 
-	std::vector<ShaderGraph::Expression> result(outputs.begin(), outputs.end());
+	std::vector<Expression> result(outputs.begin(), outputs.end());
 
 	for (auto [_, outputs] : mOutputs)
 	{
@@ -148,7 +147,7 @@ ShaderModule::buildExpressionList() const
 
 
 void
-ShaderProgram::addVertexShaderOutput(std::string_view name, Expression expression)
+Program::addVertexShaderOutput(std::string_view name, Expression expression)
 {
 	if (!mVertexShader)
 	{
@@ -160,7 +159,7 @@ ShaderProgram::addVertexShaderOutput(std::string_view name, Expression expressio
 
 
 void
-ShaderProgram::addFragmentShaderOutput(std::string_view name, Expression expression)
+Program::addFragmentShaderOutput(std::string_view name, Expression expression)
 {
 	if (!mFragmentShader)
 	{
@@ -172,7 +171,7 @@ ShaderProgram::addFragmentShaderOutput(std::string_view name, Expression express
 
 
 const ShaderModule*
-ShaderProgram::vertexShader() const
+Program::vertexShader() const
 {
 	if (mVertexShader)
 	{
@@ -184,7 +183,7 @@ ShaderProgram::vertexShader() const
 
 
 const ShaderModule*
-ShaderProgram::fragmentShader() const
+Program::fragmentShader() const
 {
 	if (mFragmentShader)
 	{

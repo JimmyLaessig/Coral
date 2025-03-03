@@ -37,7 +37,7 @@ private:
 
 	uint32_t mCount{ 0 };
 
-	AttributeFormat mAttributeFormat{ AttributeFormat::VEC3 };
+	AttributeFormat mAttributeFormat{ AttributeFormat::VEC3F };
 
 	Coral::Vulkan::BufferImpl* mBuffer{ nullptr };
 };

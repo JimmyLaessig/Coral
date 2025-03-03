@@ -1,5 +1,5 @@
-#ifndef CORAL_SHADERGRAPH_SHADERGRAPH_HPP
-#define CORAL_SHADERGRAPH_SHADERGRAPH_HPP
+#ifndef CORAL_SHADERGRAPH_HPP
+#define CORAL_SHADERGRAPH_HPP
 
 #include <concepts>
 #include <memory>
@@ -11,10 +11,11 @@
 
 #include <Coral/Coral.hpp>
 
-namespace Coral::ShaderLanguage::ShaderGraph
+///
+namespace Coral::ShaderGraph
 {
 
-enum class ValueTypeId
+enum class ValueType
 {
 	/// Conditional type
 	BOOL,
@@ -41,7 +42,6 @@ enum class ValueTypeId
 	/// 2D texture sampler
 	SAMPLER2D,
 };
-
 
 template<typename T>
 concept ScalarTypes = requires(T t) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
@@ -84,10 +84,10 @@ class ExpressionBase
 public:
 
 	/// Get the ShaderTypeId of the expression's output
-	ValueTypeId outputShaderTypeId() const;
+	ValueType outputValueType() const;
 
 	/// Get the ShaderTypeIds of the expression's inputs
-	std::vector<ValueTypeId> inputTypeIds() const;
+	std::vector<ValueType> inputValueTypes() const;
 
 	/// Get the inputs of the expression
 	std::span<const Expression> inputs() const;
@@ -95,7 +95,7 @@ public:
 protected:
 
 	template<typename ...Expressions>
-	ExpressionBase(ValueTypeId outputTypeId, Expressions... inputs)
+	ExpressionBase(ValueType outputTypeId, Expressions... inputs)
 		: mOutputTypeId(outputTypeId)
 	{
 		(mInputs.push_back(inputs), ...);
@@ -108,7 +108,7 @@ protected:
 
 private:
 
-	ValueTypeId mOutputTypeId;
+	ValueType mOutputTypeId;
 
 	std::vector<Expression> mInputs;
 };
@@ -116,19 +116,19 @@ private:
 
 /// Defines a constant scalar value expression
 template<ScalarTypes Scalar>
-class Constant : public ShaderGraph::ExpressionBase
+class Constant : public ExpressionBase
 {
 public:
 	static std::shared_ptr<Constant> create(Scalar value)
 	{
-		ValueTypeId id;
+		ValueType id;
 		if constexpr (std::is_same_v<Scalar, float>)
 		{
-			id = ValueTypeId::FLOAT;
+			id = ValueType::FLOAT;
 		}
 		else if constexpr (std::is_same_v<Scalar, int>)
 		{
-			id = ValueTypeId::INT;
+			id = ValueType::INT;
 		}
 		else
 		{
@@ -144,19 +144,19 @@ public:
 
 private:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
 	Scalar mValue{ 0 };
 };
 
 
 /// Defines a shader attribute value
-class AttributeExpression : public ShaderGraph::ExpressionBase
+class AttributeExpression : public ExpressionBase
 {
 public:
 
 	// Create a new Vertex shader input attribute
-	static inline std::shared_ptr<AttributeExpression> create(ValueTypeId resultType, std::string_view name)
+	static inline std::shared_ptr<AttributeExpression> create(ValueType resultType, std::string_view name)
 	{
 		std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType));
 		expr->mName = std::string(name.begin(), name.end());
@@ -166,7 +166,7 @@ public:
 	// Create a new shader output attribute
 	static inline std::shared_ptr<AttributeExpression> create(Expression source, std::string_view name)
 	{
-		auto resultType = std::visit([](auto expr) { return expr->outputShaderTypeId(); }, source);
+		auto resultType = std::visit([](auto expr) { return expr->outputValueType(); }, source);
 		std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType, source));
 		expr->mName = std::string(name.begin(), name.end());
 		return expr;
@@ -176,18 +176,18 @@ public:
 
 private:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
 	std::string mName;
 };
 
 
 /// Defines a mutable shader parameter value
-class ParameterExpression : public ShaderGraph::ExpressionBase
+class ParameterExpression : public ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<ParameterExpression> create(ValueTypeId resultType, std::string_view name)
+	static inline std::shared_ptr<ParameterExpression> create(ValueType resultType, std::string_view name)
 	{
 		std::shared_ptr<ParameterExpression> expr(new ParameterExpression(resultType));
 		expr->mName = std::string(name.begin(), name.end());
@@ -198,7 +198,7 @@ public:
 
 private:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
 	std::string mName;
 };
@@ -218,13 +218,13 @@ enum class Operator
 
 
 /// Class defining an arithmetic operator expression
-class OperatorExpression : public ShaderGraph::ExpressionBase
+class OperatorExpression : public ExpressionBase
 {
 public:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
-	static inline std::shared_ptr<OperatorExpression> create(ValueTypeId resultType, Operator op, Expression lhs, Expression rhs)
+	static inline std::shared_ptr<OperatorExpression> create(ValueType resultType, Operator op, Expression lhs, Expression rhs)
 	{
 		std::shared_ptr<OperatorExpression> expr(new OperatorExpression(resultType, lhs, rhs));
 		expr->mOperator = op;
@@ -240,29 +240,29 @@ private:
 
 
 /// Class defining a cast operator expression
-class CastExpression : public ShaderGraph::ExpressionBase
+class CastExpression : public ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<CastExpression> create(ValueTypeId resultType, Expression input)
+	static inline std::shared_ptr<CastExpression> create(ValueType resultType, Expression input)
 	{
 		return std::shared_ptr<CastExpression>(new CastExpression(resultType, input ));
 	}
 
 private:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
 };
 
 
 /// Class defining a native function call in the shader graph
-class NativeFunctionExpression : public ShaderGraph::ExpressionBase
+class NativeFunctionExpression : public ExpressionBase
 {
 public:
 
 	template<typename ...Expressions>
-	static inline std::shared_ptr<NativeFunctionExpression> create(ValueTypeId resultType, 
+	static inline std::shared_ptr<NativeFunctionExpression> create(ValueType resultType, 
 																   std::string_view functionName, 
 																   Expressions ...inputs)
 	{
@@ -275,19 +275,19 @@ public:
 
 private:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
 	std::string mFunctionName;
 };
 
 
 /// Class defining a native constructor call in the shader graph
-class ConstructorExpression : public ShaderGraph::ExpressionBase
+class ConstructorExpression : public ExpressionBase
 {
 public:
 
 	template<typename ...Expressions>
-	static inline std::shared_ptr<ConstructorExpression> create(ValueTypeId resultType, Expressions... inputs)
+	static inline std::shared_ptr<ConstructorExpression> create(ValueType resultType, Expressions... inputs)
 	{
 		auto expr = std::shared_ptr<ConstructorExpression>(new ConstructorExpression(resultType, inputs...));
 
@@ -296,7 +296,7 @@ public:
 
 private:
 
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 };
 
 
@@ -311,11 +311,11 @@ enum class Swizzle
 };
 
 
-class SwizzleExpression : public ShaderGraph::ExpressionBase
+class SwizzleExpression : public ExpressionBase
 {
 public:
 
-	static inline std::shared_ptr<SwizzleExpression> create(ValueTypeId resultType, Swizzle swizzle, Expression input)
+	static inline std::shared_ptr<SwizzleExpression> create(ValueType resultType, Swizzle swizzle, Expression input)
 	{
 		std::shared_ptr<SwizzleExpression> expr(new SwizzleExpression(resultType, input));
 		expr->mSwizzle = swizzle;
@@ -326,30 +326,34 @@ public:
 	Swizzle swizzle() const { return mSwizzle; }
 
 private:
-	using ShaderGraph::ExpressionBase::ExpressionBase;
+	using ExpressionBase::ExpressionBase;
 
 	Swizzle mSwizzle{ Swizzle::X };
 };
 
 
-//enum class ShaderStage
-//{
-//	VERTEX = 0,
-//	FRAGMENT = 1,
-//};
-
-
 namespace DefaultSemantics
 {
 	/// The vertex shader output attributed with the POSITION semantic is interpreted as the vertex's final 3D position.
-	constexpr auto POSITION  = "Position";
-	constexpr auto NORMAL    = "Normal";
-	constexpr auto TANGENT   = "Tangent";
-	constexpr auto TEXCOORD0 = "Texcoord0";
+	constexpr auto Position      = "Position";
+	constexpr auto Normal        = "Normal";
+	constexpr auto Tangent       = "Tangent";
+	constexpr auto Texcoord0     = "Texcoord0";
+	constexpr auto WorldPosition = "WorldPosition";
+	constexpr auto WorldNormal   = "WorldNormal";
 
 	/// The fragment shader output attributed with the DEPTH semantic is interpreted as the pixel's final depth value.
-	constexpr auto DEPTH     = "Depth";
+	constexpr auto Depth = "Depth";
+
+	// Default semantics for various commonly used uniforms
+	constexpr auto ModelViewProjectionMatrix = "modelViewProjectionMatrix";
+	constexpr auto ModelMatrix               = "modelMatrix";
+	constexpr auto ProjectionMatrix          = "projectionMatrix";
+	constexpr auto NormalMatrix              = "normalMatrix";
+	constexpr auto ViewProjectionMatrix      = "viewProjectionMatrix";
+
 } // namespace DefaultSemantics
+
 
 ///
 class ShaderModule
@@ -379,11 +383,9 @@ private:
 };
 
 
-///
-class ShaderProgram
+class Program
 {
 public:
-
 	void addVertexShaderOutput(std::string_view name, Expression expression);
 
 	void addFragmentShaderOutput(std::string_view name, Expression expression);
@@ -398,6 +400,6 @@ private:
 	std::optional<ShaderModule> mFragmentShader;
 };
 
-} // namespace Coral::Slang::ShaderGraph
+} // namespace Coral::ShaderGraph
 
-#endif // !CORAL_SHADERGRAPH_SHADERGRAPH_HPP
+#endif // !CORAL_SHADERGRAPH_HPP
