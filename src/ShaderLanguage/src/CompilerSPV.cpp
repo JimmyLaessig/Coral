@@ -3,12 +3,13 @@
 #include <shaderc/shaderc.h>
 
 #include <iostream>
+#include <sstream>
 
-using namespace Coral::ShaderLanguage::ShaderGraph;
+using namespace Coral::ShaderGraph;
 
 
 Compiler&
-CompilerSPV::setShaderProgram(const ShaderProgram& shaderProgram)
+CompilerSPV::setShaderProgram(const Program& shaderProgram)
 {
 	mCompilerGLSL.setShaderProgram(shaderProgram);
 	return *this;
@@ -16,9 +17,9 @@ CompilerSPV::setShaderProgram(const ShaderProgram& shaderProgram)
 
 
 Compiler&
-CompilerSPV::addUniformBlockOverride(const UniformBlockDefinition& uniformBlock)
+CompilerSPV::addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const UniformBlockDefinition& uniformBlock)
 {
-	mCompilerGLSL.addUniformBlockOverride(uniformBlock);
+	mCompilerGLSL.addUniformBlockOverride(set, binding, name, uniformBlock);
 	return *this;
 }
 
@@ -31,6 +32,28 @@ CompilerSPV::setDefaultUniformBlockName(std::string_view name)
 }
 
 
+Compiler&
+CompilerSPV::setDefaultDescriptorSet(uint32_t set)
+{
+	mCompilerGLSL.setDefaultDescriptorSet(set);
+	return *this;
+}
+
+
+void
+printShaderCode(const std::string& code)
+{
+	uint32_t lineNumber = 1;
+
+	std::stringstream ss(code);
+	std::string line;
+	while (std::getline(ss, line, '\n'))
+	{
+		std::cout << lineNumber++ << ": " << line << std::endl;
+	}
+}
+
+
 std::optional<CompilerResult>
 CompilerSPV::compile()
 {
@@ -40,13 +63,14 @@ CompilerSPV::compile()
 		return {};
 	}
 
-	for (auto [source, shaderKind] : { std::pair{ &result->vertexShader, shaderc_vertex_shader },
-								       std::pair{ &result->fragmentShader, shaderc_fragment_shader } })
+	for (auto [source, shaderKind, name] : { std::tuple{ &result->vertexShader, shaderc_vertex_shader, "VertexShader.glsl" },
+										     std::tuple{ &result->fragmentShader, shaderc_fragment_shader, "FragmentShader.glsl" } })
 	{
 		auto options = shaderc_compile_options_initialize();
 		shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
 		shaderc_compile_options_set_target_env(options, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
 		shaderc_compile_options_set_target_spirv(options, shaderc_spirv_version_1_3);
+		shaderc_compile_options_set_warnings_as_errors(options);
 
 		auto compiler = shaderc_compiler_initialize();
 
@@ -54,16 +78,18 @@ CompilerSPV::compile()
 											   source->c_str(),
 											   source->size(),
 											   shaderKind,
-											   "shader.glsl",
+											   name,
 											   "main",
 											   options);
 
 		if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success)
 		{
 			std::cerr << "Failed to compile shader to SpirV: " << shaderc_result_get_error_message(result) << std::endl;
+			printShaderCode(*source);
 			return {};
 		}
 
+		printShaderCode(*source);
 		auto bytes = shaderc_result_get_bytes(result);
 		auto size = shaderc_result_get_length(result);
 

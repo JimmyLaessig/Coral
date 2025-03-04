@@ -40,11 +40,11 @@ convert(Coral::AttributeFormat format)
 {
 	switch (format)
 	{
-		case Coral::AttributeFormat::VEC4:
+		case Coral::AttributeFormat::VEC4F:
 			return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case Coral::AttributeFormat::VEC3:
+		case Coral::AttributeFormat::VEC3F:
 			return VK_FORMAT_R32G32B32_SFLOAT;
-		case Coral::AttributeFormat::VEC2:
+		case Coral::AttributeFormat::VEC2F:
 			return VK_FORMAT_R32G32_SFLOAT;
 		case Coral::AttributeFormat::FLOAT:
 			return VK_FORMAT_R32_SFLOAT;

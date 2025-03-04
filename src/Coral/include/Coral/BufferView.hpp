@@ -20,7 +20,7 @@ struct BufferViewCreateConfig
 	uint32_t count{ 0 };
 
 	/// The format of the elements in the BufferView
-	AttributeFormat attribute{ AttributeFormat::VEC4 };
+	AttributeFormat attribute{ AttributeFormat::VEC4F };
 
 	/// The offset from the base address of the buffer to the first element of the BufferView
 	uint32_t offset{ 0 };

@@ -2,29 +2,28 @@
 
 #include "Visitor.hpp"
 
-#include <cassert>
 #include <algorithm>
 #include <unordered_set>
 
-using namespace Coral::ShaderLanguage::ShaderGraph;
+using namespace Coral::ShaderGraph;
 
 
-ValueTypeId
-ExpressionBase::outputShaderTypeId() const
+ValueType
+ExpressionBase::outputValueType() const
 { 
 	return mOutputTypeId;
 }
 
 
-std::vector<ValueTypeId>
-ExpressionBase::inputTypeIds() const
+std::vector<ValueType>
+ExpressionBase::inputValueTypes() const
 {
 	auto getOutputTypeId = [](Expression expression) { return std::visit([](auto expr)
 	{
-		return expr->outputShaderTypeId(); }, expression);
+		return expr->outputValueType(); }, expression);
 	};
 
-	return mInputs | std::views::transform(getOutputTypeId) | std::ranges::to<std::vector>();
+	return mInputs | std::views::transform(getOutputTypeId) | std::ranges::to<std::vector<ValueType>>();
 }
 
 
@@ -32,6 +31,59 @@ std::span<const Expression>
 ExpressionBase::inputs() const
 {
 	return mInputs;
+}
+
+
+std::shared_ptr<AttributeExpression>
+AttributeExpression::create(ValueType resultType, std::string_view name)
+{
+	std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType));
+	expr->mName = std::string(name.begin(), name.end());
+	return expr;
+}
+
+
+std::shared_ptr<AttributeExpression>
+AttributeExpression::create(Expression source, std::string_view name)
+{
+	auto resultType = std::visit([](auto expr) { return expr->outputValueType(); }, source);
+	std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType, source));
+	expr->mName = std::string(name.begin(), name.end());
+	return expr;
+}
+
+
+std::shared_ptr<ParameterExpression> 
+ParameterExpression::create(ValueType resultType, std::string_view name)
+{
+	std::shared_ptr<ParameterExpression> expr(new ParameterExpression(resultType));
+	expr->mName = std::string(name.begin(), name.end());
+	return expr;
+}
+
+
+std::shared_ptr<OperatorExpression>
+OperatorExpression::create(ValueType resultType, Operator op, Expression lhs, Expression rhs)
+{
+	std::shared_ptr<OperatorExpression> expr(new OperatorExpression(resultType, lhs, rhs));
+	expr->mOperator = op;
+	return expr;
+}
+
+
+std::shared_ptr<CastExpression>
+CastExpression::create(ValueType resultType, Expression input)
+{
+	return std::shared_ptr<CastExpression>(new CastExpression(resultType, input));
+}
+
+
+std::shared_ptr<SwizzleExpression> 
+SwizzleExpression::create(ValueType resultType, Swizzle swizzle, Expression input)
+{
+	std::shared_ptr<SwizzleExpression> expr(new SwizzleExpression(resultType, input));
+	expr->mSwizzle = swizzle;
+	return expr;
 }
 
 
@@ -133,7 +185,7 @@ ShaderModule::buildExpressionList() const
 {
 	auto outputs = this->outputs();
 
-	std::vector<ShaderGraph::Expression> result(outputs.begin(), outputs.end());
+	std::vector<Expression> result(outputs.begin(), outputs.end());
 
 	for (auto [_, outputs] : mOutputs)
 	{
@@ -143,12 +195,12 @@ ShaderModule::buildExpressionList() const
 		}
 	}
 
-	return std::views::reverse(result) | std::ranges::to<std::vector>();
+	return std::views::reverse(result) | std::ranges::to<std::vector<Expression>>();
 }
 
 
 void
-ShaderProgram::addVertexShaderOutput(std::string_view name, Expression expression)
+Program::addVertexShaderOutput(std::string_view name, Expression expression)
 {
 	if (!mVertexShader)
 	{
@@ -160,7 +212,7 @@ ShaderProgram::addVertexShaderOutput(std::string_view name, Expression expressio
 
 
 void
-ShaderProgram::addFragmentShaderOutput(std::string_view name, Expression expression)
+Program::addFragmentShaderOutput(std::string_view name, Expression expression)
 {
 	if (!mFragmentShader)
 	{
@@ -172,7 +224,7 @@ ShaderProgram::addFragmentShaderOutput(std::string_view name, Expression express
 
 
 const ShaderModule*
-ShaderProgram::vertexShader() const
+Program::vertexShader() const
 {
 	if (mVertexShader)
 	{
@@ -184,7 +236,7 @@ ShaderProgram::vertexShader() const
 
 
 const ShaderModule*
-ShaderProgram::fragmentShader() const
+Program::fragmentShader() const
 {
 	if (mFragmentShader)
 	{

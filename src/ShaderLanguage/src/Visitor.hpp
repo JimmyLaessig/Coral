@@ -8,4 +8,4 @@ struct Visitor : Ts...
 	using Ts::operator()...;
 };
 
-#endif !CORAL_SHADERGRAPH_VISITOR_HPP
+#endif // !CORAL_SHADERGRAPH_VISITOR_HPP

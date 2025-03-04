@@ -42,11 +42,11 @@ jobs:
                     sudo apt install libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev libwayland-dev libxkbcommon-dev
 
             # Install GCC (Linux only)
-            - name: Install GCC 12 (Linux)
+            - name: Install GCC 14 (Linux)
               if: matrix.compiler == 'gcc'
               uses:  egor-tensin/setup-gcc@v1
               with:
-                version: 12
+                version: 14
                 platform: x64
 
             # Install Clang 19 (Linux only)

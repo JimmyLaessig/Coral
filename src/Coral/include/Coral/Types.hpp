@@ -4,6 +4,7 @@
 #include <Coral/System.hpp>
 
 #include <cstdint>
+#include <utility>
 
 namespace Coral
 {
@@ -70,8 +71,7 @@ enum class PixelFormat
 	DEPTH32_F
 };
 
-
-/// Attribute format for buffer elements
+/// Attribute format for buffers
 enum class AttributeFormat
 {
 	UINT16,
@@ -79,16 +79,30 @@ enum class AttributeFormat
 	INT16,
 	INT32,
 	FLOAT,
-	VEC2,
-	VEC3,
-	VEC4
+	VEC2F,
+	VEC3F,
+	VEC4F
 };
 
+/// Format of uniform members 
+enum class UniformFormat
+{
+	BOOL,
+	INT32,
+	FLOAT,
+	VEC2I,
+	VEC3I,
+	VEC4I,
+	VEC2F,
+	VEC3F,
+	VEC4F,
+	MAT33F,
+	MAT44F
+};
 
-/// Get the size in bytes for the pixel format
+/// Get the size in bytes of the pixel format
 constexpr inline uint32_t sizeInBytes(PixelFormat format)
 {
-	using namespace Coral;
 	switch (format)
 	{
 		case PixelFormat::R8_UI:		return 1;
@@ -138,26 +152,46 @@ constexpr inline uint32_t sizeInBytes(PixelFormat format)
 		case PixelFormat::RGBA8_SRGB:		return 8;
 	}
 
-	return 0;
+	std::unreachable();
 }
 
-
-/// Get the size in bytes for the attribute format
-constexpr inline uint32_t sizeInBytes(Coral::AttributeFormat type)
+/// Get the size in bytes of the attribute format
+constexpr inline uint32_t sizeInBytes(Coral::AttributeFormat format)
 {
-	switch (type)
+	switch (format)
 	{
 		case AttributeFormat::UINT16:	return 2;
 		case AttributeFormat::UINT32:	return 4;
 		case AttributeFormat::INT16:	return 2;
 		case AttributeFormat::INT32:	return 4;
 		case AttributeFormat::FLOAT:	return 4;
-		case AttributeFormat::VEC2:		return 8;
-		case AttributeFormat::VEC3:		return 12;
-		case AttributeFormat::VEC4:		return 16;
+		case AttributeFormat::VEC2F:	return 8;
+		case AttributeFormat::VEC3F:	return 12;
+		case AttributeFormat::VEC4F:	return 16;
 	}
 
-	return 0;
+	std::unreachable();
+}
+
+/// Get the size in bytes of the uniform format
+constexpr inline uint32_t sizeInBytes(UniformFormat format)
+{
+	switch (format)
+	{
+		case UniformFormat::BOOL:	return 4;
+		case UniformFormat::INT32:	return 4;
+		case UniformFormat::FLOAT:	return 4;
+		case UniformFormat::VEC2F:	return 8;
+		case UniformFormat::VEC3F:	return 12;
+		case UniformFormat::VEC4F:	return 16;
+		case UniformFormat::VEC2I:	return 8;
+		case UniformFormat::VEC3I:	return 12;
+		case UniformFormat::VEC4I:	return 16;
+		case UniformFormat::MAT33F:	return 36;
+		case UniformFormat::MAT44F:	return 64;
+	};
+
+	std::unreachable();
 }
 
 } // namespace Coral

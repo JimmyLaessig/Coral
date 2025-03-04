@@ -57,20 +57,11 @@ set(CSL_SOURCES
 # Link the CSL library with the following libraries
 ###############################################################################
 
-#find_package(VulkanHeaders CONFIG REQUIRED)
-#find_package(volk CONFIG REQUIRED)
-#find_package(vk-bootstrap REQUIRED)
-#find_package(vulkan-memory-allocator REQUIRED)
-
-#if (CSL_SKIP_CONAN_DEPENDENCIES)
-#    find_package(spirv-reflect REQUIRED)
-#endif()
-
 coral_configure_target(${CSL_TARGET_NAME}
-     PUBLIC_HEADERS 
+    PUBLIC_HEADERS 
         ${CSL_SHADERGRAPH_HEADERS}
         ${CSL_HEADERS}
-     SOURCES 
+    SOURCES 
         ${CSL_SOURCES}
     PRIVATE_DEPENDENCIES
         shaderc

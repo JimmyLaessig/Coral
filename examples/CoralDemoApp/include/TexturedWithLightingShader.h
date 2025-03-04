@@ -9,25 +9,24 @@ namespace TexturedWithLightingShader
 inline Coral::UniformBlockDefinition
 uniformBlockDefinition()
 {
-	return Coral::UniformBlockDefinition("Uniforms",
-	{
-		{ Coral::ValueType::MAT44F, "modelViewProjectionMatrix",  1 },
-		{ Coral::ValueType::MAT33F, "normalMatrix",  1 },
-		{ Coral::ValueType::VEC3F, "lightColor", 1 },
-		{ Coral::ValueType::VEC3F, "lightDirection",  1 },
+	return Coral::UniformBlockDefinition({
+		{ Coral::UniformFormat::MAT44F, "modelViewProjectionMatrix",  1 },
+		{ Coral::UniformFormat::MAT33F, "normalMatrix",  1 },
+		{ Coral::UniformFormat::VEC3F, "lightColor", 1 },
+		{ Coral::UniformFormat::VEC3F, "lightDirection",  1 },
 	});
 }
 
 
-inline std::optional<Coral::ShaderLanguage::ShaderGraph::CompilerResult>
+inline std::optional<Coral::ShaderGraph::CompilerResult>
 shaderSource()
 {
-	Coral::ShaderLanguage::ShaderGraph::ShaderProgram progam;
+	csl::ShaderProgram shader;
 	// VertexShader
 	{
-		auto p  = csl::Attribute<csl::Float3>(csl::DefaultSemantics::POSITION);
-		auto n  = csl::Attribute<csl::Float3>(csl::DefaultSemantics::NORMAL);
-		auto uv = csl::Attribute<csl::Float2>(csl::DefaultSemantics::TEXCOORD0);
+		auto p  = csl::Attribute<csl::Float3>(csl::DefaultSemantics::Position);
+		auto n  = csl::Attribute<csl::Float3>(csl::DefaultSemantics::Normal);
+		auto uv = csl::Attribute<csl::Float2>(csl::DefaultSemantics::Texcoord0);
 
 		auto modelViewProjectionMatrix = csl::Parameter<csl::Float4x4>("modelViewProjectionMatrix");
 		auto normalMatrix = csl::Parameter<csl::Float3x3>("normalMatrix");
@@ -35,9 +34,9 @@ shaderSource()
 		auto position    = modelViewProjectionMatrix * csl::Float4(p, 1.f);
 		auto worldNormal = normalMatrix * n;
 
-		progam.addVertexShaderOutput(csl::DefaultSemantics::POSITION, position.source());
-		progam.addVertexShaderOutput("WorldNormal", worldNormal.source());
-		progam.addVertexShaderOutput("Texcoord0", uv.source());
+		shader.addVertexShaderOutput(csl::DefaultSemantics::Position, position);
+		shader.addVertexShaderOutput("WorldNormal", worldNormal);
+		shader.addVertexShaderOutput("Texcoord0", uv);
 	}
 	// FragmentShader
 	{
@@ -51,12 +50,12 @@ shaderSource()
 		auto color = colorTexture.sample(uv).xyz();
 		color = color * lightColor * csl::dot(normalize(lightDirection), normalize(wn));
 
-		progam.addFragmentShaderOutput("Color", csl::Float4(color, 1.f).source());
+		shader.addFragmentShaderOutput("Color", csl::Float4(color, 1.f));
 	}
 
-	return Coral::ShaderLanguage::ShaderGraph::CompilerSPV()
-		.setShaderProgram(progam)
-		.addUniformBlockOverride(uniformBlockDefinition())
+	return Coral::ShaderGraph::CompilerSPV()
+		.setShaderProgram(shader.getShaderGraphProgram())
+		.addUniformBlockOverride(0, 0, "Uniforms", uniformBlockDefinition())
 		.compile();
 }
 
