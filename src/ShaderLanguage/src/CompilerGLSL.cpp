@@ -11,6 +11,7 @@
 #include <string_view>
 #include <unordered_set>
 #include <utility>
+#include <algorithm>
 
 
 using namespace Coral::ShaderGraph;
@@ -308,7 +309,7 @@ CompilerGLSL::getRefName(const Expression expr)
 
 
 std::optional<std::pair<uint32_t, uint32_t>>
-CompilerGLSL::findUniformBlock(std::string_view parameterName)
+CompilerGLSL::findUniformBinding(std::string_view parameterName)
 {
 	for (const auto& [set, bindings] : mDescriptorBindings)
 	{
@@ -316,13 +317,17 @@ CompilerGLSL::findUniformBlock(std::string_view parameterName)
 		{
 			auto res = std::visit(Visitor
 			{
-				[](auto) { return false; },
-				[&](const Coral::UniformBlockDefinition& definition)
-				{ 
-					auto iter = std::ranges::find_if(definition.members, [&](const auto& member)
-													 { return member.name == parameterName; });
-					return iter != definition.members.end();
+				[&](const auto&)
+				{
+					return definition.name == parameterName;
 				},
+				[&](const Coral::UniformBlockDefinition& block)
+				{ 
+					auto iter = std::ranges::find_if(block.members, [&](const auto& member)
+													 { return member.name == parameterName; });
+					return iter != block.members.end();
+				},
+	
 			}, definition.definition);
 
 			if (res)
@@ -331,6 +336,7 @@ CompilerGLSL::findUniformBlock(std::string_view parameterName)
 			}
 		}
 	}
+
 
 	return {};
 }
@@ -411,7 +417,7 @@ CompilerGLSL::createUniformBlockDefinitions()
 	// Find all parameters that are not contained in a UniformBlock override
 	for (auto parameter : uniforms)
 	{
-		if (!findUniformBlock(parameter->name()))
+		if (!findUniformBinding(parameter->name()))
 		{
 			defaultUniformBlock.members.push_back(Coral::MemberDefinition{ convert(parameter->outputValueType()), 
 																		   parameter->name(), 
@@ -501,14 +507,26 @@ CompilerGLSL::createAttributeLocationDefinitions()
 
 
 std::string
-CompilerGLSL::buildUniformBlocksString()
+CompilerGLSL::buildUniformBlocksString(const ShaderModule& shaderModule)
 {
 	std::stringstream ss;
+	auto parameters = shaderModule.parameters();
 
 	for (const auto& [set, bindings] : mDescriptorBindings)
 	{
+
 		for (const auto& [binding, definition] : bindings)
 		{
+			bool useBlock = std::any_of(parameters.begin(), parameters.end(), [&](auto parameter)
+			{
+				return findUniformBinding(parameter->name()) == std::pair(set, binding);
+			});
+
+			if (!useBlock)
+			{
+				continue;
+			}
+
 			std::visit(Visitor
 			{
 				[&](const Coral::UniformBlockDefinition& uniformBlock)
@@ -525,8 +543,6 @@ CompilerGLSL::buildUniformBlocksString()
 			}, definition.definition);
 		}
 	}
-
-	
 
 	return ss.str();
 }
@@ -640,7 +656,8 @@ CompilerGLSL::setShaderProgram(const Program& shaderProgram)
 
 
 Compiler&
-CompilerGLSL::addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& uniformBlock)
+CompilerGLSL::addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, 
+							          const Coral::UniformBlockDefinition& uniformBlock)
 {
 	auto& definition      = mDescriptorBindings[set][binding];
 	definition.binding    = binding;
@@ -693,7 +710,7 @@ CompilerGLSL::compile()
 		{
 			auto inputAttributes  = buildInputAttributeDefinitionsString(*shaderModule);
 			auto outputAttributes = buildOutputAttributeDefinitionsString(*shaderModule);
-			auto uniforms	      = buildUniformBlocksString();
+			auto uniforms	      = buildUniformBlocksString(*shaderModule);
 			auto mainFunc	      = buildMainFunctionString(*shaderModule);
 
 			std::stringstream ss;
@@ -706,8 +723,6 @@ CompilerGLSL::compile()
 			*source = ss.str();
 		}
 	}
-
-
 
 	return result;
 }

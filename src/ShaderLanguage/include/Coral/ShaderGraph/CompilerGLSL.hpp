@@ -58,7 +58,7 @@ private:
 
 	std::string getRefName(const Expression expr);
 
-	std::optional<std::pair<uint32_t, uint32_t>> findUniformBlock(std::string_view parameterName);
+	std::optional<std::pair<uint32_t, uint32_t>> findUniformBinding(std::string_view parameterName);
 
 	std::string buildFunctionArgumentList(std::span<const Expression> expressions);
 
@@ -68,7 +68,7 @@ private:
 
 	std::string buildMainFunctionString(const ShaderModule& shaderModule);
 
-	std::string buildUniformBlocksString();
+	std::string buildUniformBlocksString(const ShaderModule& shaderModule);
 
 	bool createUniformBlockDefinitions();
 
