@@ -63,9 +63,11 @@ coral_configure_target(${CSL_TARGET_NAME}
         ${CSL_HEADERS}
     SOURCES 
         ${CSL_SOURCES}
-    PRIVATE_DEPENDENCIES
-        shaderc
+    PUBLIC_DEPENDENCIES
         Coral
+    PRIVATE_DEPENDENCIES
+        glslang
+        glslang-default-resource-limits
     )
 
 ###############################################################################

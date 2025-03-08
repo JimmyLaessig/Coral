@@ -24,12 +24,12 @@ struct ValueTypeBase
 {
 public:
 
-	ValueTypeBase(ShaderGraph::Expression source)
+	ValueTypeBase(ShaderGraph::NodePtr source)
 		: mSource(source)
 	{}
 
-	// Get the expression from which this value originates
-	ShaderGraph::Expression source() const
+	// Get the ShaderGraph node from which this value originates
+	ShaderGraph::NodePtr source() const
 	{
 		return mSource;
 	}
@@ -37,12 +37,12 @@ public:
 	/// Get the type id of the value
 	ShaderGraph::ValueType typeId() const
 	{ 
-		return std::visit([](auto expr) { return expr->outputValueType(); }, mSource);
+		return mSource->outputValueType();
 	}
 
 private:
 
-	ShaderGraph::Expression mSource;
+	ShaderGraph::NodePtr mSource;
 };
 
 
@@ -56,14 +56,14 @@ struct Scalar : ValueTypeBase
 
 	/// Create a new scalar from a constant
 	Scalar(T v)
-		: ValueTypeBase(ShaderGraph::Constant<T>::create(v))
+		: ValueTypeBase( ShaderGraph::Node::createConstant(v))
 	{
 	}
 
 	template<typename U> requires (!std::is_same_v<T, U>)
 	explicit operator Scalar<U>() const
 	{
-		return { ShaderGraph::CastExpression::create(Scalar<U>::toShaderTypeId(), source()) };
+		return { ShaderGraph::Node::createCast(Scalar<U>::toShaderTypeId(), source()) };
 	}
 };
 
@@ -74,7 +74,7 @@ template<> constexpr ShaderGraph::ValueType Scalar<bool>::toShaderTypeId() { ret
 
 
 template<typename T1, typename T2>
-ShaderGraph::Expression makeScalarExpression(T2 arg)
+ShaderGraph::NodePtr makeScalarExpression(T2 arg)
 {
 	if constexpr (std::is_same_v<T2, T1>)
 	{
@@ -104,14 +104,14 @@ public:
 	/// Create a new Vector from scalars
 	template<typename ...Ts> requires (sizeof...(Ts) == S)
 	Vector(Ts... args)
-		: ValueTypeBase(ShaderGraph::ConstructorExpression::create(Vector<T, S>::toShaderTypeId(), makeScalarExpression<T>(std::forward<Ts>(args))...))
+		: ValueTypeBase(ShaderGraph::Node::createConstructor(Vector<T, S>::toShaderTypeId(), makeScalarExpression<T>(std::forward<Ts>(args))...))
 	{
 	}
 
 	/// Create a new Vector from a smaller vector with the scalar values appended at the end
 	template<size_t S2, typename ...Ts> requires (sizeof...(Ts) + S2 == S)
 	Vector(const Vector<T, S2>& v, Ts... args)
-		: ValueTypeBase(ShaderGraph::ConstructorExpression::create(Vector<T, S>::toShaderTypeId(), v.source(), makeScalarExpression<T>(std::forward<Ts>(args))...))
+		: ValueTypeBase(ShaderGraph::Node::createConstructor(Vector<T, S>::toShaderTypeId(), v.source(), makeScalarExpression<T>(std::forward<Ts>(args))...))
 	{
 	}
 
@@ -119,42 +119,42 @@ public:
 	Scalar<T> x() const
 	{ 
 		using namespace ShaderGraph;
-		return Scalar<T>(SwizzleExpression::create(Scalar<T>::toShaderTypeId(), Swizzle::X, source()));
+		return Node::createSwizzle(Scalar<T>::toShaderTypeId(), Swizzle::X, source());
 	}
 
 	/// Get the y component of the vector
 	Scalar<T> y() const
 	{ 
-		using namespace ShaderGraph; 
-		return Scalar<T>(SwizzleExpression::create(Scalar<T>::toShaderTypeId(), Swizzle::Y, source()));
+		using namespace ShaderGraph;
+		return Node::createSwizzle(Scalar<T>::toShaderTypeId(), Swizzle::Y, source());
 	}
 
 	/// Get the z component of the vector
 	Scalar<T> z() const requires(S >= 3)
 	{
 		using namespace ShaderGraph;
-		return Scalar<T>(SwizzleExpression::create(Scalar<T>::toShaderTypeId(), Swizzle::Z, source()));
+		return Node::createSwizzle(Scalar<T>::toShaderTypeId(), Swizzle::Z, source());
 	}
 
 	/// Get the w component of the vector
 	Scalar<T> w() const requires(S >= 4)
 	{
-		using namespace ShaderGraph; 
-		return Scalar<T>(SwizzleExpression::create(Scalar<T>::toShaderTypeId(), Swizzle::W, source()));
+		using namespace ShaderGraph;
+		return Node::createSwizzle(Scalar<T>::toShaderTypeId(), Swizzle::W, source());
 	}
 
 	/// Get the xy components of the vector
 	Vector<T, 2> xy() const					  
 	{ 
 		using namespace ShaderGraph;
-		return Vector<T, 2>{ SwizzleExpression::create(Vector<T, 2>::toShaderTypeId(), Swizzle::XY, source()) };
+		return Node::createSwizzle(Scalar<T>::toShaderTypeId(), Swizzle::XY, source());
 	}
 
 	/// Get the xyw components of the vector
 	Vector<T, 3> xyz() const requires(S >= 3)
 	{
 		using namespace ShaderGraph;
-		return Vector<T, 3>{ SwizzleExpression::create(Vector<T, 3>::toShaderTypeId(), Swizzle::XYZ, source()) };
+		return Node::createSwizzle(Scalar<T>::toShaderTypeId(), Swizzle::XYZ, source());
 	}
 };
 
@@ -197,7 +197,7 @@ public:
 
 	template<typename ...Ts> requires (sizeof...(Ts) == C * R)
 	Matrix(Ts... values)
-		: ValueTypeBase(ShaderGraph::ConstructorExpression::create(Matrix<T, C, R>::toShaderTypeId(), (Scalar<T>(values).source(), ...)))
+		: ValueTypeBase(ShaderGraph::Node::createConstructor(Matrix<T, C, R>::toShaderTypeId(), (Scalar<T>(values).source(), ...)))
 	{
 	}
 };
@@ -215,7 +215,7 @@ template<typename T>
 inline Scalar<T> operator*(Scalar<T> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Scalar<T>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source())};
+	return { Node::createOperator(Scalar<T>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source())};
 }
 
 
@@ -223,7 +223,7 @@ template<typename T>
 inline Scalar<T> operator/(Scalar<T> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Scalar<T>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Scalar<T>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
 }
 
 
@@ -231,7 +231,7 @@ template<typename T>
 inline Scalar<T> operator+(Scalar<T> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Scalar<T>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Scalar<T>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
 }
 
 
@@ -239,7 +239,7 @@ template<typename T>
 inline Scalar<T> operator-(Scalar<T> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Scalar<T>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Scalar<T>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
 }
 
 
@@ -283,7 +283,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator*(Vector<T, S> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
 }
 
 
@@ -291,7 +291,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator/(Vector<T, S> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
 }
 
 
@@ -299,7 +299,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator+(Vector<T, S> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
 }
 
 
@@ -307,7 +307,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator-(Vector<T, S> lhs, Scalar<T> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
 }
 
 template<typename T, size_t S>
@@ -334,7 +334,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator*(Scalar<T> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
 }
 
 
@@ -342,7 +342,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator/(Scalar<T> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
 }
 
 
@@ -350,7 +350,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator+(Scalar<T> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
 }
 		
 
@@ -358,7 +358,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator-(Scalar<T> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
 }
 
 
@@ -385,7 +385,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator*(Vector<T, S> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
 }
 
 
@@ -393,7 +393,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator/(Vector<T, S> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::DIVIDE, lhs.source(), rhs.source()) };
 }
 
 
@@ -401,7 +401,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator+(Vector<T, S> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::ADD, lhs.source(), rhs.source()) };
 }
 
 
@@ -409,7 +409,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator-(Vector<T, S> lhs, Vector<T, S> rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
+	return { Node::CreateOperator(Vector<T, S>::toShaderTypeId(), Operator::SUBTRACT, lhs.source(), rhs.source()) };
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -420,7 +420,7 @@ template<typename T, size_t S>
 inline Vector<T, S> operator*(const Matrix<T, S, S>& lhs, const Vector<T, S>& rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -431,16 +431,16 @@ template<typename T, size_t S>
 inline Vector<T, S> operator*(const Vector<T, S>& lhs, const Matrix<T, S, S>& rhs)
 {
 	using namespace ShaderGraph;
-	return { OperatorExpression::create(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { Node::createOperator(Vector<T, S>::toShaderTypeId(), Operator::MULTIPLY, lhs.source(), rhs.source()) };
 }
 
 
-using Float = Scalar<float>;
+using Float  = Scalar<float>;
 using Float2 = Vector<float, 2>;
 using Float3 = Vector<float, 3>;
 using Float4 = Vector<float, 4>;
 
-using Int = Scalar<int>;
+using Int  = Scalar<int>;
 using Int2 = Vector<int, 2>;
 using Int3 = Vector<int, 3>;
 using Int4 = Vector<int, 4>;
@@ -452,21 +452,21 @@ using Float3x3 = Matrix<float, 3, 3>;
 inline Float3 normalize(const Float3& v)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueType::FLOAT3, "normalize", v.source()) };
+	return { Node::createNativeFunction(ValueType::FLOAT3, "normalize", v.source()) };
 }
 
 
 inline Float dot(const Float3& v1, const Float3& v2)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueType::FLOAT, "dot", v1.source(), v2.source()) };
+	return { Node::createNativeFunction(ValueType::FLOAT, "dot", v1.source(), v2.source()) };
 }
 
 
 inline Float3 cross(const Float3& v1, const Float3& v2)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueType::FLOAT3, "cross", v1.source(), v2.source()) };
+	return { Node::createNativeFunction(ValueType::FLOAT3, "cross", v1.source(), v2.source()) };
 }
 
 
@@ -474,7 +474,7 @@ template<size_t S>
 inline Float length(const Vector<float, S>& v)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueType::FLOAT, "length", v.source()) };
+	return { Node::createNativeFunctionCall(ValueType::FLOAT, "length", v.source()) };
 }
 
 
@@ -482,7 +482,7 @@ template<size_t S>
 inline Float distance(const Vector<float, S>& p0, const Vector<float, S>& p1)
 {
 	using namespace ShaderGraph;
-	return { NativeFunctionExpression::create(ValueType::FLOAT, "distance", p0.source(), p1.source())};
+	return { Node::createNativeFunctionCall(ValueType::FLOAT, "distance", p0.source(), p1.source())};
 }
 
 
@@ -490,7 +490,7 @@ template<typename T>
 inline T Attribute(std::string_view name)
 {
 	using namespace ShaderGraph;
-	return { AttributeExpression::create(T::toShaderTypeId(), name)};
+	return { Node::createAttribute(T::toShaderTypeId(), name)};
 }
 
 
@@ -498,7 +498,7 @@ template<typename T>
 inline T Parameter(std::string_view name)
 {
 	using namespace ShaderGraph;
-	return { ShaderGraph::ParameterExpression::create(T::toShaderTypeId(), name) };
+	return { Node::createParameter(T::toShaderTypeId(), name) };
 }
 
 //---------------------------------------------------------------------------------------------------------------------
@@ -514,13 +514,13 @@ struct Sampler2D : ValueTypeBase
 	Float4 sample(Float2 uv)
 	{
 		using namespace ShaderGraph;
-		return { ShaderGraph::NativeFunctionExpression::create(ValueType::FLOAT4, "texture", source(), uv.source()) };
+		return { Node::createNativeFunction(ValueType::FLOAT4, "texture", source(), uv.source()) };
 	}
 
 	Int2 size(Int lod)
 	{
 		using namespace ShaderGraph;
-		return { ShaderGraph::NativeFunctionExpression::create(ValueType::FLOAT3, "textureSize", source(), lod.source()) };
+		return { Node::createNativeFunction(ValueType::FLOAT3, "textureSize", source(), lod.source()) };
 	}
 };
 

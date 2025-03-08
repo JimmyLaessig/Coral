@@ -56,7 +56,7 @@ struct AttributeBindingDescription
 	// The location in the shader of the attribute
 	uint32_t location{ 0 };
 	/// The format of the attribute
-	Coral::AttributeFormat format;
+	Coral::AttributeFormat format{ Coral::AttributeFormat::VEC3F };
 	/// The name of the attribute in the shader
 	std::string name;
 };
