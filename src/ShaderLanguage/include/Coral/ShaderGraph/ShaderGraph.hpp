@@ -43,39 +43,9 @@ enum class ValueType
 	SAMPLER2D,
 };
 
-template<typename T>
-concept ScalarTypes = requires(T t) { std::is_same_v<T, float> || std::is_same_v<T, int>; };
 
-template<ScalarTypes Scalar>
-class Constant;
-class AttributeExpression;
-class ParameterExpression;
-class OperatorExpression;
-class NativeFunctionExpression;
-class ConstructorExpression;
-class CastExpression;
-class SwizzleExpression;
-
-template<ScalarTypes Scalar>
-using ConstantPtr				   = std::shared_ptr<Constant<Scalar>>;
-using AttributeExpressionPtr	   = std::shared_ptr<AttributeExpression>;
-using ParameterExpressionPtr	   = std::shared_ptr<ParameterExpression>;
-using OperatorExpressionPtr		   = std::shared_ptr<OperatorExpression>;
-using NativeFunctionExpressionPtr  = std::shared_ptr<NativeFunctionExpression>;
-using ConstructorExpressionPtr	   = std::shared_ptr<ConstructorExpression>;
-using CastExpressionPtr			   = std::shared_ptr<CastExpression>;
-using SwizzleExpressionPtr		   = std::shared_ptr<SwizzleExpression>;
-
-
-using Expression = std::variant<ConstantPtr<float>,
-							    ConstantPtr<int>,
-							    AttributeExpressionPtr,
-							    ParameterExpressionPtr,
-							    OperatorExpressionPtr,
-							    NativeFunctionExpressionPtr,
-							    ConstructorExpressionPtr,
-							    CastExpressionPtr,
-							    SwizzleExpressionPtr>;
+class Node;
+using NodePtr = std::shared_ptr<Node>;
 
 
 /// Base class for a shader graph expression
@@ -87,66 +57,71 @@ public:
 	ValueType outputValueType() const;
 
 	/// Get the ShaderTypeIds of the expression's inputs
-	std::vector<ValueType> inputValueTypes() const;
+	//std::vector<ValueType> inputValueTypes() const;
 
-	/// Get the inputs of the expression
-	std::span<const Expression> inputs() const;
+	///// Get the inputs of the expression
+	//std::span<Expression*> inputs() const;
+
+	NodePtr node() const;
+
+	const std::vector<NodePtr>& inputs() const;
 
 protected:
 
-	template<typename ...Expressions>
-	ExpressionBase(ValueType outputTypeId, Expressions... inputs)
-		: mOutputTypeId(outputTypeId)
-	{
-		(mInputs.push_back(inputs), ...);
-	}
-
-	void addInput(Expression expr)
-	{
-		mInputs.push_back(expr);
-	}
+	ExpressionBase(ValueType outputValueTypeId, NodePtr node);
 
 private:
 
-	ValueType mOutputTypeId;
+	ValueType mOutputValueType;
 
-	std::vector<Expression> mInputs;
+	std::weak_ptr<Node> mNode;
 };
 
 
 /// Defines a constant scalar value expression
-template<ScalarTypes Scalar>
-class Constant : public ExpressionBase
+template<typename Scalar>
+class Constant;
+
+
+/// Defines a float scalar value expression
+template<>
+class Constant<float> : public ExpressionBase
 {
 public:
-	static std::shared_ptr<Constant> create(Scalar value)
-	{
-		ValueType id;
-		if constexpr (std::is_same_v<Scalar, float>)
-		{
-			id = ValueType::FLOAT;
-		}
-		else if constexpr (std::is_same_v<Scalar, int>)
-		{
-			id = ValueType::INT;
-		}
-		else
-		{
-			static_assert(false && "Unsupported Constant type");
-		}
 
-		std::shared_ptr<Constant> expr(new Constant(id));
-		expr->mValue = value;
-		return expr;
+	Constant(float value, NodePtr node)
+		: ExpressionBase(ValueType::FLOAT, node)
+		, mValue(value)
+	{
+		mValue = value;
 	}
 
-	Scalar value() const { return mValue; }
+	float value() const { return mValue; }
 
 private:
 
-	using ExpressionBase::ExpressionBase;
+	float mValue{ 0 };
+};
 
-	Scalar mValue{ 0 };
+
+/// Defines a int scalar value expression
+template<>
+class Constant<int> : public ExpressionBase
+{
+public:
+
+	Constant(int value, NodePtr node)
+		: ExpressionBase(ValueType::INT, node)
+		, mValue(value)
+	{
+		mValue = value;
+	}
+
+	int value() const { return mValue; }
+
+private:
+
+	int mValue{ 0 };
 };
 
 
@@ -155,34 +130,31 @@ class AttributeExpression : public ExpressionBase
 {
 public:
 
-	// Create a new Vertex shader input attribute
-	static std::shared_ptr<AttributeExpression> create(ValueType resultType, std::string_view name);
+	// Create a new shader input attribute
+	AttributeExpression(ValueType outputType, std::string_view name, NodePtr node);
 
 	// Create a new shader output attribute
-	static std::shared_ptr<AttributeExpression> create(Expression source, std::string_view name);
+	AttributeExpression(std::string_view name, NodePtr node);
 
-	const std::string& name() const { return mName; }
+	const std::string& name() const;
 
 private:
-
-	using ExpressionBase::ExpressionBase;
 
 	std::string mName;
 };
 
 
-/// Defines a mutable shader parameter value
+/// Defines a shader parameter value (also known as uniform)
 class ParameterExpression : public ExpressionBase
 {
 public:
 
-	static std::shared_ptr<ParameterExpression> create(ValueType resultType, std::string_view name);
+	// Create a new shader input attribute
+	ParameterExpression(ValueType outputType, std::string_view name, NodePtr node);
 
-	const std::string& name() const { return mName; }
+	const std::string& name() const;
 
 private:
-
-	using ExpressionBase::ExpressionBase;
 
 	std::string mName;
 };
@@ -206,14 +178,12 @@ class OperatorExpression : public ExpressionBase
 {
 public:
 
-	using ExpressionBase::ExpressionBase;
+	OperatorExpression(ValueType outputType, Operator op, NodePtr node);
 
-	static std::shared_ptr<OperatorExpression> create(ValueType resultType, Operator op, Expression lhs, Expression rhs);
-
-	Operator getOperator() const { return mOperator; }
+	Operator getOperator() const;
 
 private:
-
+	
 	Operator mOperator{ Operator::ADD };
 };
 
@@ -223,11 +193,7 @@ class CastExpression : public ExpressionBase
 {
 public:
 
-	static std::shared_ptr<CastExpression> create(ValueType resultType, Expression input);
-
-private:
-
-	using ExpressionBase::ExpressionBase;
+	CastExpression(ValueType outputValueType, NodePtr node);
 
 };
 
@@ -237,21 +203,11 @@ class NativeFunctionExpression : public ExpressionBase
 {
 public:
 
-	template<typename ...Expressions>
-	static inline std::shared_ptr<NativeFunctionExpression> create(ValueType resultType, 
-																   std::string_view functionName, 
-																   Expressions ...inputs)
-	{
-		std::shared_ptr<NativeFunctionExpression> expr(new NativeFunctionExpression(resultType, inputs...));
-		expr->mFunctionName = functionName;
-		return expr;
-	}
+	NativeFunctionExpression(ValueType outputValueType, std::string_view name, NodePtr node);
 
-	const std::string& functionName() const { return mFunctionName; }
+	const std::string& functionName() const;
 
 private:
-
-	using ExpressionBase::ExpressionBase;
 
 	std::string mFunctionName;
 };
@@ -262,12 +218,8 @@ class ConstructorExpression : public ExpressionBase
 {
 public:
 
-	template<typename ...Expressions>
-	static std::shared_ptr<ConstructorExpression> create(ValueType resultType, Expressions... inputs);
+	ConstructorExpression(ValueType outputValueType, NodePtr node);
 
-private:
-
-	using ExpressionBase::ExpressionBase;
 };
 
 
@@ -286,22 +238,118 @@ class SwizzleExpression : public ExpressionBase
 {
 public:
 
-	static std::shared_ptr<SwizzleExpression> create(ValueType resultType, Swizzle swizzle, Expression input);
+	SwizzleExpression(ValueType resultType, Swizzle swizzle, NodePtr node);
 
-	Swizzle swizzle() const { return mSwizzle; }
+	Swizzle swizzle() const;
 
 private:
-	using ExpressionBase::ExpressionBase;
 
 	Swizzle mSwizzle{ Swizzle::X };
 };
 
 
-template<typename ...Expressions>
-std::shared_ptr<ConstructorExpression> ConstructorExpression::create(ValueType resultType, Expressions... inputs)
+using Expression = std::variant<Constant<float>,
+							    Constant<int>,
+							    AttributeExpression,
+							    ParameterExpression,
+							    OperatorExpression,
+							    NativeFunctionExpression,
+							    ConstructorExpression,
+							    CastExpression,
+							    SwizzleExpression>;
+
+
+inline ValueType
+getOutputValueType(const Expression& expr)
 {
-	return std::shared_ptr<ConstructorExpression>(new ConstructorExpression(resultType, inputs...));
+	return std::visit([](const auto& ex) { return ex.outputValueType(); }, expr);
 }
+
+
+inline ExpressionBase&
+cast(Expression& expr)
+{
+	return std::visit([](auto& ex) -> ExpressionBase& { return ex; }, expr);
+}
+
+
+inline const ExpressionBase&
+cast(const Expression& expr)
+{
+	return std::visit([](const auto& ex) -> const ExpressionBase& { return ex; }, expr);
+}
+
+
+inline NodePtr
+getNode(Expression& expr)
+{
+	return std::visit([](const auto& ex) -> NodePtr { return ex.node(); }, expr);
+}
+
+/// 
+class Node : public std::enable_shared_from_this<Node>
+{
+public:
+
+	template<typename ...Nodes>
+	Node(Nodes... inputs)
+	{
+		(mInputs.push_back(inputs), ...);
+	}
+
+	/// Get the expression of the node
+	const Expression& expression() const
+	{
+		return mExpression;
+	}
+
+	/// Get the inputs of the expression
+	const std::vector<NodePtr>& inputs() const
+	{
+		return mInputs;
+	}
+
+	ValueType outputValueType() const;
+
+	static NodePtr createConstant(float value);
+
+	static NodePtr createConstant(int value);
+
+	static NodePtr createAttribute(ValueType valueType, std::string_view name);
+
+	static NodePtr createAttribute(NodePtr input, std::string_view name);
+
+	static NodePtr createParameter(ValueType valueType, std::string_view name);
+
+	static NodePtr createOperator(ValueType valueType, Operator op, NodePtr lhs, NodePtr rhs);
+
+	static NodePtr createCast(ValueType valueType, NodePtr input);
+
+	template<typename ...NodePtrs>
+	static NodePtr createNativeFunction(ValueType valueType, std::string_view name, NodePtrs... inputs)
+	{
+		auto node = std::make_shared<Node>(inputs...);
+		node->mExpression = NativeFunctionExpression(valueType, name, node);
+		return node;
+	}
+
+	template<typename ...NodePtrs>
+	static NodePtr createConstructor(ValueType valueType, NodePtrs... inputs)
+	{
+		auto node = std::make_shared<Node>(inputs...);
+		node->mExpression = ConstructorExpression(valueType, node);
+		return node;
+	}
+
+	static NodePtr createSwizzle(ValueType valueType, Swizzle swizzle, NodePtr input);
+
+private:
+
+	Expression mExpression = Constant<float>(0, nullptr);
+
+	std::vector<NodePtr> mInputs;
+};
+
 
 namespace DefaultSemantics
 {
@@ -335,31 +383,31 @@ public:
 		: mShaderStage(shaderStage)
 	{}
 
-	void addOutput(std::string_view attributeSemantic, Expression expression);
+	void addOutput(std::string_view attributeSemantic, NodePtr node);
 
-	std::vector<AttributeExpressionPtr> inputs() const;
+	std::vector<const AttributeExpression*> inputs() const;
 
-	std::vector<ParameterExpressionPtr> parameters() const;
+	std::vector<const ParameterExpression*> parameters() const;
 
-	std::vector<AttributeExpressionPtr> outputs() const;
+	std::vector<const AttributeExpression*> outputs() const;
 
-	std::vector<Expression> buildExpressionList() const;
+	std::vector<const Expression*> buildExpressionList() const;
 
 	Coral::ShaderStage shaderStage() const { return mShaderStage; }
 
 private:
 
 	Coral::ShaderStage mShaderStage{ Coral::ShaderStage::VERTEX };
-	std::vector<std::pair<std::string, AttributeExpressionPtr>> mOutputs;
+	std::vector<std::pair<std::string, std::shared_ptr<Node>>> mOutputs;
 };
 
 
 class Program
 {
 public:
-	void addVertexShaderOutput(std::string_view name, Expression expression);
+	void addVertexShaderOutput(std::string_view name, NodePtr node);
 
-	void addFragmentShaderOutput(std::string_view name, Expression expression);
+	void addFragmentShaderOutput(std::string_view name, NodePtr node);
 
 	const ShaderModule* vertexShader() const;
 

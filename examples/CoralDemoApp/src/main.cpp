@@ -158,7 +158,7 @@ createUniformBuffer(Coral::Context& context, Coral::UniformBlockBuilder& block)
 {
 	Coral::BufferCreateConfig config{};
 	config.cpuVisible	= true;
-	config.size			= block.size();
+	config.size			= block.data().size();
 	config.type			= Coral::BufferType::UNIFORM_BUFFER;
 
 	Coral::BufferPtr buffer(context.createBuffer(config).value());

@@ -36,13 +36,13 @@ private:
 
 	std::vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
 
-	FaceCullingMode mFaceCullingMode;
+	FaceCullingMode mFaceCullingMode{ FaceCullingModes::BackFaceCulling };
 
-	DepthTestMode mDepthTestMode;
+	DepthTestMode mDepthTestMode{ DepthTestModes::Less };
 
-	BlendMode mBlendMode;
+	BlendMode mBlendMode{ BlendModes::Blend };
 
-	PolygonMode mPolygonMode;
+	PolygonMode mPolygonMode{ PolygonMode::SOLID };
 
 	std::optional<StencilTestMode> mStencilTestMode;
 };

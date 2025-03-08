@@ -4,121 +4,298 @@
 
 #include <algorithm>
 #include <unordered_set>
+#include <cassert>
 
 using namespace Coral::ShaderGraph;
+
+//-------------------------------------------------------------------------------------------------
+// ExpressionBase
+//-------------------------------------------------------------------------------------------------
+
+ExpressionBase::ExpressionBase(ValueType outputValueType, NodePtr node)
+	: mOutputValueType(outputValueType)
+	, mNode(node)
+{}
 
 
 ValueType
 ExpressionBase::outputValueType() const
 { 
-	return mOutputTypeId;
+	return mOutputValueType;
 }
 
 
-std::vector<ValueType>
-ExpressionBase::inputValueTypes() const
+NodePtr
+ExpressionBase::node() const
 {
-	auto getOutputTypeId = [](Expression expression) { return std::visit([](auto expr)
+	if (auto node = mNode.lock())
 	{
-		return expr->outputValueType(); }, expression);
-	};
+		return node;
+	}
 
-	return mInputs | std::views::transform(getOutputTypeId) | std::ranges::to<std::vector<ValueType>>();
+	assert(false);
+	return nullptr;
 }
 
 
-std::span<const Expression>
+const std::vector<NodePtr>&
 ExpressionBase::inputs() const
 {
-	return mInputs;
+	return node()->inputs();
+}
+
+//-------------------------------------------------------------------------------------------------
+// AttributeExpression
+//-------------------------------------------------------------------------------------------------
+
+AttributeExpression::AttributeExpression(ValueType outputValueType, std::string_view name, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+	, mName(name)
+{
 }
 
 
-std::shared_ptr<AttributeExpression>
-AttributeExpression::create(ValueType resultType, std::string_view name)
+AttributeExpression::AttributeExpression(std::string_view name, NodePtr node)
+	: ExpressionBase(node->inputs().front()->outputValueType(), node)
+	, mName(name)
 {
-	std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType));
-	expr->mName = std::string(name.begin(), name.end());
-	return expr;
 }
 
 
-std::shared_ptr<AttributeExpression>
-AttributeExpression::create(Expression source, std::string_view name)
+const std::string&
+AttributeExpression::name() const
 {
-	auto resultType = std::visit([](auto expr) { return expr->outputValueType(); }, source);
-	std::shared_ptr<AttributeExpression> expr(new AttributeExpression(resultType, source));
-	expr->mName = std::string(name.begin(), name.end());
-	return expr;
+	return mName;
+}
+
+//-------------------------------------------------------------------------------------------------
+// ParameterExpression
+//-------------------------------------------------------------------------------------------------
+
+ParameterExpression::ParameterExpression(ValueType outputValueType, std::string_view name, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+	, mName(name)
+{
 }
 
 
-std::shared_ptr<ParameterExpression> 
-ParameterExpression::create(ValueType resultType, std::string_view name)
+const std::string&
+ParameterExpression::name() const
 {
-	std::shared_ptr<ParameterExpression> expr(new ParameterExpression(resultType));
-	expr->mName = std::string(name.begin(), name.end());
-	return expr;
+	return mName;
+}
+
+//-------------------------------------------------------------------------------------------------
+// OperatorExpression
+//-------------------------------------------------------------------------------------------------
+
+OperatorExpression::OperatorExpression(ValueType outputValueType, Operator op, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+	, mOperator(op)
+{
+
 }
 
 
-std::shared_ptr<OperatorExpression>
-OperatorExpression::create(ValueType resultType, Operator op, Expression lhs, Expression rhs)
+Operator
+OperatorExpression::getOperator() const
 {
-	std::shared_ptr<OperatorExpression> expr(new OperatorExpression(resultType, lhs, rhs));
-	expr->mOperator = op;
-	return expr;
+	return mOperator;
+}
+
+//-------------------------------------------------------------------------------------------------
+// CastExpression
+//-------------------------------------------------------------------------------------------------
+
+CastExpression::CastExpression(ValueType outputValueType, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+{
+}
+
+//-------------------------------------------------------------------------------------------------
+// NativeFunctionExpression
+//-------------------------------------------------------------------------------------------------
+
+NativeFunctionExpression::NativeFunctionExpression(ValueType outputValueType, std::string_view name, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+	, mFunctionName(name)
+{
 }
 
 
-std::shared_ptr<CastExpression>
-CastExpression::create(ValueType resultType, Expression input)
+const std::string& 
+NativeFunctionExpression::functionName() const
 {
-	return std::shared_ptr<CastExpression>(new CastExpression(resultType, input));
+	return mFunctionName;
+}
+
+//-------------------------------------------------------------------------------------------------
+// ConstructorExpression
+//-------------------------------------------------------------------------------------------------
+
+ConstructorExpression::ConstructorExpression(ValueType outputValueType, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+{
+}
+
+//-------------------------------------------------------------------------------------------------
+// SwizzleExpression
+//-------------------------------------------------------------------------------------------------
+
+SwizzleExpression::SwizzleExpression(ValueType outputValueType, Swizzle swizzle, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+	, mSwizzle(swizzle)
+{
 }
 
 
-std::shared_ptr<SwizzleExpression> 
-SwizzleExpression::create(ValueType resultType, Swizzle swizzle, Expression input)
+Swizzle
+SwizzleExpression::swizzle() const
 {
-	std::shared_ptr<SwizzleExpression> expr(new SwizzleExpression(resultType, input));
-	expr->mSwizzle = swizzle;
-	return expr;
+	return mSwizzle;
+}
+
+//-------------------------------------------------------------------------------------------------
+// Node
+//-------------------------------------------------------------------------------------------------
+
+ValueType
+Node::outputValueType() const
+{
+	return getOutputValueType(mExpression);
+}
+
+
+NodePtr
+Node::createConstant(float value)
+{
+	auto node = std::make_shared<Node>();
+	node->mExpression = Constant<float>(value, node);
+	return node;
+}
+
+
+NodePtr
+Node::createConstant(int value)
+{
+	auto node = std::make_shared<Node>();
+	node->mExpression = Constant<int>(value, node);
+	return node;
+}
+
+
+NodePtr
+Node::createAttribute(ValueType valueType, std::string_view name)
+{
+	auto node = std::make_shared<Node>();
+	node->mExpression = AttributeExpression(valueType, name, node);
+	return node;
+}
+
+
+NodePtr
+Node::createAttribute(NodePtr input, std::string_view name)
+{
+	auto node = std::make_shared<Node>(input);
+	node->mExpression = AttributeExpression(name, node);
+	return node;
+}
+
+
+NodePtr
+Node::createParameter(ValueType valueType, std::string_view name)
+{
+	auto node = std::make_shared<Node>();
+	node->mExpression = ParameterExpression(valueType, name, node);
+	return node;
+}
+
+
+NodePtr
+Node::createOperator(ValueType valueType, Operator op, NodePtr lhs, NodePtr rhs)
+{
+	auto node = std::make_shared<Node>(lhs, rhs);
+	node->mExpression = OperatorExpression(valueType, op, node);
+	return node;
+}
+
+
+NodePtr
+Node::createCast(ValueType valueType, NodePtr input)
+{
+	auto node = std::make_shared<Node>(input);
+	node->mExpression = CastExpression(valueType, node);
+	return node;
+}
+
+
+NodePtr
+Node::createSwizzle(ValueType valueType, Swizzle swizzle, NodePtr input)
+{
+	auto node = std::make_shared<Node>(input);
+	node->mExpression = SwizzleExpression(valueType, swizzle, node);
+	return node;
 }
 
 
 void
-ShaderModule::addOutput(std::string_view name, Expression expression)
+ShaderModule::addOutput(std::string_view name, NodePtr node)
 {
+	auto attribute = Node::createAttribute(node, name);
+
 	auto iter = std::find_if(mOutputs.begin(), mOutputs.end(), [&](const auto& pair) { return pair.first == name; });
 
 	if (iter != mOutputs.end())
 	{
-		iter->second = AttributeExpression::create(expression, name);
+		iter->second = attribute;
 	}
 	else
 	{
-		mOutputs.emplace_back(name, AttributeExpression::create(expression, name));
+		mOutputs.emplace_back(name, attribute);
 	}
 }
 
 
 template<typename T>
 void
-collectShaderModuleInputsRecursive(Expression ex, std::vector<T>& result, std::unordered_set<T>& visited)
+collectShaderModuleInputsRecursive(NodePtr node, std::vector<T*>& result, std::unordered_set<T*>& visited)
 {
-	std::visit(Visitor{
-		[&](auto expr) { for (auto input : expr->inputs()) { collectShaderModuleInputsRecursive(input, result, visited); } },
-		[&](T expr) { if (!visited.contains(expr)) { result.push_back(expr); visited.insert(expr); } }
-	}, ex);
+	auto visitor = Visitor
+	{
+		[&](auto&)
+		{
+			return true;
+		},
+		[&](T& expr)
+		{
+			if (!visited.contains(&expr))
+			{
+				result.push_back(&expr);
+				visited.insert(&expr);
+			}
+			return false;
+		}
+	};
+
+	bool recurse = std::visit(visitor, node->expression());
+
+	if (!recurse)
+	{
+		return;
+	}
+
+	for (auto input : node->inputs())
+	{
+		collectShaderModuleInputsRecursive(input, result, visited);
+	}
 }
 
 
-std::vector<AttributeExpressionPtr>
+std::vector<const AttributeExpression*>
 ShaderModule::inputs() const
 {
-	std::vector<AttributeExpressionPtr> result;
-	std::unordered_set<AttributeExpressionPtr> visited;
+	std::vector<const AttributeExpression*> result;
+	std::unordered_set<const AttributeExpression*> visited;
 	for (const auto [_, attr] : mOutputs)
 	{
 		for (auto input : attr->inputs())
@@ -131,11 +308,11 @@ ShaderModule::inputs() const
 }
 
 
-std::vector<ParameterExpressionPtr>
+std::vector<const ParameterExpression*>
 ShaderModule::parameters() const
 {
-	std::vector<ParameterExpressionPtr> result;
-	std::unordered_set<ParameterExpressionPtr> visited;
+	std::vector<const ParameterExpression*> result;
+	std::unordered_set<const ParameterExpression*> visited;
 
 	for (const auto [_, attr] : mOutputs)
 	{
@@ -149,13 +326,19 @@ ShaderModule::parameters() const
 }
 
 
-std::vector<AttributeExpressionPtr>
+std::vector<const AttributeExpression*>
 ShaderModule::outputs() const
 {
-	std::vector<AttributeExpressionPtr> result;
-	for (const auto [_, attr] : mOutputs)
+	std::vector<const AttributeExpression*> result;
+	for (const auto [_, node] : mOutputs)
 	{
-		result.push_back(attr);
+		std::visit(Visitor{
+			[](auto&) { assert(false); },
+			[&](const AttributeExpression& expr)
+			{
+				result.push_back(&expr);
+			}
+		}, node->expression());
 	}
 
 	return result;
@@ -163,63 +346,59 @@ ShaderModule::outputs() const
 
 
 void
-buildExpressionListRecursive(const Expression expr, std::vector<Expression>& expressions)
+buildExpressionListRecursive(NodePtr node, std::vector<const Expression*>& expressions)
 {
-	expressions.push_back(expr);
+	expressions.push_back(&node->expression());
 
-	auto inputs = std::visit(Visitor
-	{
-		[&](AttributeExpressionPtr) -> std::span<const Expression> { return {}; },
-		[&](auto ex) { return ex->inputs(); },
-	}, expr);
-
-	for (auto input : inputs)
+	for (auto input : node->inputs())
 	{
 		buildExpressionListRecursive(input, expressions);
 	}
 }
 
 
-std::vector<Expression>
+std::vector<const Expression*>
 ShaderModule::buildExpressionList() const
 {
-	auto outputs = this->outputs();
+	auto result = mOutputs 
+		| std::views::transform([](auto node) { return &node.second->expression(); })
+		| std::ranges::to<std::vector<const Expression*>>();
 
-	std::vector<Expression> result(outputs.begin(), outputs.end());
-
-	for (auto [_, outputs] : mOutputs)
+	for (auto [_, node] : mOutputs)
 	{
-		for (auto input : outputs->inputs())
+		for (auto input : node->inputs())
 		{
 			buildExpressionListRecursive(input, result);
 		}
 	}
 
-	return std::views::reverse(result) | std::ranges::to<std::vector<Expression>>();
+	std::reverse(result.begin(), result.end());
+	
+	return result;
 }
 
 
 void
-Program::addVertexShaderOutput(std::string_view name, Expression expression)
+Program::addVertexShaderOutput(std::string_view name, NodePtr node)
 {
 	if (!mVertexShader)
 	{
 		mVertexShader.emplace(Coral::ShaderStage::VERTEX);
 	}
 
-	mVertexShader->addOutput(name, expression);
+	mVertexShader->addOutput(name, node);
 }
 
 
 void
-Program::addFragmentShaderOutput(std::string_view name, Expression expression)
+Program::addFragmentShaderOutput(std::string_view name, NodePtr node)
 {
 	if (!mFragmentShader)
 	{
 		mFragmentShader.emplace(Coral::ShaderStage::FRAGMENT);
 	}
 
-	mFragmentShader->addOutput(name, expression);
+	mFragmentShader->addOutput(name, node);
 }
 
 

@@ -2,11 +2,13 @@
 
 #include "Visitor.hpp"
 
+#include <algorithm>
 #include <cassert>
 #include <cmath>
 #include <format>
 #include <iostream>
 #include <map>
+#include <ranges>
 #include <sstream>
 #include <string_view>
 #include <unordered_set>
@@ -23,7 +25,7 @@ getTypeShortName(ValueType typeId)
 {
 	switch (typeId)
 	{
-		case ValueType::BOOL:    	 return "b";
+		case ValueType::BOOL:      return "b";
 		case ValueType::INT:       return "i";
 		case ValueType::INT2:      return "iv";
 		case ValueType::INT3:      return "iv";
@@ -163,7 +165,7 @@ CompilerGLSL::format(const Constant<int>& expr)
 std::string
 CompilerGLSL::format(const AttributeExpression& expr)
 {
-	return std::format("{} = {};\n", getRefName(expr), getRefName(expr.inputs().front()));
+	return std::format("{} = {};\n", getRefName(expr.node()), getRefName(expr.inputs().front()));
 }
 
 
@@ -180,12 +182,12 @@ CompilerGLSL::format(const OperatorExpression& expr)
 {
 	assert(expr.inputs().size() == 2);
 
-	auto lhs = expr.inputs()[0];
-	auto rhs = expr.inputs()[1];
+	const auto& lhs = expr.inputs()[0];
+	const auto& rhs = expr.inputs()[1];;
 
 	return std::format("{} {} = {} {} {};\n",
 					   toString(expr.outputValueType()),
-					   getRefName(expr),
+					   getRefName(expr.node()),
 					   getRefName(lhs),
 					   toString(expr.getOperator()),
 					   getRefName(rhs));
@@ -197,7 +199,7 @@ CompilerGLSL::format(const NativeFunctionExpression& expr)
 {
 	return std::format("{} {} = {}({});\n",
 					   toString(expr.outputValueType()),
-					   getRefName(expr),
+					   getRefName(expr.node()),
 					   expr.functionName(),
 					   buildFunctionArgumentList(expr.inputs()));
 }
@@ -208,7 +210,7 @@ CompilerGLSL::format(const ConstructorExpression& expr)
 {
 	return std::format("{} {} = {}({});\n",
 					   toString(expr.outputValueType()),
-					   getRefName(expr),
+					   getRefName(expr.node()),
 					   toString(expr.outputValueType()),
 					   buildFunctionArgumentList(expr.inputs()));
 }
@@ -220,7 +222,7 @@ CompilerGLSL::format(const CastExpression& expr)
 	assert(expr.inputs().size() == 1);
 	return std::format("{} {} = ({}){};\n",
 					   toString(expr.outputValueType()),
-					   getRefName(expr),
+					   getRefName(expr.node()),
 					   toString(expr.outputValueType()),
 					   getRefName(expr.inputs().front()));
 }
@@ -237,78 +239,84 @@ CompilerGLSL::format(const SwizzleExpression& expr)
 std::string
 CompilerGLSL::format(const Expression& expr)
 {
-	return std::visit([this](auto ex) { return format(*ex); }, expr);
+	return std::visit([this](auto ex) { return format(ex); }, expr);
 }
 
 
-std::string
-CompilerGLSL::getRefName(const ExpressionBase& expr)
+std::optional<std::string>
+CompilerGLSL::formatDefaultSemantics(const AttributeExpression& expr, ShaderStage shaderStage)
 {
-	auto iter = mNameLookUp.find(&expr);
+	if (shaderStage == Coral::ShaderStage::VERTEX)
+	{
+		if (expr.name() == DefaultSemantics::Position)
+		{
+			return std::format("gl_Position = {};\n", getRefName(expr.inputs().front()));
+		}
+	}
+
+	if (shaderStage == Coral::ShaderStage::FRAGMENT)
+	{
+		if (expr.name() == DefaultSemantics::Depth)
+		{
+			return std::format("gl_FragDepth = {};\n", getRefName(expr.inputs().front()));
+		}
+	}
+
+	return {};
+}
+
+std::string
+CompilerGLSL::getRefName(NodePtr node)
+{
+	auto iter = mNameLookUp.find(node);
 	if (iter != mNameLookUp.end())
 	{
 		return iter->second;
 	}
 
-	auto varName = std::format("{}{}",getTypeShortName(expr.outputValueType()), mNameLookUp.size());
-	mNameLookUp[&expr] = varName;
-
-	return varName;
-}
-
-
-std::string
-CompilerGLSL::getRefName(const Constant<float>& expr)
-{
-	float integral;
-	std::string suffix = std::modf(expr.value(), &integral) == 0 ? ".f" : "f";
-
-	return std::format("{}{}", expr.value(), suffix);
-}
-
-
-std::string
-CompilerGLSL::getRefName(const Constant<int>& expr)
-{
-	return std::format("{}", expr.value());
-}
-
-
-std::string
-CompilerGLSL::getRefName(const AttributeExpression& expr)
-{
-	if (expr.inputs().empty())
+	auto visitor = Visitor
 	{
-		return expr.name();
-	}
+		[this](const Constant<float>& expr)
+		{
+			float integral;
+			std::string suffix = std::modf(expr.value(), &integral) == 0 ? ".f" : "f";
+			return std::format("{}{}", expr.value(), suffix);
+		},
+		[](const Constant<int>& expr)
+		{
+			return std::to_string(expr.value());
+		},
+		[](const AttributeExpression& expr)
+		{
+			if (expr.inputs().empty())
+			{
+				return expr.name();
+			}
+			return std::format("out_{}", expr.name());
+		},
+		[](const ParameterExpression& expr)
+		{
+			return expr.name();
+		},
+		[this](const SwizzleExpression& expr)
+		{
+			return std::format("{}.{}", getRefName(expr.inputs().front()), toString(expr.swizzle()));
+		},
+		[&](const auto& expr)
+		{
+			return std::format("{}{}",getTypeShortName(expr.outputValueType()), mVarCounter++);
+		}
+	};
 
-	return std::format("out_{}", expr.name());
-}
+	std::string name = std::visit(visitor, node->expression());
+	mNameLookUp[node] = name;
 
-
-std::string
-CompilerGLSL::getRefName(const ParameterExpression& expr)
-{
-	return expr.name();
-}
-
-
-std::string
-CompilerGLSL::getRefName(const SwizzleExpression& expr)
-{
-	return std::format("{}.{}", getRefName(expr.inputs().front()), toString(expr.swizzle()));
-}
-
-
-std::string
-CompilerGLSL::getRefName(const Expression expr)
-{
-	return std::visit([this](auto ex) { return getRefName(*ex); }, expr);
+	return name;
 }
 
 
 std::optional<std::pair<uint32_t, uint32_t>>
-CompilerGLSL::findUniformBlock(std::string_view parameterName)
+CompilerGLSL::findUniformBinding(std::string_view parameterName)
 {
 	for (const auto& [set, bindings] : mDescriptorBindings)
 	{
@@ -316,7 +324,9 @@ CompilerGLSL::findUniformBlock(std::string_view parameterName)
 		{
 			auto res = std::visit(Visitor
 			{
-				[](auto) { return false; },
+				[&](const Coral::CombinedTextureSamplerDefinition&) { return definition.name == parameterName; },
+				[&](const Coral::SamplerDefinition&) { return definition.name == parameterName; },
+				[&](const Coral::TextureDefinition&) { return definition.name == parameterName; },
 				[&](const Coral::UniformBlockDefinition& definition)
 				{ 
 					auto iter = std::ranges::find_if(definition.members, [&](const auto& member)
@@ -337,7 +347,7 @@ CompilerGLSL::findUniformBlock(std::string_view parameterName)
 
 
 std::string
-CompilerGLSL::buildFunctionArgumentList(std::span<const Expression> args)
+CompilerGLSL::buildFunctionArgumentList(std::span<const NodePtr> args)
 {
 	std::stringstream ss;
 
@@ -384,8 +394,8 @@ buildUniformCombinedTextureSamplerString(uint32_t set, uint32_t binding, const s
 bool
 CompilerGLSL::createUniformBlockDefinitions()
 {
-	std::vector<ParameterExpressionPtr> parameters;
-	std::unordered_set<ParameterExpressionPtr> inserted;
+	std::vector<const ParameterExpression*> parameters;
+	std::unordered_set<const ParameterExpression*> inserted;
 	for (auto shaderModule : { mShaderProgram->vertexShader(),
 							   mShaderProgram->fragmentShader()})
 	{
@@ -411,7 +421,7 @@ CompilerGLSL::createUniformBlockDefinitions()
 	// Find all parameters that are not contained in a UniformBlock override
 	for (auto parameter : uniforms)
 	{
-		if (!findUniformBlock(parameter->name()))
+		if (!findUniformBinding(parameter->name()))
 		{
 			defaultUniformBlock.members.push_back(Coral::MemberDefinition{ convert(parameter->outputValueType()), 
 																		   parameter->name(), 
@@ -501,14 +511,26 @@ CompilerGLSL::createAttributeLocationDefinitions()
 
 
 std::string
-CompilerGLSL::buildUniformBlocksString()
+CompilerGLSL::buildUniformBlocksString(const ShaderModule& shaderModule)
 {
 	std::stringstream ss;
+
+	auto parameters = shaderModule.parameters();
 
 	for (const auto& [set, bindings] : mDescriptorBindings)
 	{
 		for (const auto& [binding, definition] : bindings)
 		{
+			bool useBlock = std::ranges::any_of(parameters, [&](auto parameter)
+			{
+				return findUniformBinding(parameter->name()) == std::pair(set, binding);
+			});
+
+			if (!useBlock)
+			{
+				continue;
+			}
+
 			std::visit(Visitor
 			{
 				[&](const Coral::UniformBlockDefinition& uniformBlock)
@@ -535,7 +557,7 @@ CompilerGLSL::buildUniformBlocksString()
 std::string
 CompilerGLSL::buildInputAttributeDefinitionsString(const ShaderModule& shaderModule)
 {
-	std::map<uint32_t, AttributeExpressionPtr> attributesSorted;
+	std::map<uint32_t, const AttributeExpression*> attributesSorted;
 	for (const auto& [attr, location] : mShaderStageAttributeBindingsLookUp[&shaderModule].inputAttributes)
 	{
 		attributesSorted[location] = attr;
@@ -547,7 +569,7 @@ CompilerGLSL::buildInputAttributeDefinitionsString(const ShaderModule& shaderMod
 		ss << std::format("layout (location = {}) in {} {};\n",
 						  location,
 						  toString(attr->outputValueType()),
-						  getRefName(*attr));
+						  getRefName(attr->node()));
 	}
 
 	return ss.str();
@@ -557,7 +579,7 @@ CompilerGLSL::buildInputAttributeDefinitionsString(const ShaderModule& shaderMod
 std::string
 CompilerGLSL::buildOutputAttributeDefinitionsString(const ShaderModule& shaderModule)
 {
-	std::map<uint32_t, AttributeExpressionPtr> attributesSorted;
+	std::map<uint32_t, const AttributeExpression*> attributesSorted;
 	for (const auto& [attr, location] : mShaderStageAttributeBindingsLookUp[&shaderModule].outputAttributes)
 	{
 		attributesSorted[location] = attr;
@@ -569,7 +591,7 @@ CompilerGLSL::buildOutputAttributeDefinitionsString(const ShaderModule& shaderMo
 		ss << std::format("layout (location = {}) out {} {};\n",
 						  location,
 						  toString(attr->outputValueType()),
-						  getRefName(*attr));
+						  getRefName(attr->node()));
 	}
 
 	return ss.str();
@@ -581,7 +603,7 @@ CompilerGLSL::buildMainFunctionString(const ShaderModule& shaderModule)
 {
 	auto expressionList = shaderModule.buildExpressionList();
 
-	std::unordered_set<Expression> visited;
+	std::unordered_set<const Expression*> visited;
 
 	std::stringstream ss;
 
@@ -596,33 +618,27 @@ CompilerGLSL::buildMainFunctionString(const ShaderModule& shaderModule)
 		}
 
 		std::visit(Visitor{ 
-			[&](auto ex) { ss << TAB << format(expr); },
-			[&](std::shared_ptr<AttributeExpression> attr)
+			[&](const auto& ex) { ss << TAB << format(ex); },
+			[&](const AttributeExpression& attr)
 			{
-				if (!attr->inputs().empty())
+				if (attr.inputs().empty())
 				{
-					ss << TAB << format(*attr);
+					return;
+				}
+				ss << TAB << format(attr);
+
+				if (auto defaultSemantic = formatDefaultSemantics(attr, shaderModule.shaderStage()))
+				{
+					ss << TAB << *defaultSemantic;
 				}
 			},
-			[](std::shared_ptr<SwizzleExpression>) {},
-			[](std::shared_ptr<ParameterExpression>) {},
-			[](std::shared_ptr<Constant<float>>) {},
-			[](std::shared_ptr<Constant<int>>) {},
-		}, expr);
+			[](const SwizzleExpression&) {},
+			[](const ParameterExpression&) {},
+			[](const Constant<float>&) {},
+			[](const Constant<int>&) {},
+		}, *expr);
 
 		visited.insert(expr);
-	}
-
-	for (auto output : shaderModule.outputs())
-	{
-		if (output->name() == DefaultSemantics::Position && shaderModule.shaderStage() == ShaderStage::VERTEX)
-		{
-			ss << TAB << std::format("gl_Position = {};", getRefName(output->inputs().front())) << std::endl;
-		}
-		if (output->name() == DefaultSemantics::Depth && shaderModule.shaderStage() == ShaderStage::FRAGMENT)
-		{
-			ss << TAB << std::format("gl_FragDepth = {};", getRefName(output->inputs().front())) << std::endl;
-		}
 	}
 
 	ss << "}";
@@ -693,7 +709,7 @@ CompilerGLSL::compile()
 		{
 			auto inputAttributes  = buildInputAttributeDefinitionsString(*shaderModule);
 			auto outputAttributes = buildOutputAttributeDefinitionsString(*shaderModule);
-			auto uniforms	      = buildUniformBlocksString();
+			auto uniforms	      = buildUniformBlocksString(*shaderModule);
 			auto mainFunc	      = buildMainFunctionString(*shaderModule);
 
 			std::stringstream ss;
@@ -704,10 +720,12 @@ CompilerGLSL::compile()
 			ss << mainFunc << std::endl;
 
 			*source = ss.str();
+
+			std::cout << *source << std::endl;
 		}
 	}
 
-
+	
 
 	return result;
 }

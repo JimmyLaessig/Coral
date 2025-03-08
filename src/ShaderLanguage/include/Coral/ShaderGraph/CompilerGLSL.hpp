@@ -44,23 +44,13 @@ private:
 
 	std::string format(const Expression& expr);
 
-	std::string getRefName(const ExpressionBase& expr);
+	std::optional<std::string> formatDefaultSemantics(const AttributeExpression& expr, ShaderStage shaderStage);
 
-	std::string getRefName(const Constant<float>& expr);
+	std::string getRefName(NodePtr node);
 
-	std::string getRefName(const Constant<int>& expr);
+	std::optional<std::pair<uint32_t, uint32_t>> findUniformBinding(std::string_view parameterName);
 
-	std::string getRefName(const AttributeExpression& expr);
-
-	std::string getRefName(const ParameterExpression& expr);
-
-	std::string getRefName(const SwizzleExpression& expr);
-
-	std::string getRefName(const Expression expr);
-
-	std::optional<std::pair<uint32_t, uint32_t>> findUniformBlock(std::string_view parameterName);
-
-	std::string buildFunctionArgumentList(std::span<const Expression> expressions);
+	std::string buildFunctionArgumentList(std::span<const NodePtr> expressions);
 
 	std::string buildInputAttributeDefinitionsString(const ShaderModule& shaderModule);
 
@@ -68,7 +58,7 @@ private:
 
 	std::string buildMainFunctionString(const ShaderModule& shaderModule);
 
-	std::string buildUniformBlocksString();
+	std::string buildUniformBlocksString(const ShaderModule& shaderModule);
 
 	bool createUniformBlockDefinitions();
 
@@ -78,21 +68,23 @@ private:
 
 	struct ShaderStageAttributeBindings
 	{
-		std::map<const AttributeExpressionPtr, uint32_t> inputAttributes;
-		std::map<const AttributeExpressionPtr, uint32_t> outputAttributes;
+		std::map<const AttributeExpression*, uint32_t> inputAttributes;
+		std::map<const AttributeExpression*, uint32_t> outputAttributes;
 	};
 
 	const Program* mShaderProgram{ nullptr };
 
 	std::map<uint32_t, std::map<uint32_t, Coral::DescriptorBindingDefinition>> mDescriptorBindings;
 
-	std::unordered_map<const ExpressionBase*, std::string> mNameLookUp;
+	std::unordered_map<NodePtr, std::string> mNameLookUp;
 
 	std::unordered_map<const ShaderModule*, ShaderStageAttributeBindings> mShaderStageAttributeBindingsLookUp;
 
 	std::string mDefaultUniformBlockName{ "Uniforms" };
 
 	uint32_t mDefaultDescriptorSet{ 0 };
+
+	uint32_t mVarCounter{ 0 };
 };
 
 } // namespace Coral::ShaderGraph

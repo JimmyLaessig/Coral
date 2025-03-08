@@ -40,7 +40,7 @@ shaderSource()
 	}
 	// FragmentShader
 	{
-		auto wn = csl::Attribute<csl::Float3>("WorldNormal");
+		auto wn = csl::normalize(csl::Attribute<csl::Float3>("WorldNormal"));
 		auto uv = csl::Attribute<csl::Float2>("Texcoord0");
 
 		auto lightColor     = csl::Parameter<csl::Float3>("lightColor");
@@ -48,7 +48,7 @@ shaderSource()
 		auto colorTexture   = csl::Parameter<csl::Sampler2D>("colorTexture");
 
 		auto color = colorTexture.sample(uv).xyz();
-		color = color * lightColor * csl::dot(normalize(lightDirection), normalize(wn));
+		color = color * lightColor * csl::dot(normalize(lightDirection), wn);
 
 		shader.addFragmentShaderOutput("Color", csl::Float4(color, 1.f));
 	}

@@ -1,6 +1,7 @@
 #include <Coral/ShaderGraph/CompilerSPV.hpp>
 
-#include <shaderc/shaderc.h>
+#include <glslang/Include/glslang_c_interface.h>
+#include <glslang/Public/resource_limits_c.h>
 
 #include <iostream>
 #include <sstream>
@@ -63,37 +64,77 @@ CompilerSPV::compile()
 		return {};
 	}
 
-	for (auto [source, shaderKind, name] : { std::tuple{ &result->vertexShader, shaderc_vertex_shader, "VertexShader.glsl" },
-										     std::tuple{ &result->fragmentShader, shaderc_fragment_shader, "FragmentShader.glsl" } })
+	auto shaderDeleter = [](glslang_shader_t* shader) { glslang_shader_delete(shader); };
+	using ShaderPtr = std::unique_ptr<glslang_shader_t, decltype(shaderDeleter)>;
+
+	auto programDeleter = [](glslang_program_t* program) { glslang_program_delete(program); };
+	using ProgramPtr = std::unique_ptr<glslang_program_t, decltype(programDeleter)>;
+
+	glslang_initialize_process();
+
+	for (auto& [source, stage] : { std::pair{ &result->vertexShader, GLSLANG_STAGE_VERTEX },
+								   std::pair{ &result->fragmentShader, GLSLANG_STAGE_FRAGMENT } })
 	{
-		auto options = shaderc_compile_options_initialize();
-		shaderc_compile_options_set_source_language(options, shaderc_source_language_glsl);
-		shaderc_compile_options_set_target_env(options, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3);
-		shaderc_compile_options_set_target_spirv(options, shaderc_spirv_version_1_3);
-		shaderc_compile_options_set_warnings_as_errors(options);
+		glslang_input_t input{};
+		input.language				            = GLSLANG_SOURCE_GLSL;
+		input.stage					            = stage;
+		input.client				            = GLSLANG_CLIENT_VULKAN;
+		input.client_version		            = GLSLANG_TARGET_VULKAN_1_3;
+		input.target_language	                = GLSLANG_TARGET_SPV;
+		input.target_language_version           = GLSLANG_TARGET_SPV_1_3;
+		input.code					            = source->c_str();
+		input.default_version	                = 100;
+		input.default_profile		            = GLSLANG_NO_PROFILE;
+		input.force_default_version_and_profile = false;
+		input.forward_compatible			    = false;
+		input.messages                          = GLSLANG_MSG_DEFAULT_BIT;
+		input.resource		                    = glslang_default_resource();
 
-		auto compiler = shaderc_compiler_initialize();
+		ShaderPtr shader(glslang_shader_create(&input));
+		ProgramPtr program(glslang_program_create());
 
-		auto result = shaderc_compile_into_spv(compiler,
-											   source->c_str(),
-											   source->size(),
-											   shaderKind,
-											   name,
-											   "main",
-											   options);
-
-		if (shaderc_result_get_compilation_status(result) != shaderc_compilation_status_success)
+		if (!shader)
 		{
-			std::cerr << "Failed to compile shader to SpirV: " << shaderc_result_get_error_message(result) << std::endl;
-			printShaderCode(*source);
 			return {};
 		}
 
-		printShaderCode(*source);
-		auto bytes = shaderc_result_get_bytes(result);
-		auto size = shaderc_result_get_length(result);
+		if (!program)
+		{
+			return {};
+		}
 
-		source->assign(bytes, bytes + size);
+		if (!glslang_shader_preprocess(shader.get(), &input))
+		{
+			std::cerr << "Failed to compile shader to SpirV: " << std::endl;
+			std::cerr << glslang_shader_get_info_log(shader.get()) << std::endl;
+			std::cerr << glslang_shader_get_info_debug_log(shader.get()) << std::endl;
+			return {};
+		}
+
+		if (!glslang_shader_parse(shader.get(), &input))
+		{
+			std::cerr << "Failed to compile shader to SpirV: " << std::endl;
+			std::cerr << glslang_shader_get_info_log(shader.get()) << std::endl;
+			std::cerr << glslang_shader_get_info_debug_log(shader.get()) << std::endl;
+			return {};
+		}
+	
+		glslang_program_add_shader(program.get(), shader.get());
+	
+		if (!glslang_program_link(program.get(), GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT))
+		{
+			std::cerr << "Failed to compile shader to SpirV: " << std::endl;
+			std::cerr << glslang_program_get_info_log(program.get()) << std::endl;
+			std::cerr << glslang_program_get_info_debug_log(program.get()) << std::endl;
+
+			return {};
+		}
+
+		glslang_program_SPIRV_generate(program.get(), stage);
+
+		size_t size = glslang_program_SPIRV_get_size(program.get());
+		source->resize(size * sizeof(uint32_t));
+		glslang_program_SPIRV_get(program.get(), reinterpret_cast<unsigned int*>(source->data()));
 	}
 
 	return result;
