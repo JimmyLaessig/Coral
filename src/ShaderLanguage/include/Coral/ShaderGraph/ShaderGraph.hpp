@@ -1,6 +1,8 @@
 #ifndef CORAL_SHADERGRAPH_HPP
 #define CORAL_SHADERGRAPH_HPP
 
+#include <Coral/Coral.hpp>
+
 #include <concepts>
 #include <memory>
 #include <ranges>
@@ -9,9 +11,6 @@
 #include <variant>
 #include <vector>
 
-#include <Coral/Coral.hpp>
-
-///
 namespace Coral::ShaderGraph
 {
 
@@ -56,19 +55,13 @@ public:
 	/// Get the ShaderTypeId of the expression's output
 	ValueType outputValueType() const;
 
-	/// Get the ShaderTypeIds of the expression's inputs
-	//std::vector<ValueType> inputValueTypes() const;
-
-	///// Get the inputs of the expression
-	//std::span<Expression*> inputs() const;
-
 	NodePtr node() const;
 
 	const std::vector<NodePtr>& inputs() const;
 
 protected:
 
-	ExpressionBase(ValueType outputValueTypeId, NodePtr node);
+	ExpressionBase(ValueType outputValueTypeId, NodePtr NodePtr);
 
 private:
 
@@ -89,8 +82,8 @@ class Constant<float> : public ExpressionBase
 {
 public:
 
-	Constant(float value, NodePtr node)
-		: ExpressionBase(ValueType::FLOAT, node)
+	Constant(float value, NodePtr NodePtr)
+		: ExpressionBase(ValueType::FLOAT, NodePtr)
 		, mValue(value)
 	{
 		mValue = value;
@@ -110,8 +103,8 @@ class Constant<int> : public ExpressionBase
 {
 public:
 
-	Constant(int value, NodePtr node)
-		: ExpressionBase(ValueType::INT, node)
+	Constant(int value, NodePtr NodePtr)
+		: ExpressionBase(ValueType::INT, NodePtr)
 		, mValue(value)
 	{
 		mValue = value;
@@ -125,22 +118,43 @@ private:
 };
 
 
+enum class DefaultSemantics
+{
+	/// Set the position of a vertex in homogenous space. Every vertex shader must write out a parameter with this semantic.
+	/*
+		* \Note: The position output value must be a 4-component float vector.
+		* \Note: The POSITION semantic is only available in vertex shaders.
+		*/
+	POSITION,
+	/// Shader output that is used to override the z buffer value in the fragment shader.
+	/*
+		* \Note: The depth output value must be a single float.  
+		* \Note: the DEPTH semantic is only in fragment shaders.
+		*/
+	DEPTH
+};
+
+using AttributeSemantics = std::variant<DefaultSemantics, std::string>;
+
 /// Defines a shader attribute value
+/*
+	* 
+	*/
 class AttributeExpression : public ExpressionBase
 {
 public:
 
 	// Create a new shader input attribute
-	AttributeExpression(ValueType outputType, std::string_view name, NodePtr node);
+	AttributeExpression(ValueType outputType, std::string_view name, NodePtr NodePtr);
 
 	// Create a new shader output attribute
-	AttributeExpression(std::string_view name, NodePtr node);
+	AttributeExpression(AttributeSemantics semantics, NodePtr NodePtr);
 
-	const std::string& name() const;
+	const AttributeSemantics& semantics() const;
 
 private:
 
-	std::string mName;
+	AttributeSemantics mSemantics;
 };
 
 
@@ -150,7 +164,7 @@ class ParameterExpression : public ExpressionBase
 public:
 
 	// Create a new shader input attribute
-	ParameterExpression(ValueType outputType, std::string_view name, NodePtr node);
+	ParameterExpression(ValueType outputType, std::string_view name, NodePtr NodePtr);
 
 	const std::string& name() const;
 
@@ -169,7 +183,19 @@ enum class Operator
 	// '+' operator
 	ADD,
 	// '-' operator
-	SUBTRACT
+	SUBTRACT,
+	// '>' operator
+	GREATER,
+	// '<' operator
+	LESS,
+	// '==' operator
+	EQUAL, 
+	// '>=' operator
+	GREATER_OR_EQUAL,
+	// '<=' operator
+	LESS_OR_EQUAL,
+	// '!=' operator
+	NOT_EQUAL
 };
 
 
@@ -178,7 +204,7 @@ class OperatorExpression : public ExpressionBase
 {
 public:
 
-	OperatorExpression(ValueType outputType, Operator op, NodePtr node);
+	OperatorExpression(ValueType outputType, Operator op, NodePtr NodePtr);
 
 	Operator getOperator() const;
 
@@ -193,7 +219,7 @@ class CastExpression : public ExpressionBase
 {
 public:
 
-	CastExpression(ValueType outputValueType, NodePtr node);
+	CastExpression(ValueType outputValueType, NodePtr NodePtr);
 
 };
 
@@ -203,7 +229,7 @@ class NativeFunctionExpression : public ExpressionBase
 {
 public:
 
-	NativeFunctionExpression(ValueType outputValueType, std::string_view name, NodePtr node);
+	NativeFunctionExpression(ValueType outputValueType, std::string_view name, NodePtr NodePtr);
 
 	const std::string& functionName() const;
 
@@ -218,7 +244,7 @@ class ConstructorExpression : public ExpressionBase
 {
 public:
 
-	ConstructorExpression(ValueType outputValueType, NodePtr node);
+	ConstructorExpression(ValueType outputValueType, NodePtr NodePtr);
 
 };
 
@@ -238,7 +264,7 @@ class SwizzleExpression : public ExpressionBase
 {
 public:
 
-	SwizzleExpression(ValueType resultType, Swizzle swizzle, NodePtr node);
+	SwizzleExpression(ValueType resultType, Swizzle swizzle, NodePtr NodePtr);
 
 	Swizzle swizzle() const;
 
@@ -248,56 +274,31 @@ private:
 };
 
 
+class ConditionalExpression : public ExpressionBase
+{
+public:
+	ConditionalExpression(ValueType outputValueType, NodePtr NodePtr);
+
+};
+
+
 using Expression = std::variant<Constant<float>,
-							    Constant<int>,
-							    AttributeExpression,
-							    ParameterExpression,
-							    OperatorExpression,
-							    NativeFunctionExpression,
-							    ConstructorExpression,
-							    CastExpression,
-							    SwizzleExpression>;
-
-
-inline ValueType
-getOutputValueType(const Expression& expr)
-{
-	return std::visit([](const auto& ex) { return ex.outputValueType(); }, expr);
-}
-
-
-inline ExpressionBase&
-cast(Expression& expr)
-{
-	return std::visit([](auto& ex) -> ExpressionBase& { return ex; }, expr);
-}
-
-
-inline const ExpressionBase&
-cast(const Expression& expr)
-{
-	return std::visit([](const auto& ex) -> const ExpressionBase& { return ex; }, expr);
-}
-
-
-inline NodePtr
-getNode(Expression& expr)
-{
-	return std::visit([](const auto& ex) -> NodePtr { return ex.node(); }, expr);
-}
+								Constant<int>,
+								AttributeExpression,
+								ParameterExpression,
+								OperatorExpression,
+								NativeFunctionExpression,
+								ConstructorExpression,
+								CastExpression,
+								SwizzleExpression,
+								ConditionalExpression>;
 
 /// 
-class Node : public std::enable_shared_from_this<Node>
+class Node
 {
 public:
 
-	template<typename ...Nodes>
-	Node(Nodes... inputs)
-	{
-		(mInputs.push_back(inputs), ...);
-	}
-
-	/// Get the expression of the node
+	/// Get the expression of the NodePtr
 	const Expression& expression() const
 	{
 		return mExpression;
@@ -317,7 +318,7 @@ public:
 
 	static NodePtr createAttribute(ValueType valueType, std::string_view name);
 
-	static NodePtr createAttribute(NodePtr input, std::string_view name);
+	static NodePtr createAttribute(NodePtr input, AttributeSemantics identifier);
 
 	static NodePtr createParameter(ValueType valueType, std::string_view name);
 
@@ -328,7 +329,7 @@ public:
 	template<typename ...NodePtrs>
 	static NodePtr createNativeFunction(ValueType valueType, std::string_view name, NodePtrs... inputs)
 	{
-		auto node = std::make_shared<Node>(inputs...);
+		NodePtr node(new Node(inputs...));
 		node->mExpression = NativeFunctionExpression(valueType, name, node);
 		return node;
 	}
@@ -336,89 +337,65 @@ public:
 	template<typename ...NodePtrs>
 	static NodePtr createConstructor(ValueType valueType, NodePtrs... inputs)
 	{
-		auto node = std::make_shared<Node>(inputs...);
+		NodePtr node(new Node(inputs...));
 		node->mExpression = ConstructorExpression(valueType, node);
 		return node;
 	}
 
 	static NodePtr createSwizzle(ValueType valueType, Swizzle swizzle, NodePtr input);
 
+	static NodePtr createCondition(NodePtr condition, NodePtr ifBranch, NodePtr elseBranch);
+
 private:
 
-	Expression mExpression = Constant<float>(0, nullptr);
+	template<typename ...NodePtrs>
+	Node(NodePtrs... inputs)
+	{
+		(mInputs.push_back(inputs), ...);
+	}
+
+	Expression mExpression = Constant<float>(0.f, nullptr);
 
 	std::vector<NodePtr> mInputs;
 };
 
-
-namespace DefaultSemantics
-{
-	/// The vertex shader output attributed with the POSITION semantic is interpreted as the vertex's final 3D position.
-	constexpr auto Position      = "Position";
-	constexpr auto Normal        = "Normal";
-	constexpr auto Tangent       = "Tangent";
-	constexpr auto Texcoord0     = "Texcoord0";
-	constexpr auto WorldPosition = "WorldPosition";
-	constexpr auto WorldNormal   = "WorldNormal";
-
-	/// The fragment shader output attributed with the DEPTH semantic is interpreted as the pixel's final depth value.
-	constexpr auto Depth = "Depth";
-
-	// Default semantics for various commonly used uniforms
-	constexpr auto ModelViewProjectionMatrix = "modelViewProjectionMatrix";
-	constexpr auto ModelMatrix               = "modelMatrix";
-	constexpr auto ProjectionMatrix          = "projectionMatrix";
-	constexpr auto NormalMatrix              = "normalMatrix";
-	constexpr auto ViewProjectionMatrix      = "viewProjectionMatrix";
-
-} // namespace DefaultSemantics
-
-
-///
-class ShaderModule
+class Shader
 {
 public:
 
-	explicit ShaderModule(ShaderStage shaderStage)
-		: mShaderStage(shaderStage)
-	{}
 
-	void addOutput(std::string_view attributeSemantic, NodePtr node);
+	/// Add a custom output attribute
+	/*
+	 * The corresponding shader input attribute of the next shader stage is available with the same name
+	 */
+	void addOutput(std::string_view attributeName, NodePtr NodePtr);
 
+	/// Add a output attribute for a default semantic
+	/**
+	 * \Note: Attributes using one of the default semantics are not available in the next shader stage
+	 */
+	void addOutput(DefaultSemantics semantic, NodePtr NodePtr);
+
+	/// Add an output attribute for a default semantic with an additional output name
+	void addOutput(std::string_view attributeName, DefaultSemantics semantic, NodePtr NodePtr);
+
+	/// Get the input attributes of the shader module
 	std::vector<const AttributeExpression*> inputs() const;
 
+	/// Get the parameters used by this shader module
 	std::vector<const ParameterExpression*> parameters() const;
 
+	/// Get the output attributes of the shader module
 	std::vector<const AttributeExpression*> outputs() const;
 
+	/// Build a flattened list of all shader expression
 	std::vector<const Expression*> buildExpressionList() const;
 
-	Coral::ShaderStage shaderStage() const { return mShaderStage; }
-
 private:
 
-	Coral::ShaderStage mShaderStage{ Coral::ShaderStage::VERTEX };
-	std::vector<std::pair<std::string, std::shared_ptr<Node>>> mOutputs;
+	std::vector<std::pair<AttributeSemantics, NodePtr>> mOutputs;
 };
 
-
-class Program
-{
-public:
-	void addVertexShaderOutput(std::string_view name, NodePtr node);
-
-	void addFragmentShaderOutput(std::string_view name, NodePtr node);
-
-	const ShaderModule* vertexShader() const;
-
-	const ShaderModule* fragmentShader() const;
-
-private:
-
-	std::optional<ShaderModule> mVertexShader;
-	std::optional<ShaderModule> mFragmentShader;
-};
-
-} // namespace Coral::ShaderGraph
+} // namespace Coral
 
 #endif // !CORAL_SHADERGRAPH_HPP

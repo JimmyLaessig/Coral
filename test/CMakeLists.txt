@@ -27,7 +27,8 @@ set(CORAL_UNIT_TESTS_SOURCES
     ${CORAL_UNIT_TESTS_SRC_DIR}/Catch.cpp
     ${CORAL_UNIT_TESTS_SRC_DIR}/ContextTests.cpp
     ${CORAL_UNIT_TESTS_SRC_DIR}/BufferTests.cpp
-    ${CORAL_UNIT_TESTS_SRC_DIR}/BufferViewTests.cpp)
+    ${CORAL_UNIT_TESTS_SRC_DIR}/BufferViewTests.cpp
+    ${CORAL_UNIT_TESTS_SRC_DIR}/UniformBlockBuilderTests.cpp)
 
 ##############################################################################
 # Add the target shader files
