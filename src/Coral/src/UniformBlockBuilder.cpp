@@ -162,10 +162,10 @@ UniformBlockBuilder::setValue(size_t index, UniformFormat format, const std::byt
 
 
 bool
-UniformBlockBuilder::setValue(std::string_view name, UniformFormat type, const std::byte* value, uint32_t element)
+UniformBlockBuilder::setValue(std::string_view name, UniformFormat format, const std::byte* value, uint32_t element)
 {
 	auto iter = std::ranges::find_if(mDefinition.members,
-									 [&](const auto& member) { return member.name == name && element < member.count; });
+									 [&](const auto& member) { return member.name == name && member.type == format && element < member.count; });
 
 	if (iter == mDefinition.members.end())
 	{
@@ -174,7 +174,7 @@ UniformBlockBuilder::setValue(std::string_view name, UniformFormat type, const s
 
 	auto index = std::distance(mDefinition.members.begin(), iter);
 
-	return setValueUnchecked(index, type, value, element);
+	return setValueUnchecked(index, format, value, element);
 }
 
 

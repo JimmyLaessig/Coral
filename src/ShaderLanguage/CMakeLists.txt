@@ -42,7 +42,12 @@ set(CSL_SHADERGRAPH_HEADERS
     ${CSL_SHADERGRAPH_INCLUDE_DIR}/ShaderGraph.hpp)
 
 set(CSL_HEADERS
-    ${CSL_INCLUDE_DIR}/ShaderLanguage.hpp)
+    ${CSL_INCLUDE_DIR}/ShaderLanguage.hpp
+    ${CSL_INCLUDE_DIR}/ShaderLanguage/Functions.hpp
+    ${CSL_INCLUDE_DIR}/ShaderLanguage/Vector.hpp
+    ${CSL_INCLUDE_DIR}/ShaderLanguage/Matrix.hpp
+    ${CSL_INCLUDE_DIR}/ShaderLanguage/Scalar.hpp
+    ${CSL_INCLUDE_DIR}/ShaderLanguage/Sampler.hpp)
 
 
 # Definition of all source files of the Coral library

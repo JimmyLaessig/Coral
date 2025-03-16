@@ -11,20 +11,18 @@
 namespace Coral::ShaderGraph
 {
 
-
-struct CompilerResult
-{
-	std::string vertexShader;
-	std::string fragmentShader;
-};
-
-
 class Compiler
 {
 public:
 
-	/// Set the shader program to compile
-	virtual Compiler& setShaderProgram(const Program& shaderProgram) = 0;
+	struct Result
+	{
+		std::string vertexShader;
+		std::string fragmentShader;
+	};
+
+	/// Add a the shader graph to compile
+	virtual Compiler& addShader(Coral::ShaderStage stage, const Shader& shader) = 0;
 
 	/// Force the shader to use a specific uniform block for parameters
 	virtual Compiler& addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& override) = 0;
@@ -36,10 +34,10 @@ public:
 	virtual Compiler& setDefaultDescriptorSet(uint32_t set) = 0;
 
 	/// Compile the shader program
-	virtual std::optional<CompilerResult> compile() = 0;
+	virtual std::optional<Result> compile() = 0;
 
 };
 
-} // namespace Coral::ShaderGraph
+} // namespace Coral
 
 #endif // !CORAL_SHADERGRAPH_COMPILER_HPP

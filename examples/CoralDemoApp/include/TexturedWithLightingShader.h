@@ -18,15 +18,16 @@ uniformBlockDefinition()
 }
 
 
-inline std::optional<Coral::ShaderGraph::CompilerResult>
+inline std::optional<Coral::ShaderGraph::Compiler::Result>
 shaderSource()
 {
-	csl::ShaderProgram shader;
+	csl::Shader vertexShader;
+	csl::Shader fragmentShader;
 	// VertexShader
 	{
-		auto p  = csl::Attribute<csl::Float3>(csl::DefaultSemantics::Position);
-		auto n  = csl::Attribute<csl::Float3>(csl::DefaultSemantics::Normal);
-		auto uv = csl::Attribute<csl::Float2>(csl::DefaultSemantics::Texcoord0);
+		auto p  = csl::Attribute<csl::Float3>("Position");
+		auto n  = csl::Attribute<csl::Float3>("Normal");
+		auto uv = csl::Attribute<csl::Float2>("Texcoord0");
 
 		auto modelViewProjectionMatrix = csl::Parameter<csl::Float4x4>("modelViewProjectionMatrix");
 		auto normalMatrix = csl::Parameter<csl::Float3x3>("normalMatrix");
@@ -34,9 +35,9 @@ shaderSource()
 		auto position    = modelViewProjectionMatrix * csl::Float4(p, 1.f);
 		auto worldNormal = normalMatrix * n;
 
-		shader.addVertexShaderOutput(csl::DefaultSemantics::Position, position);
-		shader.addVertexShaderOutput("WorldNormal", worldNormal);
-		shader.addVertexShaderOutput("Texcoord0", uv);
+		vertexShader.addOutput(csl::DefaultSemantics::POSITION, position);
+		vertexShader.addOutput("WorldNormal", worldNormal);
+		vertexShader.addOutput("Texcoord0", uv);
 	}
 	// FragmentShader
 	{
@@ -48,13 +49,14 @@ shaderSource()
 		auto colorTexture   = csl::Parameter<csl::Sampler2D>("colorTexture");
 
 		auto color = colorTexture.sample(uv).xyz();
-		color = color * lightColor * csl::dot(normalize(lightDirection), wn);
-
-		shader.addFragmentShaderOutput("Color", csl::Float4(color, 1.f));
+		color	   = color * lightColor * csl::dot(normalize(lightDirection), wn);
+		
+		fragmentShader.addOutput("Color", csl::Float4(color, 1.f));
 	}
 
 	return Coral::ShaderGraph::CompilerSPV()
-		.setShaderProgram(shader.getShaderGraphProgram())
+		.addShader(Coral::ShaderStage::VERTEX, vertexShader.shaderGraph())
+		.addShader(Coral::ShaderStage::FRAGMENT, fragmentShader.shaderGraph())
 		.addUniformBlockOverride(0, 0, "Uniforms", uniformBlockDefinition())
 		.compile();
 }

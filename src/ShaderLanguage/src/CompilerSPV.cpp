@@ -10,9 +10,9 @@ using namespace Coral::ShaderGraph;
 
 
 Compiler&
-CompilerSPV::setShaderProgram(const Program& shaderProgram)
+CompilerSPV::addShader(Coral::ShaderStage stage, const Shader& shader)
 {
-	mCompilerGLSL.setShaderProgram(shaderProgram);
+	mCompilerGLSL.addShader(stage, shader);
 	return *this;
 }
 
@@ -55,7 +55,7 @@ printShaderCode(const std::string& code)
 }
 
 
-std::optional<CompilerResult>
+std::optional<Compiler::Result>
 CompilerSPV::compile()
 {
 	auto result = mCompilerGLSL.compile();

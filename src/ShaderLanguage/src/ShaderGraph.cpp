@@ -28,13 +28,7 @@ ExpressionBase::outputValueType() const
 NodePtr
 ExpressionBase::node() const
 {
-	if (auto node = mNode.lock())
-	{
-		return node;
-	}
-
-	assert(false);
-	return nullptr;
+	return mNode.lock();
 }
 
 
@@ -50,22 +44,22 @@ ExpressionBase::inputs() const
 
 AttributeExpression::AttributeExpression(ValueType outputValueType, std::string_view name, NodePtr node)
 	: ExpressionBase(outputValueType, node)
-	, mName(name)
+	, mSemantics(std::string(name))
 {
 }
 
 
-AttributeExpression::AttributeExpression(std::string_view name, NodePtr node)
+AttributeExpression::AttributeExpression(AttributeSemantics semantics, NodePtr node)
 	: ExpressionBase(node->inputs().front()->outputValueType(), node)
-	, mName(name)
+	, mSemantics(semantics)
 {
 }
 
 
-const std::string&
-AttributeExpression::name() const
+const AttributeSemantics&
+AttributeExpression::semantics() const
 {
-	return mName;
+	return mSemantics;
 }
 
 //-------------------------------------------------------------------------------------------------
@@ -156,20 +150,29 @@ SwizzleExpression::swizzle() const
 }
 
 //-------------------------------------------------------------------------------------------------
+// ConditionalExpression
+//-------------------------------------------------------------------------------------------------
+
+ConditionalExpression::ConditionalExpression(ValueType outputValueType, NodePtr node)
+	: ExpressionBase(outputValueType, node)
+{
+}
+
+//-------------------------------------------------------------------------------------------------
 // Node
 //-------------------------------------------------------------------------------------------------
 
 ValueType
 Node::outputValueType() const
 {
-	return getOutputValueType(mExpression);
+	return std::visit([](const auto& ex) { return ex.outputValueType(); }, mExpression);
 }
 
 
 NodePtr
 Node::createConstant(float value)
 {
-	auto node = std::make_shared<Node>();
+	NodePtr node(new Node());
 	node->mExpression = Constant<float>(value, node);
 	return node;
 }
@@ -178,7 +181,7 @@ Node::createConstant(float value)
 NodePtr
 Node::createConstant(int value)
 {
-	auto node = std::make_shared<Node>();
+	NodePtr node(new Node());
 	node->mExpression = Constant<int>(value, node);
 	return node;
 }
@@ -187,17 +190,17 @@ Node::createConstant(int value)
 NodePtr
 Node::createAttribute(ValueType valueType, std::string_view name)
 {
-	auto node = std::make_shared<Node>();
+	NodePtr node(new Node());
 	node->mExpression = AttributeExpression(valueType, name, node);
 	return node;
 }
 
 
 NodePtr
-Node::createAttribute(NodePtr input, std::string_view name)
+Node::createAttribute(NodePtr input, AttributeSemantics identifier)
 {
-	auto node = std::make_shared<Node>(input);
-	node->mExpression = AttributeExpression(name, node);
+	NodePtr node(new Node(input));
+	node->mExpression = AttributeExpression(identifier, node);
 	return node;
 }
 
@@ -205,7 +208,7 @@ Node::createAttribute(NodePtr input, std::string_view name)
 NodePtr
 Node::createParameter(ValueType valueType, std::string_view name)
 {
-	auto node = std::make_shared<Node>();
+	NodePtr node(new Node());
 	node->mExpression = ParameterExpression(valueType, name, node);
 	return node;
 }
@@ -214,7 +217,7 @@ Node::createParameter(ValueType valueType, std::string_view name)
 NodePtr
 Node::createOperator(ValueType valueType, Operator op, NodePtr lhs, NodePtr rhs)
 {
-	auto node = std::make_shared<Node>(lhs, rhs);
+	NodePtr node(new Node(lhs, rhs));
 	node->mExpression = OperatorExpression(valueType, op, node);
 	return node;
 }
@@ -223,7 +226,7 @@ Node::createOperator(ValueType valueType, Operator op, NodePtr lhs, NodePtr rhs)
 NodePtr
 Node::createCast(ValueType valueType, NodePtr input)
 {
-	auto node = std::make_shared<Node>(input);
+	NodePtr node(new Node(input));
 	node->mExpression = CastExpression(valueType, node);
 	return node;
 }
@@ -232,18 +235,31 @@ Node::createCast(ValueType valueType, NodePtr input)
 NodePtr
 Node::createSwizzle(ValueType valueType, Swizzle swizzle, NodePtr input)
 {
-	auto node = std::make_shared<Node>(input);
+	NodePtr node(new Node(input));
 	node->mExpression = SwizzleExpression(valueType, swizzle, node);
 	return node;
 }
 
 
-void
-ShaderModule::addOutput(std::string_view name, NodePtr node)
+NodePtr
+Node::createCondition(NodePtr condition, NodePtr ifBranch, NodePtr elseBranch)
 {
-	auto attribute = Node::createAttribute(node, name);
+	NodePtr node(new Node(condition, ifBranch, elseBranch));
+	assert(ifBranch->outputValueType() == elseBranch->outputValueType());
+	assert(condition->outputValueType() == ValueType::BOOL);
+	node->mExpression = ConditionalExpression(ifBranch->outputValueType(), node);
+	return node;
+}
 
-	auto iter = std::find_if(mOutputs.begin(), mOutputs.end(), [&](const auto& pair) { return pair.first == name; });
+
+void
+Shader::addOutput(std::string_view attributeName, NodePtr node)
+{
+	AttributeSemantics identifier = std::string(attributeName);
+
+	auto attribute = Node::createAttribute(node, identifier);
+
+	auto iter = std::find_if(mOutputs.begin(), mOutputs.end(), [&](const auto& pair) { return pair.first == identifier; });
 
 	if (iter != mOutputs.end())
 	{
@@ -251,8 +267,35 @@ ShaderModule::addOutput(std::string_view name, NodePtr node)
 	}
 	else
 	{
-		mOutputs.emplace_back(name, attribute);
+		mOutputs.emplace_back(identifier, attribute);
 	}
+}
+
+
+void
+Shader::addOutput(DefaultSemantics attr, NodePtr node)
+{
+	AttributeSemantics identifier = attr;
+	auto attribute = Node::createAttribute(node, identifier);
+
+	auto iter = std::find_if(mOutputs.begin(), mOutputs.end(), [&](const auto& pair) { return pair.first == identifier; });
+
+	if (iter != mOutputs.end())
+	{
+		iter->second = attribute;
+	}
+	else
+	{
+		mOutputs.emplace_back(attr, attribute);
+	}
+}
+
+
+void
+Shader::addOutput(std::string_view attributeName, DefaultSemantics attribute, NodePtr node)
+{
+	addOutput(attributeName, node);
+	addOutput(attribute, node);
 }
 
 
@@ -292,7 +335,7 @@ collectShaderModuleInputsRecursive(NodePtr node, std::vector<T*>& result, std::u
 
 
 std::vector<const AttributeExpression*>
-ShaderModule::inputs() const
+Shader::inputs() const
 {
 	std::vector<const AttributeExpression*> result;
 	std::unordered_set<const AttributeExpression*> visited;
@@ -309,7 +352,7 @@ ShaderModule::inputs() const
 
 
 std::vector<const ParameterExpression*>
-ShaderModule::parameters() const
+Shader::parameters() const
 {
 	std::vector<const ParameterExpression*> result;
 	std::unordered_set<const ParameterExpression*> visited;
@@ -327,7 +370,7 @@ ShaderModule::parameters() const
 
 
 std::vector<const AttributeExpression*>
-ShaderModule::outputs() const
+Shader::outputs() const
 {
 	std::vector<const AttributeExpression*> result;
 	for (const auto [_, node] : mOutputs)
@@ -358,7 +401,7 @@ buildExpressionListRecursive(NodePtr node, std::vector<const Expression*>& expre
 
 
 std::vector<const Expression*>
-ShaderModule::buildExpressionList() const
+Shader::buildExpressionList() const
 {
 	auto result = mOutputs 
 		| std::views::transform([](auto node) { return &node.second->expression(); })
@@ -375,52 +418,4 @@ ShaderModule::buildExpressionList() const
 	std::reverse(result.begin(), result.end());
 	
 	return result;
-}
-
-
-void
-Program::addVertexShaderOutput(std::string_view name, NodePtr node)
-{
-	if (!mVertexShader)
-	{
-		mVertexShader.emplace(Coral::ShaderStage::VERTEX);
-	}
-
-	mVertexShader->addOutput(name, node);
-}
-
-
-void
-Program::addFragmentShaderOutput(std::string_view name, NodePtr node)
-{
-	if (!mFragmentShader)
-	{
-		mFragmentShader.emplace(Coral::ShaderStage::FRAGMENT);
-	}
-
-	mFragmentShader->addOutput(name, node);
-}
-
-
-const ShaderModule*
-Program::vertexShader() const
-{
-	if (mVertexShader)
-	{
-		return &*mVertexShader;
-	}
-
-	return nullptr;
-}
-
-
-const ShaderModule*
-Program::fragmentShader() const
-{
-	if (mFragmentShader)
-	{
-		return &*mFragmentShader;
-	}
-
-	return nullptr;
 }

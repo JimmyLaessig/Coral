@@ -12,7 +12,7 @@ class CompilerGLSL : public Compiler
 {
 public:
 
-	virtual Compiler& setShaderProgram(const Program& shaderGraph) override;
+	virtual Compiler& addShader(Coral::ShaderStage stage, const Shader& shader) override;
 
 	virtual Compiler& addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const UniformBlockDefinition & override) override;
 
@@ -20,65 +20,64 @@ public:
 
 	virtual Compiler& setDefaultDescriptorSet(uint32_t set) override;
 
-	virtual std::optional<CompilerResult> compile() override;
+	virtual std::optional<Result> compile() override;
 	
 private:
 
-	std::string format(const Constant<float>& expr);
+	std::string format(const ShaderGraph::Constant<float>& expr);
 
-	std::string format(const Constant<int>& expr);
+	std::string format(const ShaderGraph::Constant<int>& expr);
 
-	std::string format(const AttributeExpression& expr);
+	std::string format(const ShaderGraph::AttributeExpression& expr);
 
-	std::string format(const OperatorExpression& expr);
+	std::string format(const ShaderGraph::OperatorExpression& expr);
 
-	std::string format(const ParameterExpression& expr);
+	std::string format(const ShaderGraph::ParameterExpression& expr);
 
-	std::string format(const NativeFunctionExpression& expr);
+	std::string format(const ShaderGraph::NativeFunctionExpression& expr);
 
-	std::string format(const ConstructorExpression& expr);
+	std::string format(const ShaderGraph::ConstructorExpression& expr);
 
-	std::string format(const CastExpression& expr);
+	std::string format(const ShaderGraph::CastExpression& expr);
 
-	std::string format(const SwizzleExpression& expr);
+	std::string format(const ShaderGraph::SwizzleExpression& expr);
 
-	std::string format(const Expression& expr);
+	std::string format(const ShaderGraph::ConditionalExpression& expr);
 
-	std::optional<std::string> formatDefaultSemantics(const AttributeExpression& expr, ShaderStage shaderStage);
+	std::string format(const ShaderGraph::Expression& expr);
 
-	std::string getRefName(NodePtr node);
+	std::string getRefName(ShaderGraph::NodePtr node);
 
 	std::optional<std::pair<uint32_t, uint32_t>> findUniformBinding(std::string_view parameterName);
 
-	std::string buildFunctionArgumentList(std::span<const NodePtr> expressions);
+	std::string buildFunctionArgumentList(const std::vector<NodePtr>& expressions);
 
-	std::string buildInputAttributeDefinitionsString(const ShaderModule& shaderModule);
+	std::string buildInputAttributeDefinitionsString(const Shader& shader);
 
-	std::string buildOutputAttributeDefinitionsString(const ShaderModule& shaderModule);
+	std::string buildOutputAttributeDefinitionsString(const Shader& shader);
 
-	std::string buildMainFunctionString(const ShaderModule& shaderModule);
+	std::string buildMainFunctionString(const Shader& shader);
 
-	std::string buildUniformBlocksString(const ShaderModule& shaderModule);
+	std::string buildUniformBlocksString(const Shader& shader);
 
 	bool createUniformBlockDefinitions();
 
 	bool createAttributeLocationDefinitions();
 
-	
-
 	struct ShaderStageAttributeBindings
 	{
-		std::map<const AttributeExpression*, uint32_t> inputAttributes;
-		std::map<const AttributeExpression*, uint32_t> outputAttributes;
+		std::map<const ShaderGraph::AttributeExpression*, uint32_t> inputAttributes;
+		std::map<const ShaderGraph::AttributeExpression*, uint32_t> outputAttributes;
 	};
 
-	const Program* mShaderProgram{ nullptr };
-
+	const Shader* mVertexShader{ nullptr };
+	const Shader* mFragmentShader{ nullptr };
+	
 	std::map<uint32_t, std::map<uint32_t, Coral::DescriptorBindingDefinition>> mDescriptorBindings;
 
-	std::unordered_map<NodePtr, std::string> mNameLookUp;
+	std::unordered_map<ShaderGraph::NodePtr, std::string> mNameLookUp;
 
-	std::unordered_map<const ShaderModule*, ShaderStageAttributeBindings> mShaderStageAttributeBindingsLookUp;
+	std::unordered_map<const Shader*, ShaderStageAttributeBindings> mShaderStageAttributeBindingsLookUp;
 
 	std::string mDefaultUniformBlockName{ "Uniforms" };
 
@@ -87,6 +86,6 @@ private:
 	uint32_t mVarCounter{ 0 };
 };
 
-} // namespace Coral::ShaderGraph
+} // namespace Coral
 
-#endif // !CORAL_SHADERGRAPH_COMPILERGLSL_HPP
+#endif // !CORAL_SHADERGRAPH_SHADERGRAPHCOMPILERGLSL_HPP
