@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
   volk
   GIT_REPOSITORY https://github.com/zeux/volk.git
-  GIT_TAG 1.3.295)
+  GIT_TAG 1.4.304)
 
 set(VOLK_HEADERS_ONLY ON CACHE BOOL "" FORCE)
 set(VOLK_PULL_IN_VULKAN OFF CACHE BOOL "" FORCE)

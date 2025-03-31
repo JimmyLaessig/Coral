@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
   glslang
   GIT_REPOSITORY https://github.com/KhronosGroup/glslang.git
-  GIT_TAG 15.1.0
+  GIT_TAG vulkan-sdk-1.4.309.0
   PATCH_COMMAND python ./update_glslang_sources.py)
 
 set(SKIP_SPIRV_TOOLS_INSTALL ON CACHE BOOL "" FORCE)

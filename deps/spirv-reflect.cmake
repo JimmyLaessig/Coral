@@ -3,7 +3,7 @@ include(FetchContent)
 FetchContent_Declare(
   spirv-reflect
   GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Reflect.git
-  GIT_TAG vulkan-sdk-1.3.275.0
+  GIT_TAG vulkan-sdk-1.4.309.0
 )
 
 set(SPIRV_REFLECT_STATIC_LIB ON CACHE BOOL "" FORCE)
