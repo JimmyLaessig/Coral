@@ -26,11 +26,11 @@ public:
 
 	const std::string& entryPoint() const override;
 
-	std::span<const AttributeBindingDescription> inputAttributeBindingDefinitions() const override;
+	std::span<const AttributeBindingLayout> inputAttributeBindingLayout() const override;
 
-	std::span<const AttributeBindingDescription> outputAttributeBindingDefinitions() const override;
+	std::span<const AttributeBindingLayout> outputAttributeBindingLayout() const override;
 
-	std::span<const DescriptorBindingDefinition> descriptorBindingDefinitions() const override;
+	std::span<const DescriptorBindingLayout> descriptorBindingLayout() const override;
 
 	VkShaderModule getVkShaderModule();
 
@@ -42,11 +42,11 @@ private:
 
 	std::string mName;
 
-	std::vector<AttributeBindingDescription> mInputDescriptions;
+	std::vector<AttributeBindingLayout> mInputDescriptions;
 
-	std::vector<AttributeBindingDescription> mOutputDescriptions;
+	std::vector<AttributeBindingLayout> mOutputDescriptions;
 
-	std::vector<DescriptorBindingDefinition> mDescriptorBindings;
+	std::vector<DescriptorBindingLayout> mDescriptorBindings;
 
 	std::string mEntryPoint;
 

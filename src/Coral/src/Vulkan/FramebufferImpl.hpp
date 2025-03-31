@@ -22,9 +22,9 @@ public:
 
 	const std::optional<DepthAttachment>& depthAttachment();
 
-	uint32_t width();
+	uint32_t width() const override;
 
-	uint32_t height();
+	uint32_t height() const override;
 
 	Coral::FramebufferSignature getSignature() override;
 

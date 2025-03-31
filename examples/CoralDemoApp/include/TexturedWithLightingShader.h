@@ -57,7 +57,7 @@ shaderSource()
 	return Coral::ShaderGraph::CompilerSPV()
 		.addShader(Coral::ShaderStage::VERTEX, vertexShader.shaderGraph())
 		.addShader(Coral::ShaderStage::FRAGMENT, fragmentShader.shaderGraph())
-		.addUniformBlockOverride(0, 0, "Uniforms", uniformBlockDefinition())
+		.addUniformBlockOverride(0, "Uniforms", uniformBlockDefinition())
 		.compile();
 }
 

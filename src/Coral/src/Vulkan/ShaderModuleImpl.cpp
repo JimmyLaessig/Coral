@@ -164,12 +164,17 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 		spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
 	}
 
+	if (sets.size() > 1 || sets.size() == 1 && sets.front()->set !=  0)
+	{
+		return false;
+	}
+
 	for (auto set : sets)
 	{
 		for (auto binding : std::span{ set->bindings, set->binding_count })
 		{	
 			auto& descriptorBinding	  = mDescriptorBindings.emplace_back();
-			descriptorBinding.set	  = set->set;
+			//descriptorBinding.set	  = set->set;
 			descriptorBinding.binding = binding->binding;
 
 			switch (binding->descriptor_type)
@@ -221,7 +226,7 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 	}
 
 	std::sort(mInputDescriptions.begin(), mInputDescriptions.end(), 
-			  [](const AttributeBindingDescription& lhs, const AttributeBindingDescription& rhs) { return lhs.location < rhs.location; });
+			  [](const AttributeBindingLayout& lhs, const AttributeBindingLayout& rhs) { return lhs.location < rhs.location; });
 
 	uint32_t binding{ 0 };
 	for (auto& description : mInputDescriptions)
@@ -318,22 +323,22 @@ ShaderModuleImpl::entryPoint() const
 }
 
 
-std::span<const Coral::AttributeBindingDescription>
-ShaderModuleImpl::inputAttributeBindingDefinitions() const
+std::span<const Coral::AttributeBindingLayout>
+ShaderModuleImpl::inputAttributeBindingLayout() const
 {
 	return mInputDescriptions;
 }
 
 
-std::span<const Coral::AttributeBindingDescription>
-ShaderModuleImpl::outputAttributeBindingDefinitions() const
+std::span<const Coral::AttributeBindingLayout>
+ShaderModuleImpl::outputAttributeBindingLayout() const
 {
 	return mOutputDescriptions;
 }
 
 
-std::span<const Coral::DescriptorBindingDefinition>
-ShaderModuleImpl::descriptorBindingDefinitions() const
+std::span<const Coral::DescriptorBindingLayout>
+ShaderModuleImpl::descriptorBindingLayout() const
 {
 	return mDescriptorBindings;
 }

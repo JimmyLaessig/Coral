@@ -12,7 +12,7 @@
 #include <unordered_map>
 #include <vector>
 #include <variant>
-
+#include <unordered_set>
 
 using namespace Coral::Vulkan;
 
@@ -133,6 +133,31 @@ convert(Coral::Topology topology)
 	}
 }
 
+
+template<typename T>
+VkDescriptorType
+toVkDescriptorType()
+{
+	static_assert(false);
+}
+
+template<>
+VkDescriptorType
+toVkDescriptorType<Coral::SamplerDefinition>() { return VK_DESCRIPTOR_TYPE_SAMPLER; }
+
+template<>
+VkDescriptorType
+toVkDescriptorType<Coral::TextureDefinition>() { return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; }
+
+template<>
+VkDescriptorType
+toVkDescriptorType<Coral::CombinedTextureSamplerDefinition>() { return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; }
+
+template<>
+VkDescriptorType
+toVkDescriptorType<Coral::UniformBlockDefinition>() { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; }
+
+
 } // namespace
 
 
@@ -150,9 +175,9 @@ PipelineStateImpl::~PipelineStateImpl()
 			vkDestroyPipelineLayout(mContext->getVkDevice(), mPipelineLayout, nullptr);
 		}
 
-		for (auto layout : mDescriptorSetLayouts)
+		if (mDescriptorSetLayout != VK_NULL_HANDLE)
 		{
-			vkDestroyDescriptorSetLayout(mContext->getVkDevice(), layout, nullptr);
+			vkDestroyDescriptorSetLayout(mContext->getVkDevice(), mDescriptorSetLayout, nullptr);
 		}
 	}
 }
@@ -168,7 +193,7 @@ PipelineStateImpl::getVkPipeline()
 std::span<VkDescriptorSetLayout>
 PipelineStateImpl::getVkDescriptorSetLayouts()
 {
-	return mDescriptorSetLayouts;
+	return { &mDescriptorSetLayout, 1 };
 }
 
 
@@ -205,6 +230,11 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 		shaderStage.stage	= ::convert(shaderModule->shaderStage());
 		shaderStage.pName	= shader->entryPoint().c_str();
 		shaderStages.push_back(shaderStage);
+	}
+
+	if (!vertexShader)
+	{
+		return Coral::PipelineStateCreationError::INTERNAL_ERROR;
 	}
 	
 	//-------------------------------------------------------------
@@ -303,7 +333,7 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 
-	for (const auto& description : vertexShader->inputAttributeBindingDefinitions())
+	for (const auto& description : vertexShader->inputAttributeBindingLayout())
 	{
 		auto& bindingDescription		= bindingDescriptions.emplace_back();
 		bindingDescription.binding		= description.binding;
@@ -353,48 +383,38 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	renderingCreateInfo.stencilAttachmentFormat = depthStencilFormat;
 
 	//-------------------------------------------------------------
-	// Descriptor Set Layouts
+	// Descriptor Set Layout
 	//-------------------------------------------------------------
 
-	std::unordered_map<uint32_t, std::unordered_map<uint32_t, Coral::DescriptorBindingDefinition>> descriptorSets;
+	std::vector<VkDescriptorSetLayoutBinding> bindings;
 
+	std::unordered_set<uint32_t> visited;
 	for (auto shader : config.shaderModules)
 	{
-		for (const auto& bufferBindingDescription : shader->descriptorBindingDefinitions())
+		for (const auto& definition : shader->descriptorBindingLayout())
 		{
-			descriptorSets[bufferBindingDescription.set][bufferBindingDescription.binding] = bufferBindingDescription;
+			if (!visited.insert(definition.binding).second)
+			{
+				continue;
+			}
+
+			auto& binding			= bindings.emplace_back();
+			binding.binding			= definition.binding;
+			binding.descriptorCount = 1;
+			binding.stageFlags		= VK_SHADER_STAGE_ALL_GRAPHICS;
+			binding.descriptorType = std::visit([](auto a) { return toVkDescriptorType<decltype(a)>(); }, definition.definition);
 		}
 	}
 
-	for (const auto& [set, bindingDescriptions] : descriptorSets)
+	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	descriptorSetLayoutCreateInfo.pBindings		= bindings.data();
+	descriptorSetLayoutCreateInfo.bindingCount	= static_cast<uint32_t>(bindings.size());
+	descriptorSetLayoutCreateInfo.flags			= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+
+	VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
+	if (vkCreateDescriptorSetLayout(mContext->getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
 	{
-		std::vector<VkDescriptorSetLayoutBinding> bindings;
-		for (auto [_, bindingDescription] : bindingDescriptions)
-		{
-			auto& binding			= bindings.emplace_back();
-			binding.binding			= bindingDescription.binding;
-			binding.descriptorCount = 1;
-			binding.stageFlags		= VK_SHADER_STAGE_ALL_GRAPHICS;
-			
-			binding.descriptorType = std::visit(Coral::Visitor{
-				[](const SamplerDefinition&) { return VK_DESCRIPTOR_TYPE_SAMPLER; },
-				[](const TextureDefinition&) { return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; },
-				[](const UniformBlockDefinition&) { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; }, 
-				[](const CombinedTextureSamplerDefinition&) { return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; },
-				}, bindingDescription.definition);
-		}
-
-		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-		descriptorSetLayoutCreateInfo.pBindings		= bindings.data();
-		descriptorSetLayoutCreateInfo.bindingCount	= static_cast<uint32_t>(bindings.size());
-
-		VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
-		if (vkCreateDescriptorSetLayout(mContext->getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &layout) != VK_SUCCESS)
-		{
-			return PipelineStateCreationError::INTERNAL_ERROR;
-		}
-
-		mDescriptorSetLayouts.push_back(layout);
+		return PipelineStateCreationError::INTERNAL_ERROR;
 	}
 
 	//-------------------------------------------------------------
@@ -402,8 +422,8 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	//-------------------------------------------------------------
 
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-	pipelineLayoutCreateInfo.setLayoutCount = static_cast<uint32_t>(mDescriptorSetLayouts.size());
-	pipelineLayoutCreateInfo.pSetLayouts	= mDescriptorSetLayouts.data();
+	pipelineLayoutCreateInfo.setLayoutCount = 1;
+	pipelineLayoutCreateInfo.pSetLayouts	= &mDescriptorSetLayout;
 
 	if (vkCreatePipelineLayout(mContext->getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
 	{

@@ -85,6 +85,10 @@ public:
 	virtual ~Framebuffer() = default;
 
 	virtual FramebufferSignature getSignature() = 0;
+
+	virtual uint32_t width() const = 0;
+
+	virtual uint32_t height() const = 0;
 };
 
 

@@ -6,6 +6,8 @@
 
 #include "Vulkan.hpp"
 
+#include "CommandQueueImpl.hpp"
+
 #include <map>
 #include <memory>
 #include <mutex>
@@ -18,8 +20,6 @@ class BufferPool;
 
 namespace Coral::Vulkan
 {
-
-class DescriptorSetPool;
 
 class CommandQueueImpl;
 
@@ -44,8 +44,6 @@ public:
 	std::expected<Coral::BufferPtr, Coral::BufferCreationError> createBuffer(const Coral::BufferCreateConfig& config) override;
 
 	std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError> createBufferView(const Coral::BufferViewCreateConfig& config) override;
-	
-	std::expected<Coral::DescriptorSetPtr, Coral::DescriptorSetCreationError> createDescriptorSet(const Coral::DescriptorSetCreateConfig& config) override;
 
 	std::expected<Coral::FencePtr, Coral::FenceCreationError> createFence()  override;
 
@@ -71,26 +69,14 @@ public:
 
 	VmaAllocator getVmaAllocator();
 
-	DescriptorSetPool& getDescriptorSetPool() { return *mDescriptorSetPool; }
-
 	uint32_t getQueueFamilyIndex();
 
 	/// Request a staging buffer from the staging buffer pool
 	/**
-	 * The staging buffer will have at least the requested buffer size. Staging buffers should be returned to the pool
-	 * after the using command buffer was submitted.
+	 * The staging buffer will have at least the requested buffer size. Staging buffers are returned to the to the pool
+	 * after the using command buffer was executed.
 	 */
-	Coral::BufferPtr requestStagingBuffer(size_t bufferSize);
-
-	/// Return the staging buffers to the command pool
-	/**
-	 * The staging buffers should be returned to the pool once the using command buffer was submitted. The
-	 * waitSemaphore ensures that the buffers are only readded to the pool, once execution of the command buffer has
-	 * finished. Note, that for that, the waitSemaphore must be part of the signalSemaphores of the SubmitInfo that
-	 * submits the command buffer to the command queue.
-	 * buffers should be returned to the pool after the using command buffer was submitted.
-	 */
-	void returnStagingBuffers(std::vector<Coral::BufferPtr>&& stagingBuffers);
+	std::shared_ptr<Coral::Buffer> requestStagingBuffer(size_t bufferSize);
 
 private:
 	
@@ -154,8 +140,6 @@ private:
 	std::mutex mCommandPoolsProtection;
 
 	std::unique_ptr<BufferPool> mStagingBufferPool;
-
-	std::unique_ptr<DescriptorSetPool> mDescriptorSetPool;
 
 	VkPhysicalDeviceProperties mProperties;
 };

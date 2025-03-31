@@ -18,9 +18,9 @@ CompilerSPV::addShader(Coral::ShaderStage stage, const Shader& shader)
 
 
 Compiler&
-CompilerSPV::addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const UniformBlockDefinition& uniformBlock)
+CompilerSPV::addUniformBlockOverride(uint32_t binding, std::string_view name, const UniformBlockDefinition& uniformBlock)
 {
-	mCompilerGLSL.addUniformBlockOverride(set, binding, name, uniformBlock);
+	mCompilerGLSL.addUniformBlockOverride(binding, name, uniformBlock);
 	return *this;
 }
 
@@ -29,14 +29,6 @@ Compiler&
 CompilerSPV::setDefaultUniformBlockName(std::string_view name)
 {
 	mCompilerGLSL.setDefaultUniformBlockName(name);
-	return *this;
-}
-
-
-Compiler&
-CompilerSPV::setDefaultDescriptorSet(uint32_t set)
-{
-	mCompilerGLSL.setDefaultDescriptorSet(set);
 	return *this;
 }
 

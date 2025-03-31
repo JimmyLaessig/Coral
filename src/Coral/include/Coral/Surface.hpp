@@ -43,6 +43,14 @@ struct SwapchainExtent
 	uint32_t height;
 };
 
+struct SwapchainImageInfo
+{
+	Coral::Framebuffer* framebuffer{ nullptr };
+	Coral::Image* image{ nullptr };
+	Coral::Image* depthImage{ nullptr };
+	Coral::Semaphore* imageAvailableSemaphore{ nullptr };
+	SwapchainExtent extent{ 0, 0 };
+};
 
 class CORAL_API Surface
 {
@@ -53,19 +61,15 @@ public:
 
 	virtual void* nativeWindowHandle() = 0;
 
-	virtual bool acquireNextSwapchainImage(Fence* fence) = 0;
+	virtual SwapchainImageInfo acquireNextSwapchainImage(Fence* fence) = 0;
 
-	//virtual Semaphore& getImageAvailableSemaphore() = 0;
+	virtual SwapchainImageInfo getCurrentSwapchainImage() = 0;
 
 	virtual uint32_t getCurrentSwapchainImageIndex() = 0;
 
-	virtual Image* getSwapchainImage(uint32_t index) = 0;
+	virtual uint32_t getSwapchainImageCount() const = 0;
 
-	virtual Image* getSwapchainDepthImage() = 0;
-
-	virtual Framebuffer* getSwapchainFramebuffer(uint32_t index) = 0;
-
-	virtual SwapchainExtent getSwapchainExtent() const = 0;
+	virtual FramebufferSignature getFramebufferSignature() = 0;
 };
 
 

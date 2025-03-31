@@ -26,6 +26,8 @@ public:
 
 	VkPipelineLayout getVkPipelineLayout();
 
+	VkPipelineBindPoint getVkPipelineBindingPoint() { return VK_PIPELINE_BIND_POINT_GRAPHICS; }
+
 private:
 
 	ContextImpl* mContext{ nullptr };
@@ -34,7 +36,7 @@ private:
 
 	VkPipeline mPipeline{ VK_NULL_HANDLE };
 
-	std::vector<VkDescriptorSetLayout> mDescriptorSetLayouts;
+	VkDescriptorSetLayout mDescriptorSetLayout;
 
 	FaceCullingMode mFaceCullingMode{ FaceCullingModes::BackFaceCulling };
 

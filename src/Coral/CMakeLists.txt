@@ -41,7 +41,6 @@ set(CORAL_PUBLIC_INCLUDES
     ${CORAL_PUBLIC_INCLUDE_DIR}/CommandQueue.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Context.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Coral.hpp
-    ${CORAL_PUBLIC_INCLUDE_DIR}/DescriptorSet.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Fence.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Framebuffer.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Image.hpp
@@ -72,8 +71,6 @@ set(CORAL_VULKAN_INCLUDES
     ${CORAL_SOURCE_DIR}/Vulkan/CommandBufferImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/CommandQueueImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/ContextImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetPool.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/FenceImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/FramebufferImpl.hpp
     ${CORAL_SOURCE_DIR}/Vulkan/ImageImpl.hpp
@@ -92,8 +89,6 @@ set(CORAL_VULKAN_SOURCES
     ${CORAL_SOURCE_DIR}/Vulkan/CommandBufferImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/CommandQueueImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ContextImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/DescriptorSetPool.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/FenceImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/FramebufferImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ImageImpl.cpp

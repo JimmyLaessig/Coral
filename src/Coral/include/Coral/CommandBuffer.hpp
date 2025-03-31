@@ -198,9 +198,17 @@ public:
 
 	virtual bool cmdDrawIndexed(const DrawIndexInfo& info) = 0;
 
-	virtual bool cmdBindDescriptorSet(Coral::DescriptorSet* descriptorSet, uint32_t index) = 0;
-
 	virtual bool cmdSetViewport(const Coral::ViewportInfo& info) = 0;
+
+	virtual void cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding) = 0;
+
+	virtual void cmdBindDescriptor(Coral::Image* image, Coral::Sampler* sampler, uint32_t binding) = 0;
+
+	virtual void cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding) = 0;
+
+	virtual void cmdBindDescriptor(Coral::Image* image, uint32_t binding) = 0;
+
+	virtual void cmdBlitImage(Coral::Image* source, Coral::Image* dest) = 0;
 };
 
 

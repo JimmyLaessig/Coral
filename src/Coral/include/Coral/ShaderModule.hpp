@@ -49,7 +49,7 @@ enum class ShaderModuleCreationError
 };
 
 /// Definition of a shader attribute of the shader module
-struct AttributeBindingDescription
+struct AttributeBindingLayout
 {
 	/// The buffer binding index
 	uint32_t binding{ 0 };
@@ -101,11 +101,8 @@ struct CombinedTextureSamplerDefinition
 using DescriptorDefinition = std::variant<UniformBlockDefinition, SamplerDefinition, TextureDefinition, CombinedTextureSamplerDefinition>;
 
 /// Definition of a descriptor required by the shader
-struct DescriptorBindingDefinition
+struct DescriptorBindingLayout
 {
-	/// The index of the descriptor set to which a descriptor matching this definition must be bound
-	uint32_t set{ 0 };
-
 	/// The binding index within the descriptor set to which a descriptor matching this definition must be bound
 	uint32_t binding{ 0 };
 
@@ -136,13 +133,13 @@ public:
 	virtual const std::string& entryPoint() const = 0;
 
 	/// Get a list of the input attribute definitions required by this shader
-	virtual std::span<const AttributeBindingDescription> inputAttributeBindingDefinitions() const = 0;
+	virtual std::span<const AttributeBindingLayout> inputAttributeBindingLayout() const = 0;
 
 	/// Get a list of the out attribute definitions produced by this shader
-	virtual std::span<const AttributeBindingDescription> outputAttributeBindingDefinitions() const = 0;
+	virtual std::span<const AttributeBindingLayout> outputAttributeBindingLayout() const = 0;
 
 	/// Get a list of descriptor binding definitions required by this shader
-	virtual std::span<const DescriptorBindingDefinition> descriptorBindingDefinitions() const = 0;
+	virtual std::span<const DescriptorBindingLayout> descriptorBindingLayout() const = 0;
 };
 
 } // namespace Coral

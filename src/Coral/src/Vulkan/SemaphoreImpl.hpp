@@ -5,8 +5,6 @@
 
 #include "ContextImpl.hpp"
 
-#include <limits>
-
 namespace Coral::Vulkan
 {
 
@@ -20,7 +18,7 @@ public:
 
 	VkSemaphore getVkSemaphore();
 
-	bool wait(uint64_t timeout = std::numeric_limits<uint64_t>::max()) override;
+	const VkSemaphore getVkSemaphore() const;
 
 private:
 

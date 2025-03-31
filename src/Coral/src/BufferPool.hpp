@@ -13,6 +13,7 @@
 namespace Coral
 {
 
+
 class BufferPool
 {
 public:
@@ -24,19 +25,13 @@ public:
 	 * The buffer will have at least the requested buffer size. Staging buffers must only be returned to the pool
 	 * once any command buffers using the buffer has funished execution.
 	 */
-	Coral::BufferPtr requestBuffer(size_t bufferSize);
-
-	/// Return the buffers to the buffer pool
-	/**
-	 * The buffers must only be returned to the pool once any command buffers using the buffer has finished execution.
-	 */ 
-	void returnBuffers(std::vector<Coral::BufferPtr>&& buffers);
+	std::shared_ptr<Coral::Buffer> requestBuffer(size_t bufferSize);
 
 private:
 
 	Coral::Context* mContext{ nullptr };
 
-	std::multimap<size_t, Coral::BufferPtr> mBufferPool;
+	std::multimap<size_t, std::shared_ptr<Coral::Buffer>> mBufferPool;
 
 	std::mutex mBufferPoolProtection;
 

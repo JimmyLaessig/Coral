@@ -3,16 +3,19 @@
 
 #include <Coral/CommandQueue.hpp>
 
-#include "ContextImpl.hpp"
+#include "Vulkan.hpp"
 
 #include <mutex>
 #include <thread>
 #include <unordered_map>
 #include <future>
+#include <unordered_set>
 
 
 namespace Coral::Vulkan
 {
+
+class ContextImpl;
 
 class CommandQueueImpl : public Coral::CommandQueue
 {
@@ -44,10 +47,6 @@ public:
 
 private:
 
-	void submitStagingBufferReturnTask(Coral::SemaphorePtr&& semaphore, std::vector<Coral::BufferPtr>&& stagingBuffers);
-
-	void cleanFinishedStagingBufferReturnTasks();
-
 	void awaitStagingBufferReturnTasks();
 
 	Coral::Vulkan::ContextImpl* mContext{ nullptr };
@@ -62,15 +61,7 @@ private:
 
 	std::unordered_map<std::thread::id, VkCommandPool> mCommandPools;
 
-	struct StagingBufferSubmitInfo
-	{
-		Coral::SemaphorePtr semaphore;
-		std::vector<Coral::BufferPtr> stagingBuffers;
-		std::future<void> future;
-	};
-
-	std::mutex mReturnTasksInFlightProtection;
-	std::vector<std::future<void>> mReturnTasksInFlight;
+	std::atomic<size_t> mStagingBuffersInFlight{ 0 };
 };
 
 } // namespace Coral::Vulkan
