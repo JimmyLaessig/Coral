@@ -7,7 +7,6 @@
 #include "BufferImpl.hpp"
 #include "BufferViewImpl.hpp"
 #include "CommandQueueImpl.hpp"
-#include "DescriptorSetImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
 #include "PipelineStateImpl.hpp"
@@ -47,8 +46,6 @@ public:
 
 	bool cmdBindPipeline(Coral::PipelineState* pipeline) override;
 
-	bool cmdBindDescriptorSet(Coral::DescriptorSet* descriptorSet, uint32_t index) override;
-
 	bool cmdDrawIndexed(const DrawIndexInfo& info) override;
 
 	bool cmdSetViewport(const Coral::ViewportInfo& info) override;
@@ -57,21 +54,35 @@ public:
 
 	bool cmdUpdateImageData(const Coral::UpdateImageDataInfo& info) override;
 
+	void cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding) override;
+
+	void cmdBindDescriptor(Coral::Image* image, Coral::Sampler* sampler, uint32_t binding) override;
+
+	void cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding) override;
+
+	void cmdBindDescriptor(Coral::Image* image, uint32_t binding) override;
+
+	void cmdBlitImage(Coral::Image* source, Coral::Image* dest) override;
+
 	VkCommandBuffer getVkCommandBuffer();
 
-	[[nodiscard]] std::vector<Coral::BufferPtr> getStagingBuffers();
+	[[nodiscard]] std::vector<std::shared_ptr<Coral::Buffer>> getStagingBuffers();
+
+	void cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
+							uint32_t baseMipLevel,
+							uint32_t levelCount,
+							VkImageLayout oldLayout,
+							VkImageLayout newLayout,
+							VkAccessFlagBits srcAccessMask,
+							VkAccessFlags dstAccessMask,
+							VkPipelineStageFlags srcStageFlags,
+							VkPipelineStageFlags dstStageFlags);
 
 private:
 
-	void cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
-						    uint32_t baseMipLevel,
-						    uint32_t levelCount,
-						    VkImageLayout oldLayout,
-						    VkImageLayout newLayout,
-						    VkAccessFlagBits srcAccessMask,
-						    VkAccessFlags dstAccessMask,
-						    VkPipelineStageFlags srcStageFlags,
-						    VkPipelineStageFlags dstStageFlags);
+	void cmdBindCachedDescriptorSet();
+
+	
 
 	std::vector<Coral::Vulkan::ImageImpl*> mPresentableImagesInUse;
 
@@ -87,8 +98,9 @@ private:
 
 	std::vector<Coral::DescriptorSet*> mUnboundDescriptorSets;
 
-	std::vector<Coral::BufferPtr> mStagingBuffers;
+	std::vector<std::shared_ptr<Coral::Buffer>> mStagingBuffers;
 
+	std::unordered_map<uint32_t, std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>> mCachedDescriptorInfos;
 };
 
 } // namespace Coral::Vulkan

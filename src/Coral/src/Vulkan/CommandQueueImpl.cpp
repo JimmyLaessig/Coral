@@ -8,6 +8,8 @@
 #include <mutex>
 #include <vector>
 #include <future>
+#include <ranges>
+
 
 using namespace Coral::Vulkan;
 
@@ -54,32 +56,26 @@ CommandQueueImpl::createCommandBuffer(const Coral::CommandBufferCreateConfig& co
 bool
 CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fence* fence)
 {
-	cleanFinishedStagingBufferReturnTasks();
-
 	std::lock_guard lock(mQueueProtection);
 
 	std::vector<VkSemaphore> waitSemaphores;
 	std::vector<VkPipelineStageFlags> waitFlags;
-	std::vector<uint64_t> waitValues;
 	for (auto semaphore : info.waitSemaphores)
 	{
-		waitSemaphores.push_back(static_cast<Vulkan::SemaphoreImpl*>(semaphore)->getVkSemaphore());
+		waitSemaphores.push_back(static_cast<const Vulkan::SemaphoreImpl*>(semaphore)->getVkSemaphore());
 		// Wait with execution of all commands until all semaphores are signaled
 		waitFlags.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
-		waitValues.push_back(1);
 	}
 
 	std::vector<VkSemaphore> signalSemaphores;
-	std::vector<uint64_t> signalValues;
 	for (auto semaphore : info.signalSemaphores)
 	{
 		signalSemaphores.push_back(static_cast<Vulkan::SemaphoreImpl*>(semaphore)->getVkSemaphore());
-		signalValues.push_back(1);
 	}
 
 	// Collect all command buffers and staging buffers used in the command buffers
 	std::vector<VkCommandBuffer> commandBuffers;
-	std::vector<Coral::BufferPtr> stagingBuffers;
+	std::vector<std::shared_ptr<Coral::Buffer>> stagingBuffers;
 
 	for (auto commandBuffer : info.commandBuffers)
 	{
@@ -93,24 +89,29 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 							  std::move_iterator(commandBufferStagingBuffers.end()));
 	}
 
-	Coral::SemaphorePtr stagingBufferSemaphore;
-	if (!stagingBuffers.empty())
-	{
-		stagingBufferSemaphore = mContext->createSemaphore().value();
+	// Coral does automatically create staging buffers for CPU <-> GPU copy operations. To reduce buffer allocations, 
+	// Coral uses a context-wide buffer pool to reuse pre-existing staging buffers. Hence, the staging buffers must be
+	// kept in memory until the command buffer execution is finished. For that, we spawn an async task that waits for 
+	// the semaphore to signal and releases the buffers afterwards. To prevent race condition on destruction the
+	// command queue keeps track of the count of in-flight staging buffers. Only after the semaphore is signaled
+	// decrement the count. Idling the command queue must wait until the in-flight staging buffer count is 0.
 
-		signalSemaphores.push_back(static_cast<Coral::Vulkan::SemaphoreImpl*>(stagingBufferSemaphore.get())->getVkSemaphore());
-		signalValues.push_back(1);
+	// If an external fence is used, reuse this fence, otherwise create a temporary fence object.
+	VkFence vkFence = fence ? static_cast<Coral::Vulkan::FenceImpl*>(fence)->getVkFence() : VK_NULL_HANDLE;
+	bool ownsFence = false;
+	if (!stagingBuffers.empty() && !vkFence)
+	{
+		VkFenceCreateInfo info{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+		if (vkCreateFence(context().getVkDevice(), &info, nullptr, &vkFence) != VK_SUCCESS)
+		{
+			// TODO: FATAL ERROR
+			return false;
+		}
+		ownsFence = true;
 	}
 
-	VkTimelineSemaphoreSubmitInfo timelineInfo{ VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO };
-	timelineInfo.pNext						= nullptr;
-	timelineInfo.waitSemaphoreValueCount	= static_cast<uint32_t>(waitValues.size());
-	timelineInfo.pWaitSemaphoreValues		= waitValues.data();
-	timelineInfo.signalSemaphoreValueCount	= static_cast<uint32_t>(signalValues.size());
-	timelineInfo.pSignalSemaphoreValues		= signalValues.data();
-
 	VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
-	submitInfo.pNext				= &timelineInfo;
+	submitInfo.pNext				= nullptr;
 	submitInfo.pCommandBuffers		= commandBuffers.data();
 	submitInfo.commandBufferCount	= static_cast<uint32_t>(commandBuffers.size());
 	submitInfo.pSignalSemaphores	= signalSemaphores.data();
@@ -119,23 +120,37 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 	submitInfo.waitSemaphoreCount	= static_cast<uint32_t>(waitSemaphores.size());
 	submitInfo.pWaitDstStageMask	= waitFlags.data();
 
-	VkFence vkFence = fence ? static_cast<Coral::Vulkan::FenceImpl*>(fence)->getVkFence() : VK_NULL_HANDLE;
-
 	if (vkQueueSubmit(mQueue, 1, &submitInfo, vkFence) != VK_SUCCESS)
 	{
 		return false;
 	}
 
-	// Coral does automatically create staging buffers for CPU <-> GPU copy operations. To reduce buffer allocations, 
-	// Coral uses a context-wide buffer pool to reuse pre-existing staging buffers. However, they must be manually
-	// returned once execution of the command buffer has finished. Therefore, we need to spawn an asynchronuous task
-	// that waits on the semaphore to signal so that this task can return the borrowed staging buffers to the pool.
-	// 
-	// To prevent race conditions on destruction, the scheduled tasks are collected and when the device is waiting for
-	// idle all scheduled tasks are awaited as well so that the all staging buffers are returned.
-	if (stagingBufferSemaphore)
+	// Add the async task that waits for the command buffer execution to release the staging buffers
+	if (!stagingBuffers.empty())
 	{
-		submitStagingBufferReturnTask(std::move(stagingBufferSemaphore), std::move(stagingBuffers));
+		// Increment the count of in-flight staging buffers
+		mStagingBuffersInFlight += stagingBuffers.size();
+
+		// Transfer ownership of the staging buffers to the async task
+		auto task = [stagingBuffers = std::move(stagingBuffers), fence = vkFence, ownsFence = ownsFence, this]() mutable
+		{
+			// Wait until the fence is signaled
+			vkWaitForFences(context().getVkDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
+
+			auto count = stagingBuffers.size();
+			// Clear all staging buffers (this reduces the use count of the shared ptr which effectively  returns
+			// them to the pool.
+			stagingBuffers.clear();
+			// Decrement the count of in-flight staging buffers
+			mStagingBuffersInFlight -= count;
+
+			if (ownsFence)
+			{
+				vkDestroyFence(context().getVkDevice(), fence, nullptr);
+			}
+		};
+
+		auto future = std::async(std::launch::async, std::move(task));
 	}
 
 	return true;
@@ -143,46 +158,9 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 
 
 void
-CommandQueueImpl::submitStagingBufferReturnTask(Coral::SemaphorePtr&& semaphore, std::vector<Coral::BufferPtr>&& stagingBuffers)
-{
-	std::lock_guard lock(mReturnTasksInFlightProtection);
-
-	// Create an asynchronuous task that waits for the semaphore and returns the staging buffers to the buffer pool.
-	mReturnTasksInFlight.push_back(std::async(std::launch::async, [
-			semaphore = Coral::SemaphorePtr(std::move(semaphore)),
-			stagingBuffers = std::vector<Coral::BufferPtr>(std::move(stagingBuffers)),
-			this]() mutable
-		{
-			// Wait until the semaphore is signaled
-			semaphore->wait();
-			// Return the staging buffers
-			mContext->returnStagingBuffers(std::move(stagingBuffers));
-		}));
-}
-
-
-void
-CommandQueueImpl::cleanFinishedStagingBufferReturnTasks()
-{
-	// Remove all finished return tasks from the list
-	std::lock_guard lock(mReturnTasksInFlightProtection);
-	std::erase_if(mReturnTasksInFlight, [](auto& future)
-	{
-		return future.wait_for(std::chrono::seconds{ 0 }) == std::future_status::ready;
-	});
-}
-
-
-void
 CommandQueueImpl::awaitStagingBufferReturnTasks()
 {
-	// Wait for all return tasks to finish
-	std::lock_guard lock(mReturnTasksInFlightProtection);
-	for (auto& future : mReturnTasksInFlight)
-	{
-		future.wait();
-	}
-	mReturnTasksInFlight.clear();
+	while (mStagingBuffersInFlight > 0);
 }
 
 
@@ -213,25 +191,9 @@ CommandQueueImpl::context()
 bool
 CommandQueueImpl::submit(const Coral::PresentInfo& info)
 {
-	cleanFinishedStagingBufferReturnTasks();
-
-	std::vector<VkSemaphore> waitSemaphores;
-	for (auto semaphore : info.waitSemaphores)
-	{
-		waitSemaphores.push_back(static_cast<Vulkan::SemaphoreImpl*>(semaphore)->getVkSemaphore());
-	}
-
-	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
-	presentInfo.pWaitSemaphores	= waitSemaphores.data();
-
-	uint32_t swapchainImageIndex = info.surface->getCurrentSwapchainImageIndex();
-	presentInfo.pImageIndices    = &swapchainImageIndex;
-
-	VkSwapchainKHR swapchain   = static_cast<Coral::Vulkan::SurfaceImpl*>(info.surface)->getVkSwapchain();
-	presentInfo.pSwapchains    = &swapchain;
-	presentInfo.swapchainCount = 1;
-	
-	return vkQueuePresentKHR(mQueue, &presentInfo);
+	auto surface = static_cast<Coral::Vulkan::SurfaceImpl*>(info.surface);
+	surface->present(*this, info.waitSemaphores);
+	return true;
 }
 
 

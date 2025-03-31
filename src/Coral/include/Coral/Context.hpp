@@ -7,7 +7,6 @@
 #include <Coral/BufferView.hpp>
 
 #include <Coral/CommandBuffer.hpp>
-#include <Coral/DescriptorSet.hpp>
 #include <Coral/Fence.hpp>
 #include <Coral/Framebuffer.hpp>
 #include <Coral/Image.hpp>
@@ -32,9 +31,6 @@ CORAL_API void destroy(BufferView* bufferView);
 
 /// Destroy the Context object
 CORAL_API void destroy(Context* context);
-
-/// Destroy the DescriptorSet object
-CORAL_API void destroy(DescriptorSet* descriptorSet);
 
 /// Destroy the Fence object
 CORAL_API void destroy(Fence* fence);
@@ -76,7 +72,6 @@ struct CORAL_API Deleter
 using BufferPtr        = std::unique_ptr<Buffer, Deleter<Buffer>>;
 using BufferViewPtr    = std::unique_ptr<BufferView, Deleter<BufferView>>;
 using CommandBufferPtr = std::unique_ptr<CommandBuffer, Deleter<CommandBuffer>>;
-using DescriptorSetPtr = std::unique_ptr<DescriptorSet, Deleter<DescriptorSet>>;
 using FencePtr         = std::unique_ptr<Fence, Deleter<Fence>>;
 using FramebufferPtr   = std::unique_ptr<Framebuffer, Deleter<Framebuffer>>;
 using ImagePtr		   = std::unique_ptr<Image, Deleter<Image>>;
@@ -127,9 +122,6 @@ public:
 
 	/// Create a new BufferView object
     virtual std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError> createBufferView(const Coral::BufferViewCreateConfig& config) = 0;
-
-	/// Create a new DescriptorSet object
-	virtual std::expected<Coral::DescriptorSetPtr, Coral::DescriptorSetCreationError> createDescriptorSet(const Coral::DescriptorSetCreateConfig& config) = 0;
 
 	/// Create a new Fence object
 	virtual std::expected<Coral::FencePtr, Coral::FenceCreationError> createFence() = 0;

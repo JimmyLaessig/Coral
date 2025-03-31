@@ -14,7 +14,7 @@ BufferPool::BufferPool(Coral::Context& context, Coral::BufferType bufferType, bo
 }
 
 
-Coral::BufferPtr
+std::shared_ptr<Coral::Buffer>
 BufferPool::requestBuffer(size_t bufferSize)
 {
 	if (!mContext)
@@ -28,7 +28,7 @@ BufferPool::requestBuffer(size_t bufferSize)
 	auto candidate = mBufferPool.end();
 	for (auto iter = mBufferPool.begin(); iter != mBufferPool.end(); iter++)
 	{
-		if (iter->first >= bufferSize)
+		if (iter->first >= bufferSize && iter->second.use_count() == 1)
 		{
 			candidate = iter;
 		}
@@ -47,19 +47,4 @@ BufferPool::requestBuffer(size_t bufferSize)
 	bufferConfig.size		= bufferSize;
 
 	return Coral::BufferPtr(mContext->createBuffer(bufferConfig).value_or(nullptr));
-}
-
-
-void
-BufferPool::returnBuffers(std::vector<Coral::BufferPtr>&& stagingBuffers)
-{
-	if (!mContext)
-	{
-		return;
-	}
-	std::lock_guard lock(mBufferPoolProtection);
-	for (auto& buffer : stagingBuffers)
-	{
-		this->mBufferPool.insert({ buffer->size(), std::move(buffer) });
-	}
 }

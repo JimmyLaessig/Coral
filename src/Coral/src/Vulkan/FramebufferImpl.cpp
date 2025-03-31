@@ -105,14 +105,14 @@ FramebufferImpl::depthAttachment()
 
 
 uint32_t
-FramebufferImpl::width()
+FramebufferImpl::width() const
 {
 	return mWidth;
 }
 
 
 uint32_t
-FramebufferImpl::height()
+FramebufferImpl::height() const
 {
 	return mHeight;
 }

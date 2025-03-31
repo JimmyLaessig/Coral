@@ -14,11 +14,10 @@ public:
 
 	virtual Compiler& addShader(Coral::ShaderStage stage, const Shader& shader) override;
 
-	virtual Compiler& addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const UniformBlockDefinition & override) override;
+	virtual Compiler& addUniformBlockOverride(uint32_t binding, std::string_view name, const UniformBlockDefinition & override) override;
 
 	virtual Compiler& setDefaultUniformBlockName(std::string_view name) override;
 
-	virtual Compiler& setDefaultDescriptorSet(uint32_t set) override;
 
 	virtual std::optional<Result> compile() override;
 	
@@ -48,7 +47,7 @@ private:
 
 	std::string getRefName(ShaderGraph::NodePtr node);
 
-	std::optional<std::pair<uint32_t, uint32_t>> findUniformBinding(std::string_view parameterName);
+	std::optional<uint32_t> findUniformBinding(std::string_view parameterName);
 
 	std::string buildFunctionArgumentList(const std::vector<NodePtr>& expressions);
 
@@ -73,7 +72,7 @@ private:
 	const Shader* mVertexShader{ nullptr };
 	const Shader* mFragmentShader{ nullptr };
 	
-	std::map<uint32_t, std::map<uint32_t, Coral::DescriptorBindingDefinition>> mDescriptorBindings;
+	std::map<uint32_t, Coral::DescriptorBindingLayout> mDescriptorBindings;
 
 	std::unordered_map<ShaderGraph::NodePtr, std::string> mNameLookUp;
 

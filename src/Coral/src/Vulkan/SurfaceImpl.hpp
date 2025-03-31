@@ -5,11 +5,14 @@
 
 #include "ContextImpl.hpp"
 
+#include <array>
 #include <memory>
 
 
 namespace Coral::Vulkan
 {
+
+class SemaphoreImpl;
 
 class SurfaceImpl : public Coral::Surface
 {
@@ -25,17 +28,17 @@ public:
 
 	void* nativeWindowHandle() override;
 
-	bool acquireNextSwapchainImage(Coral::Fence* fence) override;
+	SwapchainImageInfo acquireNextSwapchainImage(Fence* fence) override;
+
+	SwapchainImageInfo getCurrentSwapchainImage() override;
 
 	uint32_t getCurrentSwapchainImageIndex() override;
 
-	Coral::Image* getSwapchainImage(uint32_t index) override;
+	uint32_t getSwapchainImageCount() const override;
 
-	Coral::Image* getSwapchainDepthImage() override;
+	FramebufferSignature getFramebufferSignature() override;
 
-	Coral::Framebuffer* getSwapchainFramebuffer(uint32_t index) override;
-
-	SwapchainExtent getSwapchainExtent() const override;
+	void present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores);
 
 private:
 
@@ -61,12 +64,26 @@ private:
 		Coral::FramebufferPtr framebuffer;
 	};
 
+	struct SwapchainSyncObjects
+	{
+		Coral::SemaphorePtr imageReadySemaphore;
+		Coral::CommandBufferPtr acquireCommandBuffer;
+		Coral::CommandBufferPtr presentCommandBuffer;
+		Coral::SemaphorePtr acquireSemaphore;
+		Coral::SemaphorePtr presentSemaphore;
+	};
+
 	VkSemaphore mSemaphore{ VK_NULL_HANDLE };
 
 	std::vector<SwapchainImageData> mSwapchainImageData;
+
+	std::vector<SwapchainSyncObjects> mSwapchainSyncObjects;
+
 	Coral::ImagePtr mSwapchainDepthImage;
 
 	Coral::SwapchainConfig mConfig{};
+
+	Coral::SwapchainImageInfo mCurrentSwapchainImageInfo{};
 
 }; // class Surface
 

@@ -22,15 +22,15 @@ public:
 		if constexpr (C == 3)
 		{
 			Matrix::Matrix(v, 0, 0,
-				0, v, 0,
-				0, 0, v);
+						   0, v, 0,
+						   0, 0, v);
 		}
 		else
 		{
 			Matrix::Matrix(v, 0, 0, 0,
-				0, v, 0, 0,
-				0, 0, v, 0,
-				0, 0, 0, v);
+				           0, v, 0, 0,
+				           0, 0, v, 0,
+				           0, 0, 0, v);
 		}
 	}
 

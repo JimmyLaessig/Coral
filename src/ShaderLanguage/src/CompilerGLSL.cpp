@@ -336,30 +336,27 @@ CompilerGLSL::getRefName(ShaderGraph::NodePtr node)
 }
 
 
-std::optional<std::pair<uint32_t, uint32_t>>
+std::optional<uint32_t>
 CompilerGLSL::findUniformBinding(std::string_view parameterName)
 {
-	for (const auto& [set, bindings] : mDescriptorBindings)
+	for (const auto& [binding, descriptor] : mDescriptorBindings)
 	{
-		for (const auto& [binding, definition] : bindings)
+		auto res = std::visit(Visitor
 		{
-			auto res = std::visit(Visitor
-			{
-				[&](const Coral::CombinedTextureSamplerDefinition&) { return definition.name == parameterName; },
-				[&](const Coral::SamplerDefinition&) { return definition.name == parameterName; },
-				[&](const Coral::TextureDefinition&) { return definition.name == parameterName; },
-				[&](const Coral::UniformBlockDefinition& definition)
-				{ 
-					auto iter = std::ranges::find_if(definition.members, [&](const auto& member)
-													 { return member.name == parameterName; });
-					return iter != definition.members.end();
-				},
-			}, definition.definition);
+			[&](const Coral::CombinedTextureSamplerDefinition&) { return descriptor.name == parameterName; },
+			[&](const Coral::SamplerDefinition&)			    { return descriptor.name == parameterName; },
+			[&](const Coral::TextureDefinition&)			    { return descriptor.name == parameterName; },
+			[&](const Coral::UniformBlockDefinition& definition)
+			{ 
+				auto iter = std::ranges::find_if(definition.members, [&](const auto& member)
+													{ return member.name == parameterName; });
+				return iter != definition.members.end();
+			},
+		}, descriptor.definition);
 
-			if (res)
-			{
-				return std::pair{set, binding};
-			}
+		if (res)
+		{
+			return binding;
 		}
 	}
 
@@ -453,31 +450,26 @@ CompilerGLSL::createUniformBlockDefinitions()
 	// Add the default uniform block (if required) at the first unused binding
 	if (!defaultUniformBlock.members.empty())
 	{
-		auto& set = mDescriptorBindings[mDefaultDescriptorSet];
 
 		uint32_t binding{ 0 };
-		for (; set.find(binding) != set.end(); ++binding) {}
+		for (; mDescriptorBindings.find(binding) != mDescriptorBindings.end(); ++binding) {}
 
-		auto& definition	  = set[binding];
-		definition.binding	  = binding;
-		definition.definition = defaultUniformBlock;
-		definition.name		  = mDefaultUniformBlockName;
-		definition.set		  = mDefaultDescriptorSet;
+		auto& descriptor	  = mDescriptorBindings[binding];
+		descriptor.binding	  = binding;
+		descriptor.definition = defaultUniformBlock;
+		descriptor.name		  = mDefaultUniformBlockName;
 	}
 
 	// Add sampler parameters separately
 	for (auto parameter : samplers)
 	{
-		auto& set = mDescriptorBindings[mDefaultDescriptorSet];
-
 		uint32_t binding{ 0 };
-		for (; set.find(binding) != set.end(); ++binding) {}
+		for (; mDescriptorBindings.find(binding) != mDescriptorBindings.end(); ++binding) {}
 
-		auto& definition	  = mDescriptorBindings[mDefaultDescriptorSet][binding];
-		definition.binding	  = binding;
-		definition.definition = Coral::CombinedTextureSamplerDefinition{};
-		definition.name		  = parameter->name();
-		definition.set		  = mDefaultDescriptorSet;
+		auto& descriptor	  = mDescriptorBindings[binding];
+		descriptor.binding	  = binding;
+		descriptor.definition = Coral::CombinedTextureSamplerDefinition{};
+		descriptor.name		  = parameter->name();
 		binding++;
 	}
 	return true;
@@ -552,35 +544,33 @@ CompilerGLSL::buildUniformBlocksString(const Shader& shaderModule)
 
 	auto parameters = shaderModule.parameters();
 
-	for (const auto& [set, bindings] : mDescriptorBindings)
+	for (const auto& [binding, descriptor] : mDescriptorBindings)
 	{
-		for (const auto& [binding, definition] : bindings)
+		bool useBlock = std::ranges::any_of(parameters, [&](auto parameter)
 		{
-			bool useBlock = std::ranges::any_of(parameters, [&](auto parameter)
-			{
-				return findUniformBinding(parameter->name()) == std::pair(set, binding);
-			});
+			return findUniformBinding(parameter->name()) == binding;
+		});
 
-			if (!useBlock)
-			{
-				continue;
-			}
-
-			std::visit(Visitor
-			{
-				[&](const Coral::UniformBlockDefinition& uniformBlock)
-				{
-					ss << buildUniformBlockString(definition.set, definition.binding, definition.name, uniformBlock) << std::endl;
-				},
-				[&](auto)
-				{
-				},
-				[&](const Coral::CombinedTextureSamplerDefinition& sampler)
-				{
-					ss << buildUniformCombinedTextureSamplerString(definition.set, definition.binding, definition.name, sampler) << std::endl;
-				}
-			}, definition.definition);
+		if (!useBlock)
+		{
+			continue;
 		}
+
+		std::visit(Visitor
+		{
+			[&](const Coral::UniformBlockDefinition& uniformBlock)
+			{
+				ss << buildUniformBlockString(0, descriptor.binding, descriptor.name, uniformBlock) << std::endl;
+			},
+			[&](auto)
+			{
+			},
+			[&](const Coral::CombinedTextureSamplerDefinition& sampler)
+			{
+				ss << buildUniformCombinedTextureSamplerString(0, descriptor.binding, descriptor.name, sampler) << std::endl;
+			}
+		}, descriptor.definition);
+		
 	}
 
 
@@ -691,14 +681,14 @@ CompilerGLSL::addShader(Coral::ShaderStage stage, const Shader& shader)
 
 
 Compiler&
-CompilerGLSL::addUniformBlockOverride(uint32_t set, uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& uniformBlock)
+CompilerGLSL::addUniformBlockOverride(uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& uniformBlock)
 {
-	auto& definition      = mDescriptorBindings[set][binding];
-	definition.binding    = binding;
-	definition.byteSize   = 0;
-	definition.name		  = name;
-	definition.set		  = set;
-	definition.definition = uniformBlock;
+	auto& descriptor      = mDescriptorBindings[binding];
+	descriptor.binding    = binding;
+	descriptor.byteSize   = 0;
+	descriptor.name		  = name;
+	descriptor.definition = uniformBlock;
+
 	return *this;
 }
 
@@ -710,13 +700,6 @@ CompilerGLSL::setDefaultUniformBlockName(std::string_view name)
 	return *this;
 }
 
-
-Compiler&
-CompilerGLSL::setDefaultDescriptorSet(uint32_t set)
-{
-	mDefaultDescriptorSet = set;
-	return *this;
-}
 
 std::optional<Compiler::Result>
 CompilerGLSL::compile()

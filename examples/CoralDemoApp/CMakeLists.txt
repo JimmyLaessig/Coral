@@ -44,7 +44,7 @@ coral_configure_target(${CORAL_DEMO_APP_TARGET_NAME}
         glfw
         stb
         Coral
-        CSL)
+        CoralShaderLanguage)
 
 ###############################################################################
 # Copy the resource files

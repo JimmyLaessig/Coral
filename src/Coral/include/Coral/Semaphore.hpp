@@ -17,11 +17,7 @@ class CORAL_API Semaphore
 {
 public:
 
-	constexpr static uint64_t MAX_TIMEOUT = 0xFFFFFFFFFFFFFFFF;
-
 	virtual ~Semaphore() = default;
-
-	virtual bool wait(uint64_t timeout = MAX_TIMEOUT) = 0;
 
 };
 

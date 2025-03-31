@@ -288,13 +288,6 @@ int main()
 
 	auto [texture, sampler] = createTexture(*context, "resources/uvtest.png");
 
-	Coral::DescriptorSetCreateConfig descriptorSetConfig{};
-	descriptorSetConfig.bindings = {
-		{ 0, uniformBuffer.get() },
-		{ 1, Coral::CombinedTextureSampler{ texture.get(), sampler.get() } },
-	};
-	auto descriptorSet = context->createDescriptorSet(descriptorSetConfig).value();
-
 	auto [positionBuffer, positionBufferView] = ::createBuffer(context.get(), Cube::Positions, Coral::BufferType::VERTEX_BUFFER);
 	auto [normalBuffer, normalBufferView]	  = ::createBuffer(context.get(), Cube::Normals, Coral::BufferType::VERTEX_BUFFER);
 	auto [uvBuffer, uvBufferView]			  = ::createBuffer(context.get(), Cube::Texcoords, Coral::BufferType::VERTEX_BUFFER);
@@ -308,9 +301,12 @@ int main()
 	pipelineStateConfig.polygonMode				= Coral::PolygonMode::SOLID;
 	pipelineStateConfig.topology				= Coral::Topology::TRIANGLE_LIST;
 	pipelineStateConfig.faceCullingMode			= Coral::FaceCullingModes::BackFaceCulling;
-	pipelineStateConfig.framebufferSignature	= swapchain->getSwapchainFramebuffer(0)->getSignature();
+	pipelineStateConfig.framebufferSignature	= swapchain->getFramebufferSignature();
 
 	auto pipelineState = context->createPipelineState(pipelineStateConfig).value();
+
+	auto renderFinishedSemaphore = context->createSemaphore().value();
+
 
 	auto before = std::chrono::system_clock::now();
 
@@ -320,6 +316,7 @@ int main()
 	// Start the game loop
 	while (!glfwWindowShouldClose(window))
 	{
+
 		glfwPollEvents();
 
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -327,10 +324,7 @@ int main()
 			glfwSetWindowShouldClose(window, GLFW_TRUE);
 		}
 
-		swapchain->acquireNextSwapchainImage(fence.get());
-
-		fence->wait();
-		fence->reset();
+		auto info = swapchain->acquireNextSwapchainImage(nullptr);
 
 		int width, height;
 		glfwGetWindowSize(window, &width, &height);
@@ -352,16 +346,12 @@ int main()
 
 		updateUniformBuffer(*uniformBuffer, uniformBlock);
 
-		auto index = swapchain->getCurrentSwapchainImageIndex();
-
-		auto framebuffer = swapchain->getSwapchainFramebuffer(index);
-
 		Coral::CommandBufferCreateConfig commandBufferConfig{};
 		Coral::CommandBufferPtr commandBuffer(queue->createCommandBuffer(commandBufferConfig).value());
 		commandBuffer->begin();
 
 		Coral::BeginRenderPassInfo beginRenderPassInfo{};
-		beginRenderPassInfo.framebuffer = framebuffer;
+		beginRenderPassInfo.framebuffer = info.framebuffer;
 		Coral::ClearColor clearColor	= { { 1, 1, 1, 1 }, 0 };
 		Coral::ClearDepth clearDepth	= { 1.f, 0 };
 		beginRenderPassInfo.clearColor	= { &clearColor, 1 };
@@ -373,7 +363,8 @@ int main()
 
 		commandBuffer->cmdBindPipeline(pipelineState.get());
 
-		commandBuffer->cmdBindDescriptorSet(descriptorSet.get(), 0);
+		commandBuffer->cmdBindDescriptor(uniformBuffer.get(), 0);
+		commandBuffer->cmdBindDescriptor(texture.get(), sampler.get(),  1);
 		
 		commandBuffer->cmdBindVertexBuffer(positionBufferView.get(), 0);
 		commandBuffer->cmdBindVertexBuffer(normalBufferView.get(), 1);
@@ -389,17 +380,18 @@ int main()
 
 		commandBuffer->end();
 
+		auto renderFinishedSemaphorePtr = renderFinishedSemaphore.get();
+
 		Coral::CommandBufferSubmitInfo submitInfo{};
-		Coral::CommandBuffer* cb = commandBuffer.get();
-		submitInfo.commandBuffers = { &cb, 1 };
-
-		queue->submit(submitInfo, fence.get());
-
-		fence->wait();
-		fence->reset();
+		auto cb                     = commandBuffer.get();
+		submitInfo.commandBuffers   = { &cb, 1 };
+		submitInfo.waitSemaphores   = { &info.imageAvailableSemaphore, 1 };
+		submitInfo.signalSemaphores = { &renderFinishedSemaphorePtr, 1 };
+		queue->submit(submitInfo, nullptr);
 
 		Coral::PresentInfo presentInfo{};
-		presentInfo.surface = swapchain.get();
+		presentInfo.surface        = swapchain.get();
+		presentInfo.waitSemaphores = { &renderFinishedSemaphorePtr, 1 };
 		queue->submit(presentInfo);
 
 		queue->waitIdle();

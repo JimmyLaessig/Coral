@@ -8,7 +8,7 @@ SemaphoreImpl::init(ContextImpl& context)
 	mContext = &context;
 	VkSemaphoreTypeCreateInfo timelineCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
 	timelineCreateInfo.pNext			= NULL;
-	timelineCreateInfo.semaphoreType	= VK_SEMAPHORE_TYPE_TIMELINE;
+	timelineCreateInfo.semaphoreType	= VK_SEMAPHORE_TYPE_BINARY;
 	timelineCreateInfo.initialValue		= 0;
 
 	VkSemaphoreCreateInfo info{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
@@ -39,13 +39,8 @@ SemaphoreImpl::getVkSemaphore()
 }
 
 
-bool
-SemaphoreImpl::wait(uint64_t timeout)
+const VkSemaphore 
+SemaphoreImpl::getVkSemaphore() const
 {
-	constexpr static uint64_t ONE = 1;
-	VkSemaphoreWaitInfo waitInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO };
-	waitInfo.semaphoreCount = 1;
-	waitInfo.pValues		= &ONE;
-	waitInfo.pSemaphores	= &mSemaphore;
-	return vkWaitSemaphores(mContext->getVkDevice(), &waitInfo, timeout) == VK_SUCCESS;
+	return mSemaphore;
 }

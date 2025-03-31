@@ -1,12 +1,10 @@
 #include "ContextImpl.hpp"
 
 #include "../BufferPool.hpp"
-#include "DescriptorSetPool.hpp"
 #include "CommandQueueImpl.hpp"
 #include "BufferImpl.hpp"
 #include "BufferViewImpl.hpp"
 #include "CommandQueueImpl.hpp"
-#include "DescriptorSetImpl.hpp"
 #include "FenceImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
@@ -28,7 +26,6 @@ using namespace Coral::Vulkan;
 
 ContextImpl::~ContextImpl()
 {
-	mDescriptorSetPool.reset();
 	mStagingBufferPool.reset();
 
 	mTransferQueue.reset();	 
@@ -134,6 +131,7 @@ ContextImpl::init(const ContextCreateConfig& config)
 		.set_required_features_13(features13)
 		.defer_surface_initialization()
 		.add_required_extension(VK_EXT_NESTED_COMMAND_BUFFER_EXTENSION_NAME)
+		.add_required_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
 		.select();
 
 	if (!physicalDevice)
@@ -271,7 +269,6 @@ ContextImpl::init(const ContextCreateConfig& config)
 	}
 
 	mStagingBufferPool = std::make_unique<BufferPool>(*this, Coral::BufferType::STORAGE_BUFFER, true);
-	mDescriptorSetPool = std::make_unique<DescriptorSetPool>(*this);
 
 	vkGetPhysicalDeviceProperties(mPhysicalDevice, &mProperties);
 
@@ -311,13 +308,6 @@ std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError>
 ContextImpl::createBufferView(const Coral::BufferViewCreateConfig& config)
 {
 	return create<Coral::BufferView, BufferViewImpl, Coral::BufferViewCreateConfig, Coral::BufferViewCreationError>(config);
-}
-
-
-std::expected<Coral::DescriptorSetPtr, Coral::DescriptorSetCreationError>
-ContextImpl::createDescriptorSet(const Coral::DescriptorSetCreateConfig& config)
-{
-	return create<Coral::DescriptorSet, DescriptorSetImpl, Coral::DescriptorSetCreateConfig, Coral::DescriptorSetCreationError>(config);
 }
 
 
@@ -391,15 +381,8 @@ ContextImpl::getQueueFamilyIndex()
 }
 
 
-Coral::BufferPtr
+std::shared_ptr<Coral::Buffer>
 ContextImpl::requestStagingBuffer(size_t bufferSize)
 {
 	return mStagingBufferPool->requestBuffer(bufferSize);
-}
-
-
-void
-ContextImpl::returnStagingBuffers(std::vector<Coral::BufferPtr>&& stagingBuffers)
-{
-	mStagingBufferPool->returnBuffers(std::forward<std::vector<Coral::BufferPtr>>(stagingBuffers));
 }
