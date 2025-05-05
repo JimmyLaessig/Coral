@@ -1,12 +1,9 @@
 #ifndef CORAL_VULKAN_CONTEXTIMPL_HPP
 #define CORAL_VULKAN_CONTEXTIMPL_HPP
 
-#include <Coral/Context.hpp>
-#include <Coral/RAII.hpp>
+#include "../ContextBase.hpp"
 
 #include "Vulkan.hpp"
-
-#include "CommandQueueImpl.hpp"
 
 #include <map>
 #include <memory>
@@ -23,7 +20,7 @@ namespace Coral::Vulkan
 
 class CommandQueueImpl;
 
-class ContextImpl : public Coral::Context
+class ContextImpl : public Coral::ContextBase
 {
 public:
 
@@ -61,6 +58,26 @@ public:
 	
 	std::expected<Coral::SurfacePtr, Coral::SurfaceCreationError> createSurface(const Coral::SurfaceCreateConfig& config) override;
 
+	void destroy(Coral::BufferBase* buffer) override;
+
+	void destroy(Coral::BufferViewBase* bufferView) override;
+
+	void destroy(Coral::FenceBase* fence) override;
+
+	void destroy(Coral::FramebufferBase* framebuffer) override;
+
+	void destroy(Coral::ImageBase* image) override;
+
+	void destroy(Coral::PipelineStateBase* pipelineState) override;
+
+	void destroy(Coral::SamplerBase* sampler) override;
+
+	void destroy(Coral::SemaphoreBase* semaphore) override;
+
+	void destroy(Coral::ShaderModuleBase* shaderModule) override;
+
+	void destroy(Coral::SurfaceBase* surface) override;
+
 	VkInstance getVkInstance() { return mInstance; }
 
 	VkDevice getVkDevice() { return mDevice; }
@@ -82,39 +99,18 @@ private:
 	
 	ContextImpl() = default;
 
-	template<typename T, typename U, typename Config, typename CreateError>
-	std::expected<std::unique_ptr<T, Deleter<T>>, CreateError> create(const Config& config)
+	template<typename T, typename U, typename CreateError, typename ...InitArgs>
+	std::expected<std::unique_ptr<T, Deleter<T>>, CreateError> create(InitArgs... args)
 	{
-		auto obj = new U;
+		auto obj = new U(*this);
 
-		if (auto error = obj->init(*this, config))
+		if (auto error = obj->init(args...))
 		{
 			delete obj;
 			return std::unexpected(*error);
 		}
 
 		return { std::unique_ptr<T, Deleter<T>>(obj) };
-	}
-
-	template<typename T, typename U, typename CreateError>
-	std::expected<std::unique_ptr<T, Deleter<T>>, CreateError> create()
-	{
-		auto obj = new U;
-
-		if (auto error = obj->init(*this))
-		{
-			delete obj;
-			return std::unexpected(*error);
-		}
-
-		return { std::unique_ptr<T, Deleter<T>>(obj) };
-	}
-
-
-	template<typename T>
-	void destroy(T* object)
-	{
-		delete object;
 	}
 
 	VkInstance mInstance{ VK_NULL_HANDLE };

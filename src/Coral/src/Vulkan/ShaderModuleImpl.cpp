@@ -16,6 +16,9 @@
 
 using namespace Coral::Vulkan;
 
+namespace
+{
+
 std::optional<Coral::AttributeFormat>
 convert(SpvReflectFormat format)
 {
@@ -136,6 +139,42 @@ createUniformBlockBinding(const SpvReflectDescriptorBinding& binding)
 	}
 
 	return result;
+}
+
+} // namespace
+
+
+ShaderModuleImpl::~ShaderModuleImpl()
+{
+	if (mShaderModule != VK_NULL_HANDLE)
+	{
+		vkDestroyShaderModule(contextImpl().getVkDevice(), mShaderModule, nullptr);
+	}
+}
+
+
+std::optional<Coral::ShaderModuleCreationError>
+ShaderModuleImpl::init(const ShaderModuleCreateConfig& config)
+{
+	mName = config.name;
+	mShaderStage = config.stage;
+	mEntryPoint = config.entryPoint;
+
+	VkShaderModuleCreateInfo createInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
+	createInfo.pCode = (uint32_t*)config.source.data();
+	createInfo.codeSize = config.source.size();
+
+	if (vkCreateShaderModule(contextImpl().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
+	{
+		return ShaderModuleCreationError::INTERNAL_ERROR;
+	}
+
+	if (!reflect(config.source))
+	{
+		return ShaderModuleCreationError::INTERNAL_ERROR;
+	}
+
+	return {};
 }
 
 
@@ -264,41 +303,6 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 	}
 
 	return true;
-}
-
-
-std::optional<Coral::ShaderModuleCreationError>
-ShaderModuleImpl::init(ContextImpl& context, const ShaderModuleCreateConfig& config)
-{
-	mContext		= &context;
-	mName			= config.name;
-	mShaderStage	= config.stage;
-	mEntryPoint		= config.entryPoint;
-
-	VkShaderModuleCreateInfo createInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-	createInfo.pCode	= (uint32_t*)config.source.data();
-	createInfo.codeSize = config.source.size();
-	
-	if (vkCreateShaderModule(mContext->getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
-	{
-		return ShaderModuleCreationError::INTERNAL_ERROR;
-	}
-
-	if (!reflect(config.source))
-	{
-		return ShaderModuleCreationError::INTERNAL_ERROR;
-	}
-
-	return {};
-}
-
-
-ShaderModuleImpl::~ShaderModuleImpl()
-{
-	if (mContext && mShaderModule != VK_NULL_HANDLE)
-	{
-		vkDestroyShaderModule(mContext->getVkDevice(), mShaderModule, nullptr);
-	}
 }
 
 

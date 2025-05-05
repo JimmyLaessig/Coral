@@ -4,6 +4,7 @@
 #include "Vulkan.hpp"
 	
 #include <Coral/Types.hpp>
+#include <Coral/Buffer.hpp>
 
 #include <utility>
 

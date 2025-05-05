@@ -1,191 +1,128 @@
 #include <Coral/Coral.hpp>
 
-#include "IFactory.hpp"
+#include "BufferBase.hpp"
+#include "BufferViewBase.hpp"
+#include "CommandBufferBase.hpp"
+#include "CommandQueueBase.hpp"
+#include "FenceBase.hpp"
+#include "FramebufferBase.hpp"
+#include "ImageBase.hpp"
+#include "PipelineStateBase.hpp"
+#include "SamplerBase.hpp"
+#include "SemaphoreBase.hpp"
+#include "ShaderModuleBase.hpp"
+#include "SurfaceBase.hpp"
+
+#include "Vulkan/ContextImpl.hpp"
 
 namespace Coral
 {
 
-Coral::Context*
-createContext(const Coral::ContextConfig& config)
+std::expected<Coral::ContextPtr, Coral::ContextCreationError>
+createContext(const Coral::ContextCreateConfig& config)
 {
-    return IFactory::get(config.graphicsAPI).createContext(config);
+    switch (config.graphicsAPI)
+    {
+        case GraphicsAPI::VULKAN:
+            return Coral::ContextPtr{ Coral::Vulkan::ContextImpl::create(config) };
+        default:
+            return nullptr;
+    }
 }
 
 
 void
-destroy(Coral::Context* context)
+destroy(Context* context)
 {
-    IFactory::destroy(context);
-}
-
-
-Coral::Buffer*
-createBuffer(Coral::Context* context, const Coral::BufferConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createBuffer(context, config);
+    delete context;
 }
 
 
 void
 destroy(Coral::Buffer* buffer)
 {
-    IFactory::destroy(buffer);
-}
-
-
-Coral::BufferView*
-createBufferView(Coral::Context* context, const Coral::BufferViewConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createBufferView(context, config);
+    auto base = static_cast<Coral::BufferBase*>(buffer);
+    base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::BufferView* bufferView)
 {
-    IFactory::destroy(bufferView);
-}
-
-
-Coral::Fence*
-createFence(Coral::Context* context)
-{
-    return IFactory::get(context->graphicsAPI()).createFence(context);
-}
-
-
-void
-destroy(Coral::Fence* fence)
-{
-    IFactory::destroy(fence);
-}
-
-
-Coral::Surface*
-createSurface(Coral::Context* context, const Coral::SurfaceConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createSurface(context, config);
-}
-
-
-void
-destroy(Coral::Surface* surface)
-{
-    IFactory::destroy(surface);
-}
-
-
-Coral::CommandBuffer*
-createCommandBuffer(Coral::Context* context, const Coral::CommandBufferConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createCommandBuffer(context, config);
+    auto base = static_cast<Coral::BufferViewBase*>(bufferView);
+    base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::CommandBuffer* commandBuffer)
 {
-    IFactory::destroy(commandBuffer);
-}
-
-
-Coral::Sampler*
-createSampler(Coral::Context* context, const Coral::SamplerConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createSampler(context, config);
+    auto base = static_cast<Coral::CommandBufferBase*>(commandBuffer);
+    base->commandQueue().destroyCommandBuffer(base);
 }
 
 
 void
-destroy(Coral::Sampler* sampler)
+destroy(Coral::Fence* fence)
 {
-    IFactory::destroy(sampler);
-}
-
-
-
-Coral::ShaderModule*
-createShaderModule(Coral::Context* context, const Coral::ShaderModuleConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createShaderModule(context, config);
-}
-
-
-void
-destroy(Coral::ShaderModule* shaderModule)
-{
-    IFactory::destroy(shaderModule);
-}
-
-
-
-Coral::Image*
-createImage(Coral::Context* context, const Coral::ImageConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createImage(context, config);
-}
-
-
-void
-destroy(Coral::Image* image)
-{
-    IFactory::destroy(image);
-}
-
-
-Coral::Semaphore*
-createSemaphore(Coral::Context* context)
-{
-    return IFactory::get(context->graphicsAPI()).createSemaphore(context);
-}
-
-
-void
-destroy(Coral::Semaphore* semaphore)
-{
-    IFactory::destroy(semaphore);
-}
-
-
-Coral::PipelineState*
-createPipelineState(Coral::Context* context, const Coral::PipelineStateConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createPipelineState(context, config);
-}
-
-
-void
-destroy(Coral::PipelineState* pipelineState)
-{
-    IFactory::destroy(pipelineState);
-}
-
-
-Coral::Framebuffer*
-createFramebuffer(Coral::Context* context, const Coral::FramebufferConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createFramebuffer(context, config);
+    auto base = static_cast<Coral::FenceBase*>(fence);
+    base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::Framebuffer* framebuffer)
 {
-    IFactory::destroy(framebuffer);
-}
-
-
-Coral::DescriptorSet*
-createDescriptorSet(Coral::Context* context, const Coral::DescriptorSetConfig& config)
-{
-    return IFactory::get(context->graphicsAPI()).createDescriptorSet(context, config);
+    auto base = static_cast<Coral::FramebufferBase*>(framebuffer);
+    base->context().destroy(base);
 }
 
 
 void
-destroy(Coral::DescriptorSet* descriptorSet)
+destroy(Coral::Image* image)
 {
-    IFactory::destroy(descriptorSet);
+    auto base = static_cast<Coral::ImageBase*>(image);
+    base->context().destroy(base);
 }
 
+
+void
+destroy(Coral::PipelineState* pipelineState)
+{
+    auto base = static_cast<Coral::PipelineStateBase*>(pipelineState);
+    base->context().destroy(base);
+}
+
+
+void
+destroy(Coral::Sampler* sampler)
+{
+    auto base = static_cast<Coral::SamplerBase*>(sampler);
+    base->context().destroy(base);
+}
+
+void
+destroy(Coral::Semaphore* semaphore)
+{
+    auto base = static_cast<Coral::SemaphoreBase*>(semaphore);
+    base->context().destroy(base);
+}
+
+
+void
+destroy(Coral::ShaderModule* shaderModule)
+{
+    auto base = static_cast<Coral::ShaderModuleBase*>(shaderModule);
+    base->context().destroy(base);
+}
+
+void
+destroy(Coral::Surface* surface)
+{
+    auto base = static_cast<Coral::SurfaceBase*>(surface);
+    base->context().destroy(base);
+}
+
+
+    
 } // namespace Coral

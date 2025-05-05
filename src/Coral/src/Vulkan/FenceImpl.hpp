@@ -1,7 +1,7 @@
 #ifndef CORAL_VULKAN_FENCEIMPL_HPP
 #define CORAL_VULKAN_FENCEIMPL_HPP
 
-#include <Coral/Fence.hpp>
+#include "../FenceBase.hpp"
 
 #include "ContextImpl.hpp"
 
@@ -9,23 +9,25 @@
 namespace Coral::Vulkan
 {
 
-class FenceImpl: public Coral::Fence
+class FenceImpl: public Coral::FenceBase
 {
 public:
 
+	using FenceBase::FenceBase;
+
 	virtual ~FenceImpl();
 
-	std::optional<Coral::FenceCreationError> init(ContextImpl& context);
+	std::optional<Coral::FenceCreationError> init();
 
-	VkFence getVkFence();
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	bool wait() override;
 
 	void reset() override;
 
-private:
+	VkFence getVkFence();
 
-	ContextImpl* mContext{ nullptr };
+private:
 
 	VkFence mFence{ VK_NULL_HANDLE };
 

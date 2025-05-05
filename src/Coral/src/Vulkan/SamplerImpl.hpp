@@ -1,36 +1,36 @@
 #ifndef CORAL_VULKAN_SAMPLERIMPL_HPP
 #define CORAL_VULKAN_SAMPLERIMPL_HPP
 
-#include <Coral/Sampler.hpp>
+#include "../SamplerBase.hpp"
 
 #include "ContextImpl.hpp"
-
 #include "ImageImpl.hpp"
 
 namespace Coral::Vulkan
 {
 
-class SamplerImpl : public Coral::Sampler
+class SamplerImpl : public Coral::SamplerBase
 {
 public:
-
-	std::optional<Coral::SamplerCreationError> init(Coral::Vulkan::ContextImpl& context, const Coral::SamplerCreateConfig& config);
+	using SamplerBase::SamplerBase;
 
 	virtual ~SamplerImpl();
-	
-	VkSampler getVkSampler();
+
+	std::optional<Coral::SamplerCreationError> init(const Coral::SamplerCreateConfig& config);
+
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	Filter magFilter() const override;
-	
+
 	Filter minFilter() const override;
-	
+
 	Filter mipMapFilter() const override;
-	
+
 	WrapMode wrapMode() const override;
 
+	VkSampler getVkSampler();
+
 private:
-	
-	ContextImpl* mContext{ nullptr };
 
 	Coral::Filter mMinFilter{ Coral::Filter::NEAREST };
 

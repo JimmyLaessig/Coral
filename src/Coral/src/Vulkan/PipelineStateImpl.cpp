@@ -1,7 +1,6 @@
 
 #include "PipelineStateImpl.hpp"
 
-#include "ShaderModuleImpl.hpp"
 #include "../Visitor.hpp"
 #include "VulkanFormat.hpp"
 
@@ -163,52 +162,26 @@ toVkDescriptorType<Coral::UniformBlockDefinition>() { return VK_DESCRIPTOR_TYPE_
 
 PipelineStateImpl::~PipelineStateImpl()
 {
-	if (mContext)
+	if (mPipeline != VK_NULL_HANDLE)
 	{
-		if (mPipeline != VK_NULL_HANDLE)
-		{
-			vkDestroyPipeline(mContext->getVkDevice(), mPipeline, nullptr);
-		}
+		vkDestroyPipeline(contextImpl().getVkDevice(), mPipeline, nullptr);
+	}
 
-		if (mPipelineLayout != VK_NULL_HANDLE)
-		{
-			vkDestroyPipelineLayout(mContext->getVkDevice(), mPipelineLayout, nullptr);
-		}
+	if (mPipelineLayout != VK_NULL_HANDLE)
+	{
+		vkDestroyPipelineLayout(contextImpl().getVkDevice(), mPipelineLayout, nullptr);
+	}
 
-		if (mDescriptorSetLayout != VK_NULL_HANDLE)
-		{
-			vkDestroyDescriptorSetLayout(mContext->getVkDevice(), mDescriptorSetLayout, nullptr);
-		}
+	if (mDescriptorSetLayout != VK_NULL_HANDLE)
+	{
+		vkDestroyDescriptorSetLayout(contextImpl().getVkDevice(), mDescriptorSetLayout, nullptr);
 	}
 }
 
 
-VkPipeline
-PipelineStateImpl::getVkPipeline()
-{
-	return mPipeline;
-}
-
-
-std::span<VkDescriptorSetLayout>
-PipelineStateImpl::getVkDescriptorSetLayouts()
-{
-	return { &mDescriptorSetLayout, 1 };
-}
-
-
-VkPipelineLayout
-PipelineStateImpl::getVkPipelineLayout()
-{
-	return mPipelineLayout;
-}
-
-
 std::optional<Coral::PipelineStateCreationError>
-PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::PipelineStateCreateConfig& config)
+PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 {
-	mContext = &context;
-
 	//-------------------------------------------------------------
 	// Shader Stage State
 	//-------------------------------------------------------------
@@ -412,7 +385,7 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	descriptorSetLayoutCreateInfo.flags			= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 
 	VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
-	if (vkCreateDescriptorSetLayout(mContext->getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(contextImpl().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
 	{
 		return PipelineStateCreationError::INTERNAL_ERROR;
 	}
@@ -425,7 +398,7 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
 	pipelineLayoutCreateInfo.pSetLayouts	= &mDescriptorSetLayout;
 
-	if (vkCreatePipelineLayout(mContext->getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(contextImpl().getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
 	{
 		return PipelineStateCreationError::INTERNAL_ERROR;
 	}
@@ -449,11 +422,32 @@ PipelineStateImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::Pipeli
 	createInfo.layout				= mPipelineLayout;
 	createInfo.pNext				= &renderingCreateInfo;
 
-	if (vkCreateGraphicsPipelines(mContext->getVkDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline) != VK_SUCCESS)
+	if (vkCreateGraphicsPipelines(contextImpl().getVkDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline) != VK_SUCCESS)
 	{
 		return PipelineStateCreationError::INTERNAL_ERROR;
 	}
 
 	return {};
+}
+
+
+VkPipeline
+PipelineStateImpl::getVkPipeline()
+{
+	return mPipeline;
+}
+
+
+std::span<VkDescriptorSetLayout>
+PipelineStateImpl::getVkDescriptorSetLayouts()
+{
+	return { &mDescriptorSetLayout, 1 };
+}
+
+
+VkPipelineLayout
+PipelineStateImpl::getVkPipelineLayout()
+{
+	return mPipelineLayout;
 }
 

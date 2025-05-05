@@ -55,14 +55,28 @@ set(CORAL_PUBLIC_INCLUDES
 # Definition of all source files of the Coral library
 set(CORAL_SOURCES
     ${CORAL_SOURCE_DIR}/BufferPool.cpp
-    ${CORAL_SOURCE_DIR}/BufferPool.hpp
+    ${CORAL_SOURCE_DIR}/Coral.cpp
     ${CORAL_SOURCE_DIR}/Finally.hpp
-    ${CORAL_SOURCE_DIR}/Context.cpp
-    ${CORAL_SOURCE_DIR}/PipelineState.cpp
     ${CORAL_SOURCE_DIR}/UniformBlockBuilder.cpp)
 
-set(CORAL_PRIVATE_HEADERS
-    ${CORAL_SOURCE_DIR}/Visitor.hpp)
+set(CORAL_INCLUDES
+    ${CORAL_SOURCE_DIR}/BufferPool.hpp
+    ${CORAL_SOURCE_DIR}/ContextBase.hpp
+    ${CORAL_SOURCE_DIR}/CommandQueueBase.hpp
+    ${CORAL_SOURCE_DIR}/Visitor.hpp
+    ${CORAL_SOURCE_DIR}/BufferBase.hpp
+    ${CORAL_SOURCE_DIR}/BufferViewBase.hpp
+    ${CORAL_SOURCE_DIR}/CommandBufferBase.hpp
+    ${CORAL_SOURCE_DIR}/CommandQueueBase.hpp
+    ${CORAL_SOURCE_DIR}/ContextBase.hpp
+    ${CORAL_SOURCE_DIR}/FenceBase.hpp
+    ${CORAL_SOURCE_DIR}/FramebufferBase.hpp
+    ${CORAL_SOURCE_DIR}/ImageBase.hpp
+    ${CORAL_SOURCE_DIR}/PipelineStateBase.hpp
+    ${CORAL_SOURCE_DIR}/SamplerBase.hpp
+    ${CORAL_SOURCE_DIR}/SemaphoreBase.hpp
+    ${CORAL_SOURCE_DIR}/ShaderModuleBase.hpp
+    ${CORAL_SOURCE_DIR}/SurfaceBase.hpp)
 
 # Definition of all private vulkan header files of the Coral library
 set(CORAL_VULKAN_INCLUDES
@@ -124,7 +138,7 @@ coral_configure_target(${CORAL_TARGET_NAME}
      PUBLIC_HEADERS 
         ${CORAL_PUBLIC_INCLUDES}
      PRIVATE_HEADERS 
-        ${CORAL_PRIVATE_HEADERS}
+        ${CORAL_INCLUDES}
         ${CORAL_VULKAN_INCLUDES} 
      SOURCES 
         ${CORAL_SOURCES}
@@ -142,5 +156,5 @@ coral_configure_target(${CORAL_TARGET_NAME}
 ###############################################################################
 
 source_group("include/public/${CORAL_TARGET_NAME}" FILES ${CORAL_PUBLIC_INCLUDES} ${CORAL_EXPORT_HEADER})
-source_group("src/${CORAL_TARGET_NAME}" FILES ${CORAL_SOURCES})
+source_group("src/${CORAL_TARGET_NAME}" FILES ${CORAL_SOURCES} ${CORAL_INCLUDES})
 source_group("src/${CORAL_TARGET_NAME}/Vulkan" FILES ${CORAL_VULKAN_INCLUDES} ${CORAL_VULKAN_SOURCES})

@@ -3,8 +3,9 @@
 
 using namespace Coral::Vulkan;
 
+
 std::optional<Coral::BufferViewCreationError>
-BufferViewImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::BufferViewCreateConfig& config)
+BufferViewImpl::init(const Coral::BufferViewCreateConfig& config)
 {
 	if (!config.buffer)
 	{

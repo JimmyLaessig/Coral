@@ -1,21 +1,24 @@
 #ifndef CORAL_VULKAN_BUFFERVIEWIMPL_HPP
 #define CORAL_VULKAN_BUFFERVIEWIMPL_HPP
 
-#include <Coral/BufferView.hpp>
+#include "../BufferViewBase.hpp"
 
 #include "BufferImpl.hpp"
-#include "ContextImpl.hpp"
 
 #include <cstdint>
 
 namespace Coral::Vulkan
 {
 
-class BufferViewImpl : public Coral::BufferView
+class BufferViewImpl : public Coral::BufferViewBase
 {
 public:
 
-	std::optional<Coral::BufferViewCreationError> init(Coral::Vulkan::ContextImpl& context, const Coral::BufferViewCreateConfig& config);
+	using BufferViewBase::BufferViewBase;
+
+	std::optional<Coral::BufferViewCreationError> init(const Coral::BufferViewCreateConfig& config);
+
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	uint32_t offset() const override;
 

@@ -2,22 +2,22 @@
 
 using namespace Coral::Vulkan;
 
+
 FenceImpl::~FenceImpl()
 {
-	if (mContext && mFence != VK_NULL_HANDLE)
+	if (mFence != VK_NULL_HANDLE)
 	{
-		vkDestroyFence(mContext->getVkDevice(), mFence, nullptr);
+		vkDestroyFence(contextImpl().getVkDevice(), mFence, nullptr);
 	}
 }
 
 
 std::optional<Coral::FenceCreationError>
-FenceImpl::init(ContextImpl& context)
+FenceImpl::init()
 {
-	mContext = &context;
 	VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 
-	if (vkCreateFence(mContext->getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
+	if (vkCreateFence(contextImpl().getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
 	{
 		return Coral::FenceCreationError::INTERNAL_ERROR;
 	}
@@ -36,12 +36,12 @@ FenceImpl::getVkFence()
 bool
 FenceImpl::wait()
 {
-	return vkWaitForFences(mContext->getVkDevice(), 1, &mFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+	return vkWaitForFences(contextImpl().getVkDevice(), 1, &mFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
 }
 
 
 void
 FenceImpl::reset()
 {
-	vkResetFences(mContext->getVkDevice(), 1, &mFence);
+	vkResetFences(contextImpl().getVkDevice(), 1, &mFence);
 }

@@ -1,29 +1,29 @@
 #ifndef CORAL_VULKAN_IMAGEIMPL_HPP
 #define CORAL_VULKAN_IMAGEIMPL_HPP
 
-#include <Coral/Image.hpp>
+#include "../ImageBase.hpp"
 
 #include "ContextImpl.hpp"
 
 namespace Coral::Vulkan
 {
 
-class ImageImpl : public Coral::Image
+class ImageImpl : public Coral::ImageBase
 {
 public:
 
+	using ImageBase::ImageBase;
+
 	virtual ~ImageImpl();
 
-	bool init(ContextImpl& context, VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, VkImageLayout layout);
+	bool init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, VkImageLayout layout);
 
-	std::optional<Coral::ImageCreationError> init(ContextImpl& context, const Coral::ImageCreateConfig& config);
+	std::optional<Coral::ImageCreationError> init(const Coral::ImageCreateConfig& config);
 
-	VkImage getVkImage();
-
-	VkImageView getVkImageView();
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	VkImageLayout getVkImageLayout() const;
-	
+
 	uint32_t width() const override;
 
 	uint32_t height() const override;
@@ -34,9 +34,11 @@ public:
 
 	bool presentable() const override;
 
-private:
+	VkImage getVkImage();
 
-	ContextImpl* mContext{ nullptr };
+	VkImageView getVkImageView();
+
+private:
 
 	VkImage mImage{ VK_NULL_HANDLE };
 

@@ -1,6 +1,5 @@
 #include "FramebufferImpl.hpp"
 
-#include "ImageImpl.hpp"
 #include "VulkanFormat.hpp"
 
 #include <vector>
@@ -46,10 +45,8 @@ getFramebufferExtent(const Coral::FramebufferCreateConfig& config)
 
 
 std::optional<Coral::FramebufferCreationError>
-FramebufferImpl::init(Coral::Vulkan::ContextImpl& context, const Coral::FramebufferCreateConfig& config)
+FramebufferImpl::init(const Coral::FramebufferCreateConfig& config)
 {
-	mContext = &context;
-
 	std::vector<VkAttachmentDescription> attachmentDescriptions;
 	attachmentDescriptions.reserve(config.colorAttachment.size());
 

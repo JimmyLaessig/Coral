@@ -1,22 +1,25 @@
 #ifndef CORAL_VULKAN_BUFFERIMPL_HPP
 #define CORAL_VULKAN_BUFFERIMPL_HPP
 
-#include <Coral/Buffer.hpp>
+#include "../BufferBase.hpp"
 
 #include "ContextImpl.hpp"
+#include "VulkanFormat.hpp"
 
 namespace Coral::Vulkan
 {
 
-class BufferImpl : public Coral::Buffer
+class BufferImpl : public Coral::BufferBase
 {
 public:
 
+	using BufferBase::BufferBase;
+
 	virtual ~BufferImpl();
 
-	std::optional<Coral::BufferCreationError> init(ContextImpl& context, const BufferCreateConfig& config);
+	std::optional<Coral::BufferCreationError> init(const BufferCreateConfig& config);
 
-	VkBuffer getVkBuffer();
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	size_t size() const override;
 
@@ -26,9 +29,9 @@ public:
 
 	bool unmap() override;
 
-private:
+	VkBuffer getVkBuffer();
 
-	ContextImpl* mContext{ nullptr };
+private:
 
 	VkBuffer mBuffer{ VK_NULL_HANDLE };
 

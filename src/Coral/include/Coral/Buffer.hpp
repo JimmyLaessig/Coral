@@ -71,6 +71,10 @@ public:
 	 * Updates to the buffer's CPU data are only synchronized with the buffer's GPU data once `unmap` is called.
 	 */
 	virtual bool unmap() = 0;
+
+	/// Get the render context
+	virtual class Context& context() = 0;
+
 };
 
 

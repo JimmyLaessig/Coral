@@ -1,9 +1,10 @@
 #ifndef CORAL_VULKAN_PIPELINESTATEIMPL_HPP
 #define CORAL_VULKAN_PIPELINESTATEIMPL_HPP
 
-#include <Coral/PipelineState.hpp>
+#include "../PipelineStateBase.hpp"
 
 #include "ContextImpl.hpp"
+#include "ShaderModuleImpl.hpp"
 
 #include <optional>
 #include <span>
@@ -12,13 +13,17 @@
 namespace Coral::Vulkan
 {
 
-class PipelineStateImpl : public Coral::PipelineState
+class PipelineStateImpl : public Coral::PipelineStateBase
 {
 public:
 
+	using PipelineStateBase::PipelineStateBase;
+
 	virtual ~PipelineStateImpl();
 
-	std::optional<PipelineStateCreationError> init(Coral::Vulkan::ContextImpl& context, const PipelineStateCreateConfig& config);
+	std::optional<PipelineStateCreationError> init(const PipelineStateCreateConfig& config);
+
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	VkPipeline getVkPipeline();
 
@@ -30,13 +35,11 @@ public:
 
 private:
 
-	ContextImpl* mContext{ nullptr };
-
 	VkPipelineLayout mPipelineLayout{ VK_NULL_HANDLE };
 
 	VkPipeline mPipeline{ VK_NULL_HANDLE };
 
-	VkDescriptorSetLayout mDescriptorSetLayout;
+	VkDescriptorSetLayout mDescriptorSetLayout{ VK_NULL_HANDLE };
 
 	FaceCullingMode mFaceCullingMode{ FaceCullingModes::BackFaceCulling };
 

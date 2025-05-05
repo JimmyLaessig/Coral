@@ -9,21 +9,28 @@
 using namespace Coral::Vulkan;
 
 
+BufferImpl::~BufferImpl()
+{
+	if (mBuffer != VK_NULL_HANDLE)
+	{
+		vmaDestroyBuffer(contextImpl().getVmaAllocator(), mBuffer, mAllocation);
+	}
+}
+
+
 std::optional<Coral::BufferCreationError>
-BufferImpl::init(Coral::Vulkan::ContextImpl& context,
-			 const Coral::BufferCreateConfig& config)
+BufferImpl::init(const Coral::BufferCreateConfig& config)
 {
 	if (config.size == 0)
 	{
 		return Coral::BufferCreationError::INVALID_SIZE;
 	}
 
-	mContext	= &context;
 	mType		= config.type;
 	mSize		= config.size;
 	mCpuVisible = config.cpuVisible;
 
-	uint32_t queueFamilyIndex = mContext->getQueueFamilyIndex();
+	uint32_t queueFamilyIndex = contextImpl().getQueueFamilyIndex();
 
 	VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	createInfo.pQueueFamilyIndices   = &queueFamilyIndex;
@@ -41,7 +48,7 @@ BufferImpl::init(Coral::Vulkan::ContextImpl& context,
 	}
 
 	VmaAllocationInfo allocInfo{};
-	switch (vmaCreateBuffer(mContext->getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
+	switch (vmaCreateBuffer(contextImpl().getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
 	{
 		case VK_SUCCESS:
 			return {};
@@ -50,15 +57,6 @@ BufferImpl::init(Coral::Vulkan::ContextImpl& context,
 			return Coral::BufferCreationError::OUT_OF_MEMORY;
 		default:
 			return Coral::BufferCreationError::INTERNAL_ERROR;
-	}
-}
-
-
-BufferImpl::~BufferImpl()
-{
-	if (mContext && mBuffer != VK_NULL_HANDLE)
-	{
-		vmaDestroyBuffer(mContext->getVmaAllocator(), mBuffer, mAllocation);
 	}
 }
 
@@ -98,7 +96,7 @@ BufferImpl::map()
 
 	void* data{ nullptr };
 
-	if (vmaMapMemory(mContext->getVmaAllocator(), mAllocation, &data) != VK_SUCCESS)
+	if (vmaMapMemory(contextImpl().getVmaAllocator(), mAllocation, &data) != VK_SUCCESS)
 	{
 		return nullptr;
 	}
@@ -117,7 +115,7 @@ BufferImpl::unmap()
 	}
 
 	mMapped = nullptr;
-	vmaUnmapMemory(mContext->getVmaAllocator(), mAllocation);
+	vmaUnmapMemory(contextImpl().getVmaAllocator(), mAllocation);
 
 	return true;
 }

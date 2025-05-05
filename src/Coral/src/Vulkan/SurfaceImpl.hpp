@@ -1,9 +1,15 @@
 #ifndef CORAL_VULKAN_SURFACEIMPL_HPP
 #define CORAL_VULKAN_SURFACEIMPL_HPP
 
-#include <Coral/Surface.hpp>
+#include "../SurfaceBase.hpp"
 
 #include "ContextImpl.hpp"
+#include "FenceImpl.hpp"
+#include "FramebufferImpl.hpp"
+#include "ImageImpl.hpp"
+#include "VulkanFormat.hpp"
+#include "SemaphoreImpl.hpp"
+#include "CommandQueueImpl.hpp"
 
 #include <array>
 #include <memory>
@@ -14,17 +20,17 @@ namespace Coral::Vulkan
 
 class SemaphoreImpl;
 
-class SurfaceImpl : public Coral::Surface
+class SurfaceImpl : public Coral::SurfaceBase
 {
 public:
 
+	using SurfaceBase::SurfaceBase;
+
 	virtual ~SurfaceImpl();
 
-	std::optional<Coral::SurfaceCreationError> init(Coral::Vulkan::ContextImpl& context, const Coral::SurfaceCreateConfig& config);
+	std::optional<Coral::SurfaceCreationError> init(const Coral::SurfaceCreateConfig& config);
 
-	VkSurfaceKHR getVkSurface();
-
-	VkSwapchainKHR getVkSwapchain();
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	void* nativeWindowHandle() override;
 
@@ -38,13 +44,15 @@ public:
 
 	FramebufferSignature getFramebufferSignature() override;
 
+	VkSurfaceKHR getVkSurface();
+
+	VkSwapchainKHR getVkSwapchain();
+
 	void present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores);
 
 private:
 
 	bool initSwapchain(const Coral::SwapchainConfig& config);
-
-	ContextImpl* mContext{ nullptr };
 
 	void* mNativeWindowHandle{ nullptr };
 

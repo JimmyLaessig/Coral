@@ -1,16 +1,13 @@
 #include "SamplerImpl.hpp"
 
-#include "Vulkan.hpp"
-#include "ImageImpl.hpp"
-
 #include <cassert>
 #include <tuple>
 
 
 using namespace Coral::Vulkan;
 
-//namespace
-//{
+namespace
+{
 
 VkFilter
 convert(Coral::Filter magFilter)
@@ -53,7 +50,7 @@ convert(Coral::Filter magFilter)
 //			assert(false);
 //			return {};
 //	}
-//}
+// }
 
 
 std::tuple<VkSamplerAddressMode, VkBorderColor>
@@ -71,14 +68,22 @@ convert(Coral::WrapMode wrapMode)
 			return {};
 	}
 }
-//
-//} // namespace
+
+} // namespace
+
+
+SamplerImpl::~SamplerImpl()
+{
+	if (mSampler != VK_NULL_HANDLE)
+	{
+		vkDestroySampler(contextImpl().getVkDevice(), mSampler, nullptr);
+	}
+}
 
 
 std::optional<Coral::SamplerCreationError>
-SamplerImpl::init(ContextImpl& context, const Coral::SamplerCreateConfig& config)
+SamplerImpl::init(const Coral::SamplerCreateConfig& config)
 {
-	mContext		= &context;
 	mMinFilter		= config.minFilter;
 	mMagFilter		= config.magFilter;
 	mMipmapFilter	= config.mipmapFilter;
@@ -109,21 +114,12 @@ SamplerImpl::init(ContextImpl& context, const Coral::SamplerCreateConfig& config
 
 	createInfo.unnormalizedCoordinates = VK_FALSE;
 
-	if (vkCreateSampler(mContext->getVkDevice(), &createInfo, nullptr, &mSampler) != VK_SUCCESS)
+	if (vkCreateSampler(contextImpl().getVkDevice(), &createInfo, nullptr, &mSampler) != VK_SUCCESS)
 	{
 		return SamplerCreationError::INTERNAL_ERROR;
 	}
 
 	return {};
-}
-
-
-SamplerImpl::~SamplerImpl()
-{
-	if (mContext && mSampler != VK_NULL_HANDLE)
-	{
-		vkDestroySampler(mContext->getVkDevice(), mSampler, nullptr);
-	}
 }
 
 

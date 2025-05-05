@@ -3,8 +3,8 @@
 
 #include <Coral/Buffer.hpp>
 #include <Coral/BufferView.hpp>
-#include <Coral/DescriptorSet.hpp>
 #include <Coral/Image.hpp>
+#include <Coral/Sampler.hpp>
 #include <Coral/PipelineState.hpp>
 
 #include <functional>
