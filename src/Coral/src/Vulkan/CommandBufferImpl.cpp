@@ -1,7 +1,6 @@
 #include "CommandBufferImpl.hpp"
 
-#include "SamplerImpl.hpp"
-#include "ImageImpl.hpp"
+
 #include "../Visitor.hpp"
 
 #include <Coral/Types.hpp>
@@ -62,8 +61,8 @@ CommandBufferImpl::cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
     VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.oldLayout                       = oldLayout;
     barrier.newLayout                       = newLayout;
-    barrier.srcQueueFamilyIndex             = mContext->getQueueFamilyIndex();
-    barrier.dstQueueFamilyIndex             = mContext->getQueueFamilyIndex();
+    barrier.srcQueueFamilyIndex             = contextImpl().getQueueFamilyIndex();
+    barrier.dstQueueFamilyIndex             = contextImpl().getQueueFamilyIndex();
     barrier.image                           = image->getVkImage();
     barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel   = baseMipLevel;
@@ -79,23 +78,21 @@ CommandBufferImpl::cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
 
 CommandBufferImpl::~CommandBufferImpl()
 {
-    if (mCommandPool && mCommandBuffer != VK_NULL_HANDLE)
+    if (mCommandBuffer != VK_NULL_HANDLE)
     {
-        vkFreeCommandBuffers(mContext->getVkDevice(), mCommandPool, 1, &mCommandBuffer);
+        vkFreeCommandBuffers(contextImpl().getVkDevice(), commandQueueImpl().getVkCommandPool(), 1, &mCommandBuffer);
     }
 }
 
 
 bool
-CommandBufferImpl::init(Coral::Vulkan::CommandQueueImpl& queue, const Coral::CommandBufferCreateConfig& config)
+CommandBufferImpl::init(const Coral::CommandBufferCreateConfig& config)
 {
-    mContext     = &queue.context();
     mName        = config.name;
-    mCommandPool = queue.getVkCommandPool();
-    auto device  = mContext->getVkDevice();
+    auto device  = contextImpl().getVkDevice();
 
     VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    allocInfo.commandPool        = mCommandPool;
+    allocInfo.commandPool        = commandQueueImpl().getVkCommandPool();
     allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
     if (vkAllocateCommandBuffers(device, &allocInfo, &mCommandBuffer) != VK_SUCCESS)
@@ -135,52 +132,6 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
     const auto& colorAttachments = framebuffer->colorAttachments();
     const auto& depthAttachment  = framebuffer->depthAttachment();
 
-    //// Dynamic rendering requires manual image layout transition for presentable swapchain images. Before rendering, we
-    //// must transition the image to a supported layout (VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL). Once rendering is
-    //// done, the image layout must transition to 'VK_IMAGE_LAYOUT_PRESENT_SRC_KHR'in order to present the swapchain
-    //// image. Both layout transitions must be executed manually via memory barriers. During cmdBeginRenderPass we
-    //// recorded all swapchain images and after ending the rendering we insert memory barriers to ensure that the images
-    //// have a presentable layout.
-    //std::vector<VkImageMemoryBarrier> imageBarriers;
-    //for (const auto& colorAttachment : colorAttachments)
-    //{
-    //    auto image = static_cast<Coral::Vulkan::ImageImpl*>(colorAttachment.image);
-    //    if (image->presentable())
-    //    {
-    //        VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    //        barrier.dstAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    //        barrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
-    //        barrier.newLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    //        barrier.image                           = image->getVkImage();
-    //        barrier.srcQueueFamilyIndex             = mContext->getQueueFamilyIndex();
-    //        barrier.dstQueueFamilyIndex             = mContext->getQueueFamilyIndex();
-    //        barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    //        barrier.subresourceRange.baseArrayLayer = 0;
-    //        barrier.subresourceRange.layerCount     = 1;
-    //        barrier.subresourceRange.baseMipLevel   = 0;
-    //        barrier.subresourceRange.levelCount     = image->getMipLevels();
-
-    //        imageBarriers.push_back(barrier);
-
-    //        mPresentableImagesInUse.push_back(image);
-    //    }
-    //}
-
-    //if (!imageBarriers.empty())
-    //{
-    //    vkCmdPipelineBarrier(mCommandBuffer,
-    //                         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,             // srcStageMask
-    //                         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
-    //                         0,
-    //                         0,
-    //                         nullptr,
-    //                         0,
-    //                         nullptr,
-    //                         static_cast<uint32_t>(imageBarriers.size()),
-    //                         imageBarriers.data());
-    //}
-
-
     uint32_t i{ 0 };
     std::vector<VkRenderingAttachmentInfo> attachments;
     for (const auto& colorAttachment : colorAttachments)
@@ -188,7 +139,7 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
         auto image = static_cast<Coral::Vulkan::ImageImpl*>(colorAttachment.image);
 
         VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-        attachmentInfo.loadOp           = convert(colorAttachment.clearOp);
+        attachmentInfo.loadOp           = ::convert(colorAttachment.clearOp);
         attachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         attachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;//  image->getVkImageLayout();
         attachmentInfo.imageView        = image->getVkImageView();
@@ -222,7 +173,7 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
     {
         auto image = static_cast<Coral::Vulkan::ImageImpl*>(depthAttachment->image);
         
-        depthAttachmentInfo.loadOp           = convert(depthAttachment->clearOp);
+        depthAttachmentInfo.loadOp           = ::convert(depthAttachment->clearOp);
         depthAttachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;// image->getVkImageLayout();
         depthAttachmentInfo.imageView        = image->getVkImageView();
@@ -390,7 +341,7 @@ CommandBufferImpl::cmdBindPipeline(Coral::PipelineState* pipelineState)
 bool
 CommandBufferImpl::cmdDrawIndexed(const DrawIndexInfo& info)
 {
-    cmdBindCachedDescriptorSet();
+    cmdBindCachedDescriptors();
     vkCmdDrawIndexed(mCommandBuffer, info.indexCount, 1, info.firstIndex, 0, 0);
 
     return true;
@@ -451,7 +402,7 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
 
     auto buffer = static_cast<Coral::Vulkan::BufferImpl*>(info.buffer);
 
-    auto stagingBuffer = mContext->requestStagingBuffer(info.data.size());
+    auto stagingBuffer = contextImpl().requestStagingBuffer(info.data.size());
     auto stagingBufferVK = static_cast<Coral::Vulkan::BufferImpl*>(stagingBuffer.get());
 
     auto mapped = stagingBuffer->map();
@@ -467,8 +418,8 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
 
     /*VkBufferMemoryBarrier barrier{};
     barrier.buffer = bufferImpl->getVkBuffer();
-    barrier.dstQueueFamilyIndex = mContext->getQueueFamilyIndex();
-    barrier.srcQueueFamilyIndex = mContext->getQueueFamilyIndex();*/
+    barrier.dstQueueFamilyIndex = contextImpl().getQueueFamilyIndex();
+    barrier.srcQueueFamilyIndex = contextImpl().getQueueFamilyIndex();*/
 
     /*VkBufferMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -496,7 +447,7 @@ CommandBufferImpl::cmdUpdateImageData(const Coral::UpdateImageDataInfo& info)
 {
     auto image = static_cast<Coral::Vulkan::ImageImpl*>(info.image);
 
-    auto stagingBuffer   = mContext->requestStagingBuffer(info.data.size());
+    auto stagingBuffer   = contextImpl().requestStagingBuffer(info.data.size());
     auto stagingBufferVK = static_cast<Coral::Vulkan::BufferImpl*>(stagingBuffer.get());
 
     auto mapped = stagingBuffer->map();
@@ -633,7 +584,7 @@ CommandBufferImpl::cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding)
 
 
 void
-CommandBufferImpl::cmdBindCachedDescriptorSet()
+CommandBufferImpl::cmdBindCachedDescriptors()
 {
     if (!mLastBoundPipelineState)
     {

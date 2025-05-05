@@ -1,7 +1,9 @@
 #ifndef CORAL_VULKANCOMMANDQUEUEIMPL_HPP
 #define CORAL_VULKANCOMMANDQUEUEIMPL_HPP
 
-#include <Coral/CommandQueue.hpp>
+#include "../CommandQueueBase.hpp"
+
+#include "ContextImpl.hpp"
 
 #include "Vulkan.hpp"
 
@@ -15,18 +17,19 @@
 namespace Coral::Vulkan
 {
 
-class ContextImpl;
-
-class CommandQueueImpl : public Coral::CommandQueue
+class CommandQueueImpl : public Coral::CommandQueueBase
 {
 public:
-	CommandQueueImpl() = default;
 
-	CommandQueueImpl(ContextImpl* context, VkQueue queue, uint32_t index, uint32_t mQueueFamilyIndex);
+	CommandQueueImpl(ContextImpl& context, VkQueue queue, uint32_t index, uint32_t mQueueFamilyIndex);
 
 	virtual ~CommandQueueImpl();
 
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
+
 	std::expected<Coral::CommandBufferPtr, Coral::CommandBufferCreationError> createCommandBuffer(const Coral::CommandBufferCreateConfig& config) override;
+
+	void destroyCommandBuffer(CommandBufferBase* commandBuffer) override;
 
 	bool submit(const Coral::CommandBufferSubmitInfo& info, Fence* fence) override;
 
@@ -34,12 +37,7 @@ public:
 
 	bool waitIdle() override;
 
-	ContextImpl& context();
-
-	uint32_t getQueueIndex()
-	{
-		return mQueueIndex;
-	}
+	uint32_t getQueueIndex() { return mQueueIndex; }
 
 	VkCommandPool getVkCommandPool();
 
@@ -48,8 +46,6 @@ public:
 private:
 
 	void awaitStagingBufferReturnTasks();
-
-	Coral::Vulkan::ContextImpl* mContext{ nullptr };
 
 	std::mutex mQueueProtection;
 

@@ -44,29 +44,25 @@ getUsageFlags(Coral::PixelFormat format)
 
 
 } // namespace
+
+
 ImageImpl::~ImageImpl()
 {
-	if (!mContext)
-	{
-		return;
-	}
-	
 	if (mImageView != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(mContext->getVkDevice(), mImageView, nullptr);
+		vkDestroyImageView(contextImpl().getVkDevice(), mImageView, nullptr);
 	}
 
 	if (mImage != VK_NULL_HANDLE && mIsOwner)
 	{
-		vmaDestroyImage(mContext->getVmaAllocator(), mImage, mAllocation);
+		vmaDestroyImage(contextImpl().getVmaAllocator(), mImage, mAllocation);
 	}
 }
 
 
 bool
-ImageImpl::init(ContextImpl& context, VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, VkImageLayout layout)
+ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, VkImageLayout layout)
 {
-	mContext		= &context;
 	mImage			= image;
 	mFormat			= format;
 	mWidth			= width;
@@ -85,7 +81,7 @@ ImageImpl::init(ContextImpl& context, VkImage image, Coral::PixelFormat format, 
 	viewCreateInfo.subresourceRange.baseMipLevel	= 0;
 	viewCreateInfo.subresourceRange.levelCount		= mMipLevelCount;
 
-	if (vkCreateImageView(mContext->getVkDevice(), &viewCreateInfo, nullptr, &mImageView) != VK_SUCCESS)
+	if (vkCreateImageView(contextImpl().getVkDevice(), &viewCreateInfo, nullptr, &mImageView) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -95,9 +91,8 @@ ImageImpl::init(ContextImpl& context, VkImage image, Coral::PixelFormat format, 
 
 
 std::optional<Coral::ImageCreationError>
-ImageImpl::init(ContextImpl& context, const Coral::ImageCreateConfig& config)
+ImageImpl::init(const Coral::ImageCreateConfig& config)
 {
-	mContext	= &context;
 	mFormat		= config.format;
 	mWidth		= config.width;
 	mHeight		= config.height;
@@ -131,12 +126,12 @@ ImageImpl::init(ContextImpl& context, const Coral::ImageCreateConfig& config)
 	allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 	VmaAllocationInfo info{};
-	if (vmaCreateImage(mContext->getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
+	if (vmaCreateImage(contextImpl().getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
 	{
 		return ImageCreationError::INTERNAL_ERROR;
 	}
 
-	if (!init(context, mImage, config.format, config.width, config.height, mMipLevelCount, VK_IMAGE_LAYOUT_GENERAL))
+	if (!init(mImage, config.format, config.width, config.height, mMipLevelCount, VK_IMAGE_LAYOUT_GENERAL))
 	{
 		return ImageCreationError::INTERNAL_ERROR;
 	}

@@ -2,10 +2,19 @@
 
 using namespace Coral::Vulkan;
 
-std::optional<Coral::SemaphoreCreationError>
-SemaphoreImpl::init(ContextImpl& context)
+
+SemaphoreImpl::~SemaphoreImpl()
 {
-	mContext = &context;
+	if (mSemaphore != VK_NULL_HANDLE)
+	{
+		vkDestroySemaphore(contextImpl().getVkDevice(), mSemaphore, nullptr);
+	}
+}
+
+
+std::optional<Coral::SemaphoreCreationError>
+SemaphoreImpl::init()
+{
 	VkSemaphoreTypeCreateInfo timelineCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
 	timelineCreateInfo.pNext			= NULL;
 	timelineCreateInfo.semaphoreType	= VK_SEMAPHORE_TYPE_BINARY;
@@ -14,7 +23,7 @@ SemaphoreImpl::init(ContextImpl& context)
 	VkSemaphoreCreateInfo info{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	info.pNext = &timelineCreateInfo;
 
-	if (vkCreateSemaphore(mContext->getVkDevice(), &info, nullptr, &mSemaphore) != VK_SUCCESS)
+	if (vkCreateSemaphore(contextImpl().getVkDevice(), &info, nullptr, &mSemaphore) != VK_SUCCESS)
 	{
 		return Coral::SemaphoreCreationError::INTERNAL_ERROR;
 	}
@@ -22,14 +31,6 @@ SemaphoreImpl::init(ContextImpl& context)
 	return {};
 }
 
-
-SemaphoreImpl::~SemaphoreImpl()
-{
-	if (mSemaphore != VK_NULL_HANDLE)
-	{
-		vkDestroySemaphore(mContext->getVkDevice(), mSemaphore, nullptr);
-	}
-}
 
 
 VkSemaphore

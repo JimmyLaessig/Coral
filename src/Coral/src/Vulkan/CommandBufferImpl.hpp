@@ -1,15 +1,16 @@
 #ifndef CORAL_VULKAN_COMMANDBUFFERIMPL_HPP
 #define CORAL_VULKAN_COMMANDBUFFERIMPL_HPP
 
-#include <Coral/CommandBuffer.hpp>
-#include <Coral/RAII.hpp>
+#include "../CommandBufferBase.hpp"
 
 #include "BufferImpl.hpp"
 #include "BufferViewImpl.hpp"
 #include "CommandQueueImpl.hpp"
+#include "ContextImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
 #include "PipelineStateImpl.hpp"
+#include "SamplerImpl.hpp"
 
 #include <memory>
 #include <string>
@@ -17,14 +18,21 @@
 
 namespace Coral::Vulkan
 {
+class CommandQueueImpl;
 
-class CommandBufferImpl : public Coral::CommandBuffer
+class CommandBufferImpl : public Coral::CommandBufferBase
 {
 public:
 
+	using CommandBufferBase::CommandBufferBase;
+
 	virtual ~CommandBufferImpl();
 
-	bool init(Coral::Vulkan::CommandQueueImpl& queue, const CommandBufferCreateConfig& config);
+	bool init(const CommandBufferCreateConfig& config);
+
+	CommandQueueImpl& commandQueueImpl() { return static_cast<CommandQueueImpl&>(commandQueue()); }
+
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	bool begin() override; 
 
@@ -80,23 +88,13 @@ public:
 
 private:
 
-	void cmdBindCachedDescriptorSet();
-
-	
-
-	std::vector<Coral::Vulkan::ImageImpl*> mPresentableImagesInUse;
-
-	ContextImpl* mContext{ nullptr };
-
-	VkCommandPool mCommandPool{ VK_NULL_HANDLE };
+	void cmdBindCachedDescriptors();
 
 	VkCommandBuffer mCommandBuffer{ VK_NULL_HANDLE };
 
 	std::string mName;
 
 	PipelineStateImpl* mLastBoundPipelineState{ nullptr };
-
-	std::vector<Coral::DescriptorSet*> mUnboundDescriptorSets;
 
 	std::vector<std::shared_ptr<Coral::Buffer>> mStagingBuffers;
 

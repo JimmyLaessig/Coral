@@ -5,7 +5,6 @@
 
 #include <Coral/Buffer.hpp>
 #include <Coral/BufferView.hpp>
-
 #include <Coral/CommandBuffer.hpp>
 #include <Coral/Fence.hpp>
 #include <Coral/Framebuffer.hpp>

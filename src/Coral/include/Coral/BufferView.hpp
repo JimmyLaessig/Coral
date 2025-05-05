@@ -73,6 +73,9 @@ public:
 
 	/// Get the Buffer underneath the view
 	virtual Buffer* buffer() = 0;
+
+	/// Get the render context
+	virtual class Context& context() = 0;
 };
 
 } // namespace Coral

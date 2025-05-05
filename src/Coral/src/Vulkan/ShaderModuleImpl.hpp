@@ -1,7 +1,7 @@
 #ifndef CORAL_VULKAN_SHADERMODULEIMPL_HPP
 #define CORAL_VULKAN_SHADERMODULEIMPL_HPP
 
-#include <Coral/ShaderModule.hpp>
+#include "../ShaderModuleBase.hpp"
 
 #include "ContextImpl.hpp"
 
@@ -12,13 +12,17 @@
 namespace Coral::Vulkan
 {
 
-class ShaderModuleImpl : public Coral::ShaderModule
+class ShaderModuleImpl : public Coral::ShaderModuleBase
 {
 public:
 
+	using ShaderModuleBase::ShaderModuleBase;
+
 	virtual ~ShaderModuleImpl();
 
-	std::optional<ShaderModuleCreationError> init(ContextImpl& context, const Coral::ShaderModuleCreateConfig& config);
+	std::optional<ShaderModuleCreationError> init(const Coral::ShaderModuleCreateConfig& config);
+
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	ShaderStage shaderStage() const override;
 
@@ -37,8 +41,6 @@ public:
 private:
 
 	bool reflect(std::span<const std::byte> spirvCode);
-
-	ContextImpl* mContext{ nullptr };
 
 	std::string mName;
 

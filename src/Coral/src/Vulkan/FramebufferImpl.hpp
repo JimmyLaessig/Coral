@@ -1,9 +1,10 @@
 #ifndef CORAL_VULKAN_FRAMEBUFFERIMPL_HPP
 #define CORAL_VULKAN_FRAMEBUFFERIMPL_HPP
 
-#include <Coral/Framebuffer.hpp>
+#include "../FramebufferBase.hpp"
 
 #include "ContextImpl.hpp"
+#include "ImageImpl.hpp"
 
 #include <optional>
 #include <vector>
@@ -12,15 +13,15 @@
 namespace Coral::Vulkan
 {
 
-class FramebufferImpl : public Coral::Framebuffer
+class FramebufferImpl : public Coral::FramebufferBase
 {
 public:
+	
+	using FramebufferBase::FramebufferBase;
 
-	std::optional<FramebufferCreationError> init(Coral::Vulkan::ContextImpl& context, const Coral::FramebufferCreateConfig& config);
+	std::optional<FramebufferCreationError> init(const Coral::FramebufferCreateConfig& config);
 
-	const std::vector<ColorAttachment>& colorAttachments();
-
-	const std::optional<DepthAttachment>& depthAttachment();
+	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	uint32_t width() const override;
 
@@ -28,9 +29,11 @@ public:
 
 	Coral::FramebufferSignature getSignature() override;
 
-private:
+	const std::vector<ColorAttachment>& colorAttachments();
 
-	Coral::Vulkan::ContextImpl* mContext{ nullptr };
+	const std::optional<DepthAttachment>& depthAttachment();
+
+private:
 
 	std::vector<ColorAttachment> mColorAttachments;
 

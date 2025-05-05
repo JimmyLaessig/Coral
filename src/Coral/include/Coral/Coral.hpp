@@ -6,7 +6,6 @@
 #include <Coral/CommandBuffer.hpp>
 #include <Coral/CommandQueue.hpp>
 #include <Coral/Context.hpp>
-#include <Coral/DescriptorSet.hpp>
 #include <Coral/Fence.hpp>
 #include <Coral/Framebuffer.hpp>
 #include <Coral/Image.hpp>

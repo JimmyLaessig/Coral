@@ -260,7 +260,6 @@ class CORAL_API PipelineState
 public:
 
 	virtual ~PipelineState() = default;
-
 };
 
 

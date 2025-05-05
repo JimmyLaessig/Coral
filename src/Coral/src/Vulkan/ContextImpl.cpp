@@ -4,7 +4,6 @@
 #include "CommandQueueImpl.hpp"
 #include "BufferImpl.hpp"
 #include "BufferViewImpl.hpp"
-#include "CommandQueueImpl.hpp"
 #include "FenceImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
@@ -212,7 +211,7 @@ ContextImpl::init(const ContextCreateConfig& config)
 			VkQueue queue{ VK_NULL_HANDLE };
 			vkGetDeviceQueue(mDevice, mQueueFamilyIndex, 0, &queue);
 
-			mGraphicsQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(this, queue, 0, mQueueFamilyIndex);
+			mGraphicsQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(*this, queue, 0, mQueueFamilyIndex);
 			mComputeQueue	= mGraphicsQueue;
 			mTransferQueue	= mGraphicsQueue;
 			break;
@@ -224,9 +223,9 @@ ContextImpl::init(const ContextCreateConfig& config)
 			vkGetDeviceQueue(mDevice, mQueueFamilyIndex, 0, &queue0);
 			vkGetDeviceQueue(mDevice, mQueueFamilyIndex, 1, &queue1);
 
-			mGraphicsQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(this, queue0, 0, mQueueFamilyIndex);
+			mGraphicsQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(*this, queue0, 0, mQueueFamilyIndex);
 			mComputeQueue	= mGraphicsQueue;
-			mTransferQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(this, queue1, 1, mQueueFamilyIndex);
+			mTransferQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(*this, queue1, 1, mQueueFamilyIndex);
 			break;
 		}
 		case 3:
@@ -238,9 +237,9 @@ ContextImpl::init(const ContextCreateConfig& config)
 			vkGetDeviceQueue(mDevice, mQueueFamilyIndex, 1, &queue1);
 			vkGetDeviceQueue(mDevice, mQueueFamilyIndex, 2, &queue2);
 
-			mGraphicsQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(this, queue0, 0, mQueueFamilyIndex);
-			mComputeQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(this, queue1, 1, mQueueFamilyIndex);
-			mTransferQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(this, queue2, 2, mQueueFamilyIndex);
+			mGraphicsQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(*this, queue0, 0, mQueueFamilyIndex);
+			mComputeQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(*this, queue1, 1, mQueueFamilyIndex);
+			mTransferQueue	= std::make_shared<Coral::Vulkan::CommandQueueImpl>(*this, queue2, 2, mQueueFamilyIndex);
 			break;
 		}
 		default:
@@ -300,14 +299,14 @@ ContextImpl::getComputeQueue()
 std::expected<Coral::BufferPtr, Coral::BufferCreationError>
 ContextImpl::createBuffer(const Coral::BufferCreateConfig& config)
 {
-	return create<Coral::Buffer, BufferImpl, Coral::BufferCreateConfig, Coral::BufferCreationError>(config);
+	return create<Coral::Buffer, BufferImpl, Coral::BufferCreationError>(config);
 }
 
 
 std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError>
 ContextImpl::createBufferView(const Coral::BufferViewCreateConfig& config)
 {
-	return create<Coral::BufferView, BufferViewImpl, Coral::BufferViewCreateConfig, Coral::BufferViewCreationError>(config);
+	return create<Coral::BufferView, BufferViewImpl, Coral::BufferViewCreationError>(config);
 }
 
 
@@ -321,28 +320,28 @@ ContextImpl::createFence()
 std::expected<Coral::FramebufferPtr, Coral::FramebufferCreationError>
 ContextImpl::createFramebuffer(const Coral::FramebufferCreateConfig& config)
 {
-	return create<Coral::Framebuffer, FramebufferImpl, Coral::FramebufferCreateConfig, Coral::FramebufferCreationError>(config);
+	return create<Coral::Framebuffer, FramebufferImpl, Coral::FramebufferCreationError>(config);
 }
 
 
 std::expected<Coral::ImagePtr, Coral::ImageCreationError>
 ContextImpl::createImage(const Coral::ImageCreateConfig& config)
 {
-	return create<Coral::Image, ImageImpl, Coral::ImageCreateConfig, Coral::ImageCreationError>(config);
+	return create<Coral::Image, ImageImpl, Coral::ImageCreationError>(config);
 }
 
 
 std::expected<Coral::PipelineStatePtr, Coral::PipelineStateCreationError>
 ContextImpl::createPipelineState(const Coral::PipelineStateCreateConfig& config)
 {
-	return create<Coral::PipelineState, PipelineStateImpl, Coral::PipelineStateCreateConfig, Coral::PipelineStateCreationError>(config);
+	return create<Coral::PipelineState, PipelineStateImpl, Coral::PipelineStateCreationError>(config);
 }
 
 
 std::expected<Coral::SamplerPtr, Coral::SamplerCreationError>
 ContextImpl::createSampler(const Coral::SamplerCreateConfig& config)
 {
-	return create<Coral::Sampler, SamplerImpl, Coral::SamplerCreateConfig, Coral::SamplerCreationError>(config);
+	return create<Coral::Sampler, SamplerImpl, Coral::SamplerCreationError>(config);
 }
 
 
@@ -356,14 +355,84 @@ ContextImpl::createSemaphore()
 std::expected<Coral::ShaderModulePtr, Coral::ShaderModuleCreationError>
 ContextImpl::createShaderModule(const Coral::ShaderModuleCreateConfig& config)
 {
-	return create<Coral::ShaderModule, ShaderModuleImpl, Coral::ShaderModuleCreateConfig, Coral::ShaderModuleCreationError>(config);
+	return create<Coral::ShaderModule, ShaderModuleImpl, Coral::ShaderModuleCreationError>(config);
 }
 
 
 std::expected<Coral::SurfacePtr, Coral::SurfaceCreationError>
 ContextImpl::createSurface(const Coral::SurfaceCreateConfig& config)
 {
-	return create<Coral::Surface, SurfaceImpl, Coral::SurfaceCreateConfig, Coral::SurfaceCreationError>(config);
+	return create<Coral::Surface, SurfaceImpl,Coral::SurfaceCreationError>(config);
+}
+
+
+void
+ContextImpl::destroy(Coral::BufferBase* buffer)
+{
+	delete buffer;
+}
+
+
+void
+ContextImpl::destroy(Coral::BufferViewBase* bufferView)
+{
+	delete bufferView;
+}
+
+
+void
+ContextImpl::destroy(Coral::FenceBase* fence)
+{
+	delete fence;
+}
+
+
+void
+ContextImpl::destroy(Coral::FramebufferBase* framebuffer)
+{
+	delete framebuffer;
+}
+
+
+void
+ContextImpl::destroy(Coral::ImageBase* image)
+{
+	delete image;
+}
+
+
+void
+ContextImpl::destroy(Coral::PipelineStateBase* pipelineState)
+{
+	delete pipelineState;
+}
+
+
+void
+ContextImpl::destroy(Coral::SamplerBase* sampler)
+{
+	delete sampler;
+}
+
+
+void
+ContextImpl::destroy(Coral::SemaphoreBase* semaphore)
+{
+	delete semaphore;
+}
+
+
+void
+ContextImpl::destroy(Coral::ShaderModuleBase* shaderModule)
+{
+	delete shaderModule;
+}
+
+
+void
+ContextImpl::destroy(Coral::SurfaceBase* surface)
+{
+	delete surface;
 }
 
 
