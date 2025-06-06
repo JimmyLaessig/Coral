@@ -91,27 +91,6 @@ if (INPUT_SOURCES)
         ${INPUT_SOURCES})
 endif()
 
-#if (PUBLIC_MODULES)
-#    target_sources(${TARGET_NAME} PUBLIC
-#        FILE_SET public_modules
-#        TYPE CXX_MODULES     
-#        FILES ${PUBLIC_MODULES})
-#endif()
-
-#if (PRIVATE_MODULES)
-#    target_sources(${TARGET_NAME} PRIVATE
-#        FILE_SET private_modules
-#        TYPE CXX_MODULES
-#        FILES ${PRIVATE_MODULES})
-#endif()
-
-#if (MODULE_SOURCES)
-#    target_sources(${TARGET_NAME} PRIVATE
-#        FILE_SET private_modules
-#        TYPE CXX_MODULES
-#        FILES ${MODULE_SOURCES})
-#endif()
-
 ###############################################################################
 # Set target properties
 ###############################################################################

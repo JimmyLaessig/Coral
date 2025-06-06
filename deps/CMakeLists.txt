@@ -13,6 +13,7 @@ include(catch2.cmake)
 include(glfw.cmake)
 include(glm.cmake)
 include(stb.cmake)
+include(imgui.cmake)
 
 # Put all third-party dependencies into a separate folders to cleanup the IDE project explorer.
 
