@@ -28,10 +28,11 @@ add_library(${CORAL_TARGET_NAME} ${CORAL_TARGET_TYPE})
 ###############################################################################
 
 # Location of the public Coral library include files
-set(CORAL_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/${CORAL_TARGET_NAME})
+set(CORAL_PUBLIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/public/include/${CORAL_TARGET_NAME})
+set(CORAL_PRIVATE_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/private/include/${CORAL_TARGET_NAME})
 
 # Location of the Coral library source files
-set(CORAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(CORAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/private/src)
 
 # Definition of all public module files of the Coral library
 set(CORAL_PUBLIC_INCLUDES
@@ -50,51 +51,52 @@ set(CORAL_PUBLIC_INCLUDES
     ${CORAL_PUBLIC_INCLUDE_DIR}/ShaderModule.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Surface.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Types.hpp
-    ${CORAL_PUBLIC_INCLUDE_DIR}/UniformBlockBuilder.hpp)
+    ${CORAL_PUBLIC_INCLUDE_DIR}/UniformBlockBuilder.hpp
+    ${CORAL_PUBLIC_INCLUDE_DIR}/ImGui_Impl_Coral.hpp)
 
 # Definition of all source files of the Coral library
 set(CORAL_SOURCES
     ${CORAL_SOURCE_DIR}/BufferPool.cpp
     ${CORAL_SOURCE_DIR}/Coral.cpp
-    ${CORAL_SOURCE_DIR}/Finally.hpp
     ${CORAL_SOURCE_DIR}/UniformBlockBuilder.cpp)
 
 set(CORAL_INCLUDES
-    ${CORAL_SOURCE_DIR}/BufferPool.hpp
-    ${CORAL_SOURCE_DIR}/ContextBase.hpp
-    ${CORAL_SOURCE_DIR}/CommandQueueBase.hpp
-    ${CORAL_SOURCE_DIR}/Visitor.hpp
-    ${CORAL_SOURCE_DIR}/BufferBase.hpp
-    ${CORAL_SOURCE_DIR}/BufferViewBase.hpp
-    ${CORAL_SOURCE_DIR}/CommandBufferBase.hpp
-    ${CORAL_SOURCE_DIR}/CommandQueueBase.hpp
-    ${CORAL_SOURCE_DIR}/ContextBase.hpp
-    ${CORAL_SOURCE_DIR}/FenceBase.hpp
-    ${CORAL_SOURCE_DIR}/FramebufferBase.hpp
-    ${CORAL_SOURCE_DIR}/ImageBase.hpp
-    ${CORAL_SOURCE_DIR}/PipelineStateBase.hpp
-    ${CORAL_SOURCE_DIR}/SamplerBase.hpp
-    ${CORAL_SOURCE_DIR}/SemaphoreBase.hpp
-    ${CORAL_SOURCE_DIR}/ShaderModuleBase.hpp
-    ${CORAL_SOURCE_DIR}/SurfaceBase.hpp)
+    ${CORAL_PRIVATE_INCLUDE_DIR}/BufferPool.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/ContextBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/CommandQueueBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Visitor.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/BufferBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/BufferViewBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/CommandBufferBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/CommandQueueBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/ContextBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/FenceBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/FramebufferBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/ImageBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/PipelineStateBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/SamplerBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/SemaphoreBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/ShaderModuleBase.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Finally.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/SurfaceBase.hpp)
 
 # Definition of all private vulkan header files of the Coral library
 set(CORAL_VULKAN_INCLUDES
-    ${CORAL_SOURCE_DIR}/Vulkan/BufferImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/BufferViewImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/CommandBufferImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/CommandQueueImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/ContextImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/FenceImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/FramebufferImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/ImageImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/PipelineStateImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SamplerImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/Vulkan.hpp
-    ${CORAL_SOURCE_DIR}/Vulkan/VulkanFormat.hpp)
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/BufferImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/BufferViewImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/CommandBufferImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/CommandQueueImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/ContextImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/FenceImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/FramebufferImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/ImageImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/PipelineStateImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SamplerImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SemaphoreImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/ShaderModuleImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SurfaceImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/Vulkan.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/VulkanFormat.hpp)
 
 # Definition of all Vulkan source files of the Coral library
 set(CORAL_VULKAN_SOURCES
@@ -110,7 +112,9 @@ set(CORAL_VULKAN_SOURCES
     ${CORAL_SOURCE_DIR}/Vulkan/SamplerImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.cpp)
+    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.cpp
+    ${CORAL_SOURCE_DIR}/Vulkan/ImGui_Impl_Coral.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp)
 
 if(WIN32)
     list(APPEND CORAL_VULKAN_SOURCES
@@ -118,21 +122,16 @@ if(WIN32)
          else()
     list(APPEND CORAL_VULKAN_SOURCES
          ${CORAL_SOURCE_DIR}/Vulkan/VulkanLinux.cpp)
-         
 endif()
+
+set(CORAL_IMGUI_INCLUDES
+    ${imgui_SOURCE_DIR}/imgui.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.h
+)
 
 ###############################################################################
 # Link the Coral library with the following libraries
 ###############################################################################
-
-#find_package(VulkanHeaders CONFIG REQUIRED)
-#find_package(volk CONFIG REQUIRED)
-#find_package(vk-bootstrap REQUIRED)
-#find_package(vulkan-memory-allocator REQUIRED)
-
-#if (CORAL_SKIP_CONAN_DEPENDENCIES)
-#    find_package(spirv-reflect REQUIRED)
-#endif()
 
 coral_configure_target(${CORAL_TARGET_NAME}
      PUBLIC_HEADERS 
@@ -150,6 +149,16 @@ coral_configure_target(${CORAL_TARGET_NAME}
         VulkanMemoryAllocator
         Vulkan::Headers
     )
+
+target_sources(${CORAL_TARGET_NAME} PRIVATE
+    FILE_SET private_headers
+    TYPE HEADERS
+    BASE_DIRS ${imgui_SOURCE_DIR}
+    FILES ${CORAL_IMGUI_INCLUDES})
+
+target_compile_definitions(${CORAL_TARGET_NAME} PRIVATE
+    VK_NO_PROTOTYPES
+    IMGUI_IMPL_VULKAN_USE_VOLK)
 
 ###############################################################################
 # Organize files in the IDE

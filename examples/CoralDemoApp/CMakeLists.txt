@@ -21,7 +21,18 @@ set (CORAL_DEMO_APP_INCLUDES
     ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp 
     ${CORAL_DEMO_APP_INCLUDE_DIR}/TexturedWithLightingShader.h)
 
-set (CORAL_DEMO_APP_SOURCES ${CORAL_DEMO_APP_SRC_DIR}/main.cpp)
+set(IMGUI_INCLUDES
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+    ${imgui_SOURCE_DIR}/imgui_internal.h
+    ${imgui_SOURCE_DIR}/imgui.h)
+
+
+set (CORAL_DEMO_APP_SOURCES ${CORAL_DEMO_APP_SRC_DIR}/main.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/imgui_tables.cpp
+    ${imgui_SOURCE_DIR}/imgui_widgets.cpp
+    ${imgui_SOURCE_DIR}/imgui.cpp
+    ${imgui_SOURCE_DIR}/imgui_draw.cpp)
 
 ###############################################################################
 # Organize files in the IDE
@@ -46,6 +57,11 @@ coral_configure_target(${CORAL_DEMO_APP_TARGET_NAME}
         Coral
         CoralShaderLanguage)
 
+target_sources(${CORAL_DEMO_APP_TARGET_NAME} PRIVATE
+    FILE_SET private_headers
+    TYPE HEADERS
+    BASE_DIRS ${imgui_SOURCE_DIR}
+    FILES ${IMGUI_INCLUDES})
 ###############################################################################
 # Copy the resource files
 ###############################################################################

@@ -29,6 +29,9 @@
 #include <Coral/ShaderLanguage.hpp>
 #include <Coral/ShaderGraph/CompilerSPV.hpp>
 
+#include <Coral/ImGui_Impl_Coral.hpp>
+#include <backends/imgui_impl_glfw.h>
+
 namespace
 {
 
@@ -249,6 +252,18 @@ int main()
 	auto fence     = context->createFence().value();
 	auto queue     = context->getGraphicsQueue();
 
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+	ImGui_ImplGlfw_InitForVulkan(window, true);
+	
+	ImGui_ImplCoral_InitInfo initInfo{};
+	initInfo.context = context.get();
+	initInfo.surface = swapchain.get();
+	ImGui_ImplCoral_Init(&initInfo);
+
 	auto shader = TexturedWithLightingShader::shaderSource();
 
 	if (!shader)
@@ -310,14 +325,22 @@ int main()
 
 	auto before = std::chrono::system_clock::now();
 
-	auto rotation = 0.f;
+	auto rotation          = 0.f;
 	auto rotationPerSecond = 90.f;
+
+	// Update the displayed frame time every second
+	float displayedFrameTimeUpdateInterval = 1.f;
+	float timeSinceLastFrameTimeUpdate     = displayedFrameTimeUpdateInterval;
+	float displayedFrameTime               = 0;
 
 	// Start the game loop
 	while (!glfwWindowShouldClose(window))
 	{
-
 		glfwPollEvents();
+
+		ImGui_ImplCoral_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
 
 		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		{
@@ -329,17 +352,62 @@ int main()
 		int width, height;
 		glfwGetWindowSize(window, &width, &height);
 
-		auto now = std::chrono::system_clock::now();
+		auto now      = std::chrono::system_clock::now();
 		auto duration = now - before;
-		before = now;
+		before        = now;
 
 		float deltaT = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() / 1e+9f;
+
+		timeSinceLastFrameTimeUpdate  += deltaT;
+		if (timeSinceLastFrameTimeUpdate > displayedFrameTimeUpdateInterval)
+		{
+			timeSinceLastFrameTimeUpdate -= displayedFrameTimeUpdateInterval;
+			displayedFrameTime = deltaT;
+		}
+
+		ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10, 10), 0, ImVec2(1, 0));
+		if (ImGui::Begin("Perf. Overlay", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |  ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing))
+		{
+			if (ImGui::BeginTable("Perf. Overlay Table", 3, ImGuiTableFlags_SizingStretchProp))
+			{
+				ImGui::TableNextRow();
+
+				ImGui::TableNextColumn();
+				ImGui::Text("FPS");
+
+				ImGui::TableNextColumn();
+				ImGui::Text(":");
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%d", static_cast<int>(1.f / displayedFrameTime));
+
+				ImGui::TableNextRow();
+
+				ImGui::TableNextColumn();
+				ImGui::Text("Frame time (ms)");
+
+				ImGui::TableNextColumn();
+				ImGui::Text(":");
+
+				ImGui::TableNextColumn();
+				ImGui::Text("%.2f", displayedFrameTime * 1000);
+
+				ImGui::EndTable();
+			}
+		}
+
+		ImGui::End();
+		
+
 
 		rotation += rotationPerSecond * deltaT;
 
 		modelMatrix = glm::rotate(glm::mat4(1), glm::radians(rotation), glm::vec3(0, 1, 0));
 
 		projectionMatrix = glm::perspective(fov, static_cast<float>(width) / height, nearPlane, farPlane);
+
+		ImGuiIO& io = ImGui::GetIO();
+		ImGui::Render();
 
 		uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
 		uniformBlock.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
@@ -376,6 +444,8 @@ int main()
 		drawInfo.indexCount = indexBufferView->count();
 		commandBuffer->cmdDrawIndexed(drawInfo);
 
+		ImGui_ImplCoral_RenderDrawData(ImGui::GetDrawData(), commandBuffer.get());
+
 		commandBuffer->cmdEndRenderPass();
 
 		commandBuffer->end();
@@ -396,6 +466,10 @@ int main()
 
 		queue->waitIdle();
 	}
+
+	ImGui_ImplCoral_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 
 	return EXIT_SUCCESS;
 }
