@@ -1,4 +1,4 @@
-#include <Coral/Vulkan/SurfaceImpl.hpp>
+#include <Coral/Vulkan/SwapchainImpl.hpp>
 
 #include <Coral/Vulkan/CommandBufferImpl.hpp>
 
@@ -14,7 +14,7 @@ namespace
 std::optional<VkSurfaceFormatKHR>
 chooseSwapchainFormat(VkPhysicalDevice device, VkSurfaceKHR surface, VkFormat requestedFormat)
 {
-	uint32_t formatCount{ 0 };
+	uint32_t formatCount = 0;
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, nullptr);
 	std::vector<VkSurfaceFormatKHR> formats(formatCount);
 	vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &formatCount, formats.data());
@@ -30,10 +30,54 @@ chooseSwapchainFormat(VkPhysicalDevice device, VkSurfaceKHR surface, VkFormat re
 	return {};
 }
 
+
+VkPresentModeKHR
+choosePresentMode(VkPhysicalDevice device, VkSurfaceKHR surface, bool lockToVSync)
+{
+	uint32_t presentModesCount = 0;
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModesCount, nullptr);
+	std::vector<VkPresentModeKHR> presentModes(presentModesCount);
+	vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &presentModesCount, presentModes.data());
+
+	VkPresentModeKHR presentMode{ VK_PRESENT_MODE_FIFO_KHR };
+
+	bool mailboxAvailable{ false };
+	bool fifoAvailable{ false };
+	bool immediateAvailable{ false };
+
+	for (const auto& presentMode : presentModes)
+	{
+		mailboxAvailable   |= presentMode == VK_PRESENT_MODE_MAILBOX_KHR;
+		fifoAvailable      |= presentMode == VK_PRESENT_MODE_FIFO_KHR;
+		immediateAvailable |= presentMode == VK_PRESENT_MODE_IMMEDIATE_KHR;
+	}
+
+	// Prefer immediate present mode if available and v-sync is disabled. Otherwise choose mailbox or FIFO as last
+	// resort.
+	if (immediateAvailable && !lockToVSync)
+	{
+		presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+	}
+	else if (mailboxAvailable)
+	{
+		presentMode = VK_PRESENT_MODE_MAILBOX_KHR;
+	}
+	else if (fifoAvailable)
+	{
+		presentMode = VK_PRESENT_MODE_FIFO_KHR;
+	}
+	else
+	{
+		assert(false);
+	}
+
+	return presentMode;
+}
+
 } // namespace
 
 
-SurfaceImpl::~SurfaceImpl()
+SwapchainImpl::~SwapchainImpl()
 {
 	if (mSwapchain)
 	{
@@ -48,7 +92,7 @@ SurfaceImpl::~SurfaceImpl()
 
 
 bool
-SurfaceImpl::initSwapchain(const Coral::SwapchainConfig& config)
+SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 {
 	mConfig = config;
 
@@ -81,7 +125,7 @@ SurfaceImpl::initSwapchain(const Coral::SwapchainConfig& config)
 	createInfo.imageExtent		= mSwapchainExtent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage		= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	createInfo.presentMode		= VK_PRESENT_MODE_FIFO_KHR;
+	createInfo.presentMode      = choosePresentMode(contextImpl().getVkPhysicalDevice(), mSurface, config.lockToVSync);
 	createInfo.oldSwapchain		= mSwapchain;
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.preTransform		= surfaceCapabilites.currentTransform;
@@ -197,19 +241,19 @@ SurfaceImpl::initSwapchain(const Coral::SwapchainConfig& config)
 }
 
 
-std::optional<Coral::SurfaceCreationError>
-SurfaceImpl::init(const Coral::SurfaceCreateConfig& config)
+std::optional<Coral::SwapchainCreationError>
+SwapchainImpl::init(const Coral::SwapchainCreateConfig& config)
 {
 	mSurface = Coral::Vulkan::createVkSurface(contextImpl().getVkInstance(), config.nativeWindowHandle);
 
 	if (mSurface == VK_NULL_HANDLE)
 	{
-		return Coral::SurfaceCreationError::INTERNAL_ERROR;
+		return Coral::SwapchainCreationError::INTERNAL_ERROR;
 	}
 
-	if (!initSwapchain(config.swapchainConfig))
+	if (!initSwapchain(config))
 	{
-		return Coral::SurfaceCreationError::INTERNAL_ERROR;
+		return Coral::SwapchainCreationError::INTERNAL_ERROR;
 	}
 
 	return {};
@@ -217,28 +261,28 @@ SurfaceImpl::init(const Coral::SurfaceCreateConfig& config)
 
 
 VkSurfaceKHR
-SurfaceImpl::getVkSurface()
+SwapchainImpl::getVkSurface()
 {
 	return mSurface;
 }
 
 
 VkSwapchainKHR
-SurfaceImpl::getVkSwapchain()
+SwapchainImpl::getVkSwapchain()
 {
 	return mSwapchain;
 }
 
 
 void*
-SurfaceImpl::nativeWindowHandle()
+SwapchainImpl::nativeWindowHandle()
 {
 	return mNativeWindowHandle;
 }
 
 
 Coral::SwapchainImageInfo
-SurfaceImpl::acquireNextSwapchainImage(Coral::Fence* fence)
+SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 {
 	// Dynamic rendering requires manual image layout transition for presentable swapchain images. Before
 	// rendering, we must transition the image to a supported layout (VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).
@@ -324,35 +368,35 @@ SurfaceImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 
 
 Coral::SwapchainImageInfo
-SurfaceImpl::getCurrentSwapchainImage()
+SwapchainImpl::getCurrentSwapchainImage()
 {
 	return mCurrentSwapchainImageInfo;
 }
 
 
  uint32_t
-SurfaceImpl::getCurrentSwapchainImageIndex()
+SwapchainImpl::getCurrentSwapchainImageIndex()
 {
 	 return mCurrentSwapchainIndex;
 }
 
 
 uint32_t
-SurfaceImpl::getSwapchainImageCount() const
+SwapchainImpl::getSwapchainImageCount() const
 {
 	return static_cast<uint32_t>(mSwapchainImageData.size());
 }
 
 
 Coral::FramebufferSignature
-SurfaceImpl::getFramebufferSignature()
+SwapchainImpl::getFramebufferSignature()
 {
 	return mSwapchainImageData.front().framebuffer->getSignature();
 }
 
 
 void
-SurfaceImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores)
+SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores)
 {
 	// Dynamic rendering requires manual image layout transition for presentable swapchain images. Before
 	// rendering, we must transition the image to a supported layout (VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).

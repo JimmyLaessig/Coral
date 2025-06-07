@@ -1,7 +1,7 @@
-#ifndef CORAL_VULKAN_SURFACEIMPL_HPP
-#define CORAL_VULKAN_SURFACEIMPL_HPP
+#ifndef CORAL_VULKAN_SWAPCHAINIMPL_HPP
+#define CORAL_VULKAN_SWAPCHAINIMPL_HPP
 
-#include <Coral/SurfaceBase.hpp>
+#include <Coral/SwapchainBase.hpp>
 
 #include <Coral/Vulkan/ContextImpl.hpp>
 #include <Coral/Vulkan/FenceImpl.hpp>
@@ -20,15 +20,15 @@ namespace Coral::Vulkan
 
 class SemaphoreImpl;
 
-class SurfaceImpl : public Coral::SurfaceBase
+class SwapchainImpl : public Coral::SwapchainBase
 {
 public:
 
-	using SurfaceBase::SurfaceBase;
+	using SwapchainBase::SwapchainBase;
 
-	virtual ~SurfaceImpl();
+	virtual ~SwapchainImpl();
 
-	std::optional<Coral::SurfaceCreationError> init(const Coral::SurfaceCreateConfig& config);
+	std::optional<Coral::SwapchainCreationError> init(const Coral::SwapchainCreateConfig& config);
 
 	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
@@ -48,13 +48,13 @@ public:
 
 	VkSwapchainKHR getVkSwapchain();
 
-	const Coral::SwapchainConfig& config() const { return mConfig; };
+	const Coral::SwapchainCreateConfig& config() const { return mConfig; };
 
 	void present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores);
 
 private:
 
-	bool initSwapchain(const Coral::SwapchainConfig& config);
+	bool initSwapchain(const Coral::SwapchainCreateConfig& config);
 
 	void* mNativeWindowHandle{ nullptr };
 
@@ -93,7 +93,7 @@ private:
 
 	Coral::ImagePtr mSwapchainDepthImage;
 
-	Coral::SwapchainConfig mConfig{};
+	Coral::SwapchainCreateConfig mConfig{};
 
 	Coral::SwapchainImageInfo mCurrentSwapchainImageInfo{};
 
@@ -101,4 +101,4 @@ private:
 
 } // namespace Coral::Vulkan
 
-#endif // !CORAL_VULKAN_SURFACEIMPL_HPP
+#endif // !CORAL_VULKAN_SWAPCHAINIMPL_HPP

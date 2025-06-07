@@ -13,7 +13,7 @@
 #include <Coral/Sampler.hpp>
 #include <Coral/Semaphore.hpp>
 #include <Coral/ShaderModule.hpp>
-#include <Coral/Surface.hpp>
+#include <Coral/Swapchain.hpp>
 
 #include <expected>
 
@@ -55,8 +55,8 @@ CORAL_API void destroy(Semaphore* semaphore);
 /// Destroy the ShaderModule object
 CORAL_API void destroy(ShaderModule* shaderModule);
 
-/// Destroy the Surface object
-CORAL_API void destroy(Surface* surface);
+/// Destroy the Swapchain object
+CORAL_API void destroy(Swapchain* swapchain);
 
 
 template<typename T>
@@ -78,7 +78,7 @@ using PipelineStatePtr = std::unique_ptr<PipelineState, Deleter<PipelineState>>;
 using SamplerPtr	   = std::unique_ptr<Sampler, Deleter<Sampler>>;
 using SemaphorePtr     = std::unique_ptr<Semaphore, Deleter<Semaphore>>;
 using ShaderModulePtr  = std::unique_ptr<ShaderModule, Deleter<ShaderModule>>;
-using SurfacePtr	   = std::unique_ptr<Surface, Deleter<Surface>>;
+using SwapchainPtr	   = std::unique_ptr<Swapchain, Deleter<Swapchain>>;
 
 
 enum class GraphicsAPI
@@ -143,8 +143,8 @@ public:
 	/// Create a new ShaderModule object
     virtual std::expected<Coral::ShaderModulePtr, Coral::ShaderModuleCreationError> createShaderModule(const Coral::ShaderModuleCreateConfig& config) = 0;
 
-	/// Create a new Surface object
-	virtual std::expected<Coral::SurfacePtr, Coral::SurfaceCreationError> createSurface(const Coral::SurfaceCreateConfig& config) = 0;
+	/// Create a new Swapchain object
+	virtual std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError> createSwapchain(const Coral::SwapchainCreateConfig& config) = 0;
 };
 
 using ContextPtr = std::unique_ptr<Context, Deleter<Context>>;

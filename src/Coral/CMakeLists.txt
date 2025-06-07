@@ -49,7 +49,7 @@ set(CORAL_PUBLIC_INCLUDES
     ${CORAL_PUBLIC_INCLUDE_DIR}/Sampler.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Semaphore.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/ShaderModule.hpp
-    ${CORAL_PUBLIC_INCLUDE_DIR}/Surface.hpp
+    ${CORAL_PUBLIC_INCLUDE_DIR}/Swapchain.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Types.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/UniformBlockBuilder.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/ImGui_Impl_Coral.hpp)
@@ -78,7 +78,7 @@ set(CORAL_INCLUDES
     ${CORAL_PRIVATE_INCLUDE_DIR}/SemaphoreBase.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/ShaderModuleBase.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Finally.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/SurfaceBase.hpp)
+    ${CORAL_PRIVATE_INCLUDE_DIR}/SwapchainBase.hpp)
 
 # Definition of all private vulkan header files of the Coral library
 set(CORAL_VULKAN_INCLUDES
@@ -94,7 +94,7 @@ set(CORAL_VULKAN_INCLUDES
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SamplerImpl.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SemaphoreImpl.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/ShaderModuleImpl.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SurfaceImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/SwapchainImpl.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/Vulkan.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/VulkanFormat.hpp)
 
@@ -112,7 +112,7 @@ set(CORAL_VULKAN_SOURCES
     ${CORAL_SOURCE_DIR}/Vulkan/SamplerImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/SemaphoreImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ShaderModuleImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/SurfaceImpl.cpp
+    ${CORAL_SOURCE_DIR}/Vulkan/SwapchainImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ImGui_Impl_Coral.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp)
 

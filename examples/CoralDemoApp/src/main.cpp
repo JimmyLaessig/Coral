@@ -186,7 +186,7 @@ createTexture(Coral::Context& context, const std::string& path)
 	imageConfig.height	= img.height;
 	imageConfig.format	= img.format;
 	imageConfig.hasMips = true;
-	auto image = context.createImage(imageConfig).value();
+	auto image          = context.createImage(imageConfig).value();
 
 	auto queue = context.getTransferQueue();
 
@@ -195,9 +195,9 @@ createTexture(Coral::Context& context, const std::string& path)
 	auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
 
 	Coral::UpdateImageDataInfo updateInfo{};
-	updateInfo.image		= image.get();
-	updateInfo.updateMips	= image->getMipLevels() > 1;
-	updateInfo.data			= { reinterpret_cast<const std::byte*>(img.data.data()), img.data.size() };
+	updateInfo.image	  = image.get();
+	updateInfo.updateMips = image->getMipLevels() > 1;
+	updateInfo.data		  = { reinterpret_cast<const std::byte*>(img.data.data()), img.data.size() };
 
 	commandBuffer->begin();
 	commandBuffer->cmdUpdateImageData(updateInfo);
@@ -214,7 +214,7 @@ createTexture(Coral::Context& context, const std::string& path)
 
 	Coral::SamplerCreateConfig samplerConfig{};
 	samplerConfig.wrapMode = Coral::WrapMode::REPEAT;
-	auto sampler = context.createSampler(samplerConfig).value();
+	auto sampler           = context.createSampler(samplerConfig).value();
 
 	return std::pair<Coral::ImagePtr, Coral::SamplerPtr>{ std::move(image), std::move(sampler) };
 }
@@ -238,30 +238,29 @@ int main()
 
 	glfwShowWindow(window);
 
-	Coral::SurfaceCreateConfig surfaceConfig{};
-	surfaceConfig.nativeWindowHandle					= glfwGetWin32Window(window);
-	surfaceConfig.swapchainConfig.depthFormat			= Coral::PixelFormat::DEPTH24_STENCIL8;
-	surfaceConfig.swapchainConfig.format				= Coral::PixelFormat::RGBA8_SRGB;
-	surfaceConfig.swapchainConfig.swapchainImageCount	= 2;
+	Coral::SwapchainCreateConfig swapchainConfig{};
+	swapchainConfig.nativeWindowHandle  = glfwGetWin32Window(window);
+	swapchainConfig.depthFormat		    = Coral::PixelFormat::DEPTH24_STENCIL8;
+	swapchainConfig.format			    = Coral::PixelFormat::RGBA8_SRGB;
+	swapchainConfig.swapchainImageCount = 2;
 
 	Coral::ContextCreateConfig contextConfig{};
 	contextConfig.graphicsAPI = Coral::GraphicsAPI::VULKAN;
 	auto context			  = Coral::createContext(contextConfig).value();
 
-	auto swapchain = context->createSurface(surfaceConfig).value();
+	auto swapchain = context->createSwapchain(swapchainConfig).value();
 	auto fence     = context->createFence().value();
 	auto queue     = context->getGraphicsQueue();
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard | ImGuiConfigFlags_NavEnableGamepad;
 
 	ImGui_ImplGlfw_InitForVulkan(window, true);
-	
+
 	ImGui_ImplCoral_InitInfo initInfo{};
-	initInfo.context = context.get();
-	initInfo.surface = swapchain.get();
+	initInfo.context   = context.get();
+	initInfo.swapchain = swapchain.get();
 	ImGui_ImplCoral_Init(&initInfo);
 
 	auto shader = TexturedWithLightingShader::shaderSource();
@@ -460,7 +459,7 @@ int main()
 		queue->submit(submitInfo, nullptr);
 
 		Coral::PresentInfo presentInfo{};
-		presentInfo.surface        = swapchain.get();
+		presentInfo.swapchain      = swapchain.get();
 		presentInfo.waitSemaphores = { &renderFinishedSemaphorePtr, 1 };
 		queue->submit(presentInfo);
 

@@ -13,6 +13,6 @@
 #include <Coral/Sampler.hpp>
 #include <Coral/Semaphore.hpp>
 #include <Coral/ShaderModule.hpp>
-#include <Coral/Surface.hpp>
+#include <Coral/Swapchain.hpp>
 
 #endif // !CORAL_CORAL_HPP

@@ -7,7 +7,7 @@
 #include <Coral/Context.hpp>
 #include <Coral/Fence.hpp>
 #include <Coral/Semaphore.hpp>
-#include <Coral/Surface.hpp>
+#include <Coral/Swapchain.hpp>
 
 #include <expected>
 #include <span>
@@ -45,8 +45,8 @@ struct PresentInfo
 	 */
 	std::span<Semaphore*> waitSemaphores;
 
-	/// The surface to which to present
-	Surface* surface{ nullptr };
+	/// The swapchain to present
+	Swapchain* swapchain{ nullptr };
 };
 
 

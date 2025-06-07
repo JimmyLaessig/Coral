@@ -4,14 +4,14 @@
 #include <Coral/System.hpp>
 
 #include <Coral/Context.hpp>
-#include <Coral/Surface.hpp>
+#include <Coral/Swapchain.hpp>
 
 #include <imgui.h>
 
 struct ImGui_ImplCoral_InitInfo
 {
     Coral::Context* context{ nullptr };
-    Coral::Surface* surface{ nullptr };
+    Coral::Swapchain* swapchain{ nullptr };
 };
 
 bool CORAL_API ImGui_ImplCoral_Init(ImGui_ImplCoral_InitInfo* initInfo);
