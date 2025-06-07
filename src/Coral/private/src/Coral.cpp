@@ -11,7 +11,7 @@
 #include <Coral/SamplerBase.hpp>
 #include <Coral/SemaphoreBase.hpp>
 #include <Coral/ShaderModuleBase.hpp>
-#include <Coral/SurfaceBase.hpp>
+#include <Coral/SwapchainBase.hpp>
 
 #include <Coral/Vulkan/ContextImpl.hpp>
 
@@ -117,9 +117,9 @@ destroy(Coral::ShaderModule* shaderModule)
 }
 
 void
-destroy(Coral::Surface* surface)
+destroy(Coral::Swapchain* surface)
 {
-    auto base = static_cast<Coral::SurfaceBase*>(surface);
+    auto base = static_cast<Coral::SwapchainBase*>(surface);
     base->context().destroy(base);
 }
 

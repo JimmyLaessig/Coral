@@ -16,7 +16,7 @@ class PipelineStateBase;
 class SamplerBase;
 class SemaphoreBase;
 class ShaderModuleBase;
-class SurfaceBase;
+class SwapchainBase;
 
 
 class ContextBase : public Coral::Context
@@ -41,7 +41,7 @@ public:
 
     virtual void destroy(Coral::ShaderModuleBase* shaderModule) = 0;
 
-    virtual void destroy(Coral::SurfaceBase* surface) = 0;
+    virtual void destroy(Coral::SwapchainBase* surface) = 0;
 };
 
 } // namespace

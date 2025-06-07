@@ -56,7 +56,7 @@ public:
 
 	std::expected<Coral::ShaderModulePtr, Coral::ShaderModuleCreationError> createShaderModule(const Coral::ShaderModuleCreateConfig& config) override;
 	
-	std::expected<Coral::SurfacePtr, Coral::SurfaceCreationError> createSurface(const Coral::SurfaceCreateConfig& config) override;
+	std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError> createSwapchain(const Coral::SwapchainCreateConfig& config) override;
 
 	void destroy(Coral::BufferBase* buffer) override;
 
@@ -76,7 +76,7 @@ public:
 
 	void destroy(Coral::ShaderModuleBase* shaderModule) override;
 
-	void destroy(Coral::SurfaceBase* surface) override;
+	void destroy(Coral::SwapchainBase* surface) override;
 
 	VkInstance getVkInstance() { return mInstance; }
 

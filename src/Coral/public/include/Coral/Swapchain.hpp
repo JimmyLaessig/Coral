@@ -1,5 +1,5 @@
-#ifndef CORAL_SURFACE_HPP
-#define CORAL_SURFACE_HPP
+#ifndef CORAL_SWAPCHAIN_HPP
+#define CORAL_SWAPCHAIN_HPP
 
 #include <Coral/Fence.hpp>
 #include <Coral/Framebuffer.hpp>
@@ -15,27 +15,23 @@
 namespace Coral
 {
 
-struct SwapchainConfig
+struct SwapchainCreateConfig
 {
+	void* nativeWindowHandle{ nullptr };
+
 	PixelFormat format{ Coral::PixelFormat::RGBA8_SRGB };
 
 	std::optional<PixelFormat> depthFormat{ Coral::PixelFormat::DEPTH24_STENCIL8 };
 
 	uint32_t swapchainImageCount{ 3 };
+
+	bool lockToVSync{ false };
 };
 
-struct SurfaceCreateConfig
-{
-	SwapchainConfig swapchainConfig{};
-
-	void* nativeWindowHandle{ nullptr };
-};
-
-enum class SurfaceCreationError
+enum class SwapchainCreationError
 {
 	INTERNAL_ERROR
 };
-
 
 struct SwapchainExtent
 {
@@ -52,12 +48,12 @@ struct SwapchainImageInfo
 	SwapchainExtent extent{ 0, 0 };
 };
 
-class CORAL_API Surface
+class CORAL_API Swapchain
 {
 
 public:
 	
-	virtual ~Surface() = default;
+	virtual ~Swapchain() = default;
 
 	virtual void* nativeWindowHandle() = 0;
 
@@ -72,8 +68,6 @@ public:
 	virtual FramebufferSignature getFramebufferSignature() = 0;
 };
 
-
-
 } // namespace Coral
 
-#endif // !CORAL_SHADERMODULE_HPP
+#endif // !CORAL_SWAPCHAIN_HPP

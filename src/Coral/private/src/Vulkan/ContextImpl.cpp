@@ -11,7 +11,7 @@
 #include <Coral/Vulkan/SamplerImpl.hpp>
 #include <Coral/Vulkan/SemaphoreImpl.hpp>
 #include <Coral/Vulkan/ShaderModuleImpl.hpp>
-#include <Coral/Vulkan/SurfaceImpl.hpp>
+#include <Coral/Vulkan/SwapchainImpl.hpp>
 #include <Coral/Vulkan/VulkanFormat.hpp>
 
 #include <array>
@@ -359,10 +359,10 @@ ContextImpl::createShaderModule(const Coral::ShaderModuleCreateConfig& config)
 }
 
 
-std::expected<Coral::SurfacePtr, Coral::SurfaceCreationError>
-ContextImpl::createSurface(const Coral::SurfaceCreateConfig& config)
+std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError>
+ContextImpl::createSwapchain(const Coral::SwapchainCreateConfig& config)
 {
-	return create<Coral::Surface, SurfaceImpl,Coral::SurfaceCreationError>(config);
+	return create<Coral::Swapchain, SwapchainImpl,Coral::SwapchainCreationError>(config);
 }
 
 
@@ -430,9 +430,9 @@ ContextImpl::destroy(Coral::ShaderModuleBase* shaderModule)
 
 
 void
-ContextImpl::destroy(Coral::SurfaceBase* surface)
+ContextImpl::destroy(Coral::SwapchainBase* swapchain)
 {
-	delete surface;
+	delete swapchain;
 }
 
 

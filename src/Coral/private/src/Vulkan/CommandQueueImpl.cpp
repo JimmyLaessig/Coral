@@ -3,7 +3,7 @@
 #include <Coral/Vulkan/CommandBufferImpl.hpp>
 #include <Coral/Vulkan/FenceImpl.hpp>
 #include <Coral/Vulkan/SemaphoreImpl.hpp>
-#include <Coral/Vulkan/SurfaceImpl.hpp>
+#include <Coral/Vulkan/SwapchainImpl.hpp>
 
 #include <mutex>
 #include <vector>
@@ -186,8 +186,8 @@ CommandQueueImpl::waitIdle()
 bool
 CommandQueueImpl::submit(const Coral::PresentInfo& info)
 {
-	auto surface = static_cast<Coral::Vulkan::SurfaceImpl*>(info.surface);
-	surface->present(*this, info.waitSemaphores);
+	auto swapchain = static_cast<Coral::Vulkan::SwapchainImpl*>(info.swapchain);
+	swapchain->present(*this, info.waitSemaphores);
 	return true;
 }
 
