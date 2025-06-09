@@ -419,8 +419,8 @@ int main()
 
 		Coral::BeginRenderPassInfo beginRenderPassInfo{};
 		beginRenderPassInfo.framebuffer = info.framebuffer;
-		Coral::ClearColor clearColor	= { { 1, 1, 1, 1 }, 0 };
-		Coral::ClearDepth clearDepth	= { 1.f, 0 };
+		Coral::ClearColor clearColor	= { Coral::ClearOp::CLEAR, { 1.f, 1.f, 1.f, 1.f }, 0 };
+		Coral::ClearDepth clearDepth	= { Coral::ClearOp::CLEAR, 1.f, 0 };
 		beginRenderPassInfo.clearColor	= { &clearColor, 1 };
 		beginRenderPassInfo.clearDepth	= clearDepth;
 

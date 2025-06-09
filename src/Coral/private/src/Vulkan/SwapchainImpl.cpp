@@ -202,16 +202,15 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	// Create the Framebuffer for each swapchain image
 	for (size_t i = 0; i < mSwapchainImageCount; ++i)
 	{
-
 		Coral::FramebufferCreateConfig framebufferConfig{};
 
-		Coral::ColorAttachment colorAttachment{ mSwapchainImageData[i].image.get(), Coral::ClearOp::CLEAR };
+		Coral::ColorAttachment colorAttachment{ mSwapchainImageData[i].image.get() };
 
 		framebufferConfig.colorAttachment = { &colorAttachment, 1 };
 
 		if (config.depthFormat)
 		{
-			framebufferConfig.depthAttachment = { mSwapchainDepthImage.get(), Coral::ClearOp::CLEAR };
+			framebufferConfig.depthAttachment = { mSwapchainDepthImage.get() };
 		}
 
 		auto framebuffer = contextImpl().createFramebuffer(framebufferConfig);

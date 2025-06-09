@@ -59,6 +59,7 @@ enum class CommandBufferCreationError
 ///
 struct ClearColor
 {
+	ClearOp clearOp{ ClearOp::LOAD };
 	float color[4];
 	uint32_t attachment;
 };
@@ -66,6 +67,7 @@ struct ClearColor
 ///
 struct ClearDepth
 {
+	ClearOp clearOp{ ClearOp::LOAD };
 	float depth{ 1.f };
 	uint32_t stencil{ 0 };
 };
