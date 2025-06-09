@@ -36,9 +36,6 @@ struct CORAL_API ColorAttachment
 	 * The image's pixel format must be a color format
 	 */
 	Image* image{ nullptr };
-
-	/// Clear operation
-	ClearOp clearOp{ ClearOp::DONT_CARE };
 };
 
 
@@ -49,9 +46,6 @@ struct CORAL_API DepthAttachment
 	 * The image's pixel format must be a depth format
 	 */
 	Image* image{ nullptr };
-
-	/// Clear operation
-	ClearOp clearOp{ ClearOp::DONT_CARE };
 };
 
 

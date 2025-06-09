@@ -62,6 +62,7 @@ target_sources(${CORAL_DEMO_APP_TARGET_NAME} PRIVATE
     TYPE HEADERS
     BASE_DIRS ${imgui_SOURCE_DIR}
     FILES ${IMGUI_INCLUDES})
+
 ###############################################################################
 # Copy the resource files
 ###############################################################################

@@ -8,4 +8,4 @@ FetchContent_Declare(
 
 FETCHContent_MakeAvailable(imgui)
 
-set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} PARENT_SCOPE)
+set(imgui_SOURCE_DIR "${imgui_SOURCE_DIR}" CACHE STRING "Path to imgui source directory" FORCE)

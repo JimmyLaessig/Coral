@@ -8,6 +8,7 @@
 #include <mutex>
 #include <optional>
 #include <vector>
+#include <ranges>
 
 using namespace Coral::Vulkan;
 
@@ -126,35 +127,42 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
     {
         return false;
     }
+    
     auto framebuffer = static_cast<Coral::Vulkan::FramebufferImpl*>(info.framebuffer);
 
     const auto& colorAttachments = framebuffer->colorAttachments();
     const auto& depthAttachment  = framebuffer->depthAttachment();
 
-    uint32_t i{ 0 };
-    std::vector<VkRenderingAttachmentInfo> attachments;
-    for (const auto& colorAttachment : colorAttachments)
+    if (colorAttachments.size() != info.clearColor.size())
     {
+        return false;
+    }
+
+    if (depthAttachment.has_value() != info.clearDepth.has_value())
+    {
+        return false;
+    }
+
+    std::vector<VkRenderingAttachmentInfo> attachments;
+    for (const auto& [colorAttachment, clearColor] : std::views::zip(colorAttachments, info.clearColor))
+    {
+        VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+        
         auto image = static_cast<Coral::Vulkan::ImageImpl*>(colorAttachment.image);
 
-        VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
-        attachmentInfo.loadOp           = ::convert(colorAttachment.clearOp);
+        attachmentInfo.loadOp                      = ::convert(clearColor.clearOp);
+        attachmentInfo.clearValue.color.float32[0] = clearColor.color[0];
+        attachmentInfo.clearValue.color.float32[1] = clearColor.color[1];
+        attachmentInfo.clearValue.color.float32[2] = clearColor.color[2];
+        attachmentInfo.clearValue.color.float32[3] = clearColor.color[3];
+
         attachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         attachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;//  image->getVkImageLayout();
         attachmentInfo.imageView        = image->getVkImageView();
         attachmentInfo.resolveMode      = VK_RESOLVE_MODE_NONE;
         attachmentInfo.resolveImageView = VK_NULL_HANDLE;
-        
-        if (colorAttachments.size() == info.clearColor.size())
-        {
-            attachmentInfo.clearValue.color.float32[0] = info.clearColor[i].color[0];
-            attachmentInfo.clearValue.color.float32[1] = info.clearColor[i].color[1];
-            attachmentInfo.clearValue.color.float32[2] = info.clearColor[i].color[2];
-            attachmentInfo.clearValue.color.float32[3] = info.clearColor[i].color[3];
-        }
-        
+
         attachments.push_back(attachmentInfo);
-        i++;
     }
 
     VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
@@ -172,18 +180,16 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
     {
         auto image = static_cast<Coral::Vulkan::ImageImpl*>(depthAttachment->image);
         
-        depthAttachmentInfo.loadOp           = ::convert(depthAttachment->clearOp);
+        // Clear the depth attachment
+        depthAttachmentInfo.loadOp                          = ::convert(info.clearDepth->clearOp);
+        depthAttachmentInfo.clearValue.depthStencil.depth   = info.clearDepth->depth;
+        depthAttachmentInfo.clearValue.depthStencil.stencil = info.clearDepth->stencil;
+
         depthAttachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;// image->getVkImageLayout();
         depthAttachmentInfo.imageView        = image->getVkImageView();
         depthAttachmentInfo.resolveMode      = VK_RESOLVE_MODE_NONE;
         depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
-
-        if (info.clearDepth)
-        {
-            depthAttachmentInfo.clearValue.depthStencil.depth   = info.clearDepth->depth;
-            depthAttachmentInfo.clearValue.depthStencil.stencil = info.clearDepth->stencil;
-        }
 
         renderingInfo.pDepthAttachment   = &depthAttachmentInfo;
         renderingInfo.pStencilAttachment = &depthAttachmentInfo;
