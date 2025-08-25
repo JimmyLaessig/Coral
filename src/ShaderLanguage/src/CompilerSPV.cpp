@@ -1,4 +1,4 @@
-#include <Coral/ShaderGraph/CompilerSPV.hpp>
+#include <Coral/ShaderLanguage/CompilerSPV.hpp>
 
 #include <glslang/Include/glslang_c_interface.h>
 #include <glslang/Public/resource_limits_c.h>
@@ -6,13 +6,13 @@
 #include <iostream>
 #include <sstream>
 
-using namespace Coral::ShaderGraph;
+using namespace Coral::ShaderLanguage;
 
 
 Compiler&
-CompilerSPV::addShader(Coral::ShaderStage stage, const Shader& shader)
+CompilerSPV::addShaderModule(Coral::ShaderStage stage, const ShaderModule& shaderModule)
 {
-	mCompilerGLSL.addShader(stage, shader);
+	mCompilerGLSL.addShaderModule(stage, shaderModule);
 	return *this;
 }
 
@@ -21,6 +21,22 @@ Compiler&
 CompilerSPV::addUniformBlockOverride(uint32_t binding, std::string_view name, const UniformBlockDefinition& uniformBlock)
 {
 	mCompilerGLSL.addUniformBlockOverride(binding, name, uniformBlock);
+	return *this;
+}
+
+
+Compiler&
+CompilerSPV::addInputAttributeBindingLocation(uint32_t location, std::string_view name)
+{
+	mCompilerGLSL.addInputAttributeBindingLocation(location, name);
+	return *this;
+}
+
+
+Compiler&
+CompilerSPV::addOutputAttributeBindingLocation(uint32_t location, std::string_view name)
+{
+	mCompilerGLSL.addOutputAttributeBindingLocation(location, name);
 	return *this;
 }
 
@@ -47,14 +63,24 @@ printShaderCode(const std::string& code)
 }
 
 
-std::optional<Compiler::Result>
+std::expected<Compiler::Result, Compiler::Error>
 CompilerSPV::compile()
 {
-	auto result = mCompilerGLSL.compile();
-	if (!result)
+	return compile2().transform([](const SPVResult& res) { return res.spvResult; });
+}
+
+
+std::expected<CompilerSPV::SPVResult, Compiler::Error>
+CompilerSPV::compile2()
+{ 
+	auto glslResult = mCompilerGLSL.compile();
+
+	if (!glslResult)
 	{
-		return {};
+		return std::unexpected(glslResult.error());
 	}
+
+	auto spvResult = glslResult.value();
 
 	auto shaderDeleter = [](glslang_shader_t* shader) { glslang_shader_delete(shader); };
 	using ShaderPtr = std::unique_ptr<glslang_shader_t, decltype(shaderDeleter)>;
@@ -64,62 +90,60 @@ CompilerSPV::compile()
 
 	glslang_initialize_process();
 
-	for (auto& [source, stage] : { std::pair{ &result->vertexShader, GLSLANG_STAGE_VERTEX },
-								   std::pair{ &result->fragmentShader, GLSLANG_STAGE_FRAGMENT } })
+	for (auto& [source, stage] : { std::pair{ &spvResult.vertexShader, GLSLANG_STAGE_VERTEX },
+								   std::pair{ &spvResult.fragmentShader, GLSLANG_STAGE_FRAGMENT } })
 	{
 		glslang_input_t input{};
-		input.language				            = GLSLANG_SOURCE_GLSL;
-		input.stage					            = stage;
-		input.client				            = GLSLANG_CLIENT_VULKAN;
-		input.client_version		            = GLSLANG_TARGET_VULKAN_1_3;
-		input.target_language	                = GLSLANG_TARGET_SPV;
+		input.language                          = GLSLANG_SOURCE_GLSL;
+		input.stage                             = stage;
+		input.client                            = GLSLANG_CLIENT_VULKAN;
+		input.client_version                    = GLSLANG_TARGET_VULKAN_1_3;
+		input.target_language                   = GLSLANG_TARGET_SPV;
 		input.target_language_version           = GLSLANG_TARGET_SPV_1_3;
-		input.code					            = source->c_str();
-		input.default_version	                = 100;
-		input.default_profile		            = GLSLANG_NO_PROFILE;
+		input.code                              = source->c_str();
+		input.default_version                   = 100;
+		input.default_profile                   = GLSLANG_NO_PROFILE;
 		input.force_default_version_and_profile = false;
-		input.forward_compatible			    = false;
+		input.forward_compatible                = false;
 		input.messages                          = GLSLANG_MSG_DEFAULT_BIT;
-		input.resource		                    = glslang_default_resource();
+		input.resource                          = glslang_default_resource();
 
 		ShaderPtr shader(glslang_shader_create(&input));
 		ProgramPtr program(glslang_program_create());
 
-		if (!shader)
+		if (!shader || !program)
 		{
-			return {};
-		}
-
-		if (!program)
-		{
-			return {};
+			return std::unexpected(Error{ "An unexpected error occurred. "} );
 		}
 
 		if (!glslang_shader_preprocess(shader.get(), &input))
 		{
-			std::cerr << "Failed to compile shader to SpirV: " << std::endl;
-			std::cerr << glslang_shader_get_info_log(shader.get()) << std::endl;
-			std::cerr << glslang_shader_get_info_debug_log(shader.get()) << std::endl;
-			return {};
+			std::stringstream ss;
+			ss << "Failed to compile shader to SpirV: " << std::endl;
+			ss << glslang_shader_get_info_log(shader.get()) << std::endl;
+			ss << glslang_shader_get_info_debug_log(shader.get()) << std::endl;
+			return std::unexpected(Error{ ss.str() });
 		}
 
 		if (!glslang_shader_parse(shader.get(), &input))
 		{
-			std::cerr << "Failed to compile shader to SpirV: " << std::endl;
-			std::cerr << glslang_shader_get_info_log(shader.get()) << std::endl;
-			std::cerr << glslang_shader_get_info_debug_log(shader.get()) << std::endl;
-			return {};
+			std::stringstream ss;
+			ss << "Failed to compile shader to SpirV: " << std::endl;
+			ss << glslang_shader_get_info_log(shader.get()) << std::endl;
+			ss << glslang_shader_get_info_debug_log(shader.get()) << std::endl;
+			return std::unexpected(Error{ ss.str() });
 		}
-	
+
 		glslang_program_add_shader(program.get(), shader.get());
-	
+
 		if (!glslang_program_link(program.get(), GLSLANG_MSG_SPV_RULES_BIT | GLSLANG_MSG_VULKAN_RULES_BIT))
 		{
-			std::cerr << "Failed to compile shader to SpirV: " << std::endl;
-			std::cerr << glslang_program_get_info_log(program.get()) << std::endl;
-			std::cerr << glslang_program_get_info_debug_log(program.get()) << std::endl;
+			std::stringstream ss;
+			ss << "Failed to compile shader to SpirV: " << std::endl;
+			ss << glslang_program_get_info_log(program.get()) << std::endl;
+			ss << glslang_program_get_info_debug_log(program.get()) << std::endl;
 
-			return {};
+			return std::unexpected(Error{ ss.str() });
 		}
 
 		glslang_program_SPIRV_generate(program.get(), stage);
@@ -129,5 +153,5 @@ CompilerSPV::compile()
 		glslang_program_SPIRV_get(program.get(), reinterpret_cast<unsigned int*>(source->data()));
 	}
 
-	return result;
+	return SPVResult{ std::move(*glslResult), spvResult };
 }

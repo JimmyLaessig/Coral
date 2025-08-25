@@ -23,12 +23,14 @@ set (CORAL_DEMO_APP_INCLUDES
 
 set(IMGUI_INCLUDES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
+     ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h
     ${imgui_SOURCE_DIR}/imgui_internal.h
     ${imgui_SOURCE_DIR}/imgui.h)
 
 
 set (CORAL_DEMO_APP_SOURCES ${CORAL_DEMO_APP_SRC_DIR}/main.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
     ${imgui_SOURCE_DIR}/imgui_widgets.cpp
     ${imgui_SOURCE_DIR}/imgui.cpp

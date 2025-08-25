@@ -5,20 +5,20 @@
 
 namespace Coral::ShaderLanguage
 {
-struct Sampler2D : ValueTypeBase
+struct Sampler2D : Value
 {
-	using ValueTypeBase::ValueTypeBase;
+	using Value::Value;
 
 	static constexpr ValueType toShaderTypeId() { return ValueType::SAMPLER2D; }
 
-	Float4 sample(Float2 uv)
+	float4 sample(float2 uv)
 	{
-		return { ShaderGraph::Node::createNativeFunction(ValueType::FLOAT4, "texture", source(), uv.source()) };
+		return { std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT4, "texture", source(), uv.source()) };
 	}
 
-	Int2 size(Int lod)
+	int2 size(Int lod)
 	{
-		return { ShaderGraph::Node::createNativeFunction(ValueType::FLOAT3, "textureSize", source(), lod.source()) };
+		return { std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT3, "textureSize", source(), lod.source()) };
 	}
 };
 

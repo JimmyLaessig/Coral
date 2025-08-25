@@ -1,6 +1,13 @@
 #include <Coral/Vulkan/SwapchainImpl.hpp>
 
 #include <Coral/Vulkan/CommandBufferImpl.hpp>
+#include <Coral/Vulkan/CommandQueueImpl.hpp>
+#include <Coral/Vulkan/ContextImpl.hpp>
+#include <Coral/Vulkan/FenceImpl.hpp>
+#include <Coral/Vulkan/FramebufferImpl.hpp>
+#include <Coral/Vulkan/ImageImpl.hpp>
+#include <Coral/Vulkan/SemaphoreImpl.hpp>
+#include <Coral/Vulkan/VulkanFormat.hpp>
 
 #include <algorithm>
 #include <memory>
@@ -229,8 +236,8 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 		{
 			SwapchainSyncObjects syncs{};
 			syncs.imageReadySemaphore = contextImpl().createSemaphore().value();
-			syncs.presentSemaphore    = contextImpl().createSemaphore().value();
-			syncs.acquireSemaphore    = contextImpl().createSemaphore().value();
+			syncs.imagePresentableSemaphore    = contextImpl().createSemaphore().value();
+			syncs.imageAcquiredSemaphore    = contextImpl().createSemaphore().value();
 
 			mSwapchainSyncObjects.push_back(std::move(syncs));
 		}
@@ -256,6 +263,13 @@ SwapchainImpl::init(const Coral::SwapchainCreateConfig& config)
 	}
 
 	return {};
+}
+
+
+ContextImpl&
+SwapchainImpl::contextImpl()
+{
+	return static_cast<ContextImpl&>(context());
 }
 
 
@@ -291,20 +305,32 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	auto commandQueue = contextImpl().getGraphicsQueue();
 
 	auto& syncObjects = mSwapchainSyncObjects[mCurrentSwapchainIndex];
-	syncObjects.acquireCommandBuffer = commandQueue->createCommandBuffer({}).value();
 
-	auto acquireSemaphore    = syncObjects.acquireSemaphore.get();
-	auto imageReadySemaphore = syncObjects.imageReadySemaphore.get();
-	auto commandBuffer		 = syncObjects.acquireCommandBuffer.get();
+	// We store the command buffer for each swapchain image but recreate a new one each frame (destroyed the old one).
+	// This way, the command buffer's lifetime is guaranteed to exceed the duration of this function and the command
+	// buffer was created from the correct command queue.
+	syncObjects.transitionToColorAttachment = commandQueue->createCommandBuffer({}).value();
 
-	auto acquireSemaphoreImpl    = static_cast<SemaphoreImpl*>(acquireSemaphore); 
-	auto imageReadySemaphoreImpl = static_cast<SemaphoreImpl*>(imageReadySemaphore);
-	auto commandBufferImpl       = static_cast<CommandBufferImpl*>(commandBuffer);
+	auto imageAcquiredSemaphore = syncObjects.imageAcquiredSemaphore.get();
+	auto commandBuffer          = syncObjects.transitionToColorAttachment.get();
+	auto imageReadySemaphore    = syncObjects.imageReadySemaphore.get();
 
+	auto imageAcquiredSemaphoreImpl = static_cast<SemaphoreImpl*>(imageAcquiredSemaphore);
+	auto imageReadySemaphoreImpl    = static_cast<SemaphoreImpl*>(imageReadySemaphore);
+	auto commandBufferImpl          = static_cast<CommandBufferImpl*>(commandBuffer);
+
+	// Acquire the next swapchain image and signal the `acquireSemaphore` semaphore that the layout can be
+	// transitioned to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
 	auto vkFence = fence ? static_cast<Coral::Vulkan::FenceImpl*>(fence)->getVkFence() : VK_NULL_HANDLE;
-	auto result = vkAcquireNextImageKHR(contextImpl().getVkDevice(), mSwapchain, UINT32_MAX, acquireSemaphoreImpl->getVkSemaphore(), vkFence, &mCurrentSwapchainIndex);
+	auto result = vkAcquireNextImageKHR(contextImpl().getVkDevice(), 
+										mSwapchain, 
+										UINT32_MAX, 
+		                                imageAcquiredSemaphoreImpl->getVkSemaphore(),
+										vkFence, 
+										&mCurrentSwapchainIndex);
 
-	// check if VK_ERROR_OUT_OF_DATE_KHR, then rebuild the swapchain
+	// If the swapchain is out of date we have to rebuild the swapchain. For that, we wait for the device to be idle,
+	// recreate the swapchain and try image acquisition again
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		vkDeviceWaitIdle(contextImpl().getVkDevice());
@@ -322,6 +348,7 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 		return {};
 	}
 
+	// Update the cached SwapchainImageInfo 
 	mCurrentSwapchainImageInfo                         = {};
 	mCurrentSwapchainImageInfo.imageAvailableSemaphore = imageReadySemaphore;
 	mCurrentSwapchainImageInfo.image                   = mSwapchainImageData[mCurrentSwapchainIndex].image.get();
@@ -356,9 +383,13 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 
 	commandBuffer->end();
 
+	// Finally, submit the command buffer to transition the image layout to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	// for rendering. This command buffer must await the `imageAcquiredSemaphore` for proper synchronization. Also,
+	// this command buffer signals the public-facing `imageReadySemaphore` of the current swapchain image so user can
+	// properly schedule render commands to only execute once the new swapchain image is ready for rendering.
 	Coral::CommandBufferSubmitInfo info{};
 	info.commandBuffers   = { &commandBuffer, 1 };
-	info.waitSemaphores   = { &acquireSemaphore, 1 };
+	info.waitSemaphores   = { &imageAcquiredSemaphore, 1 };
 	info.signalSemaphores = { &imageReadySemaphore, 1 };
 	commandQueue->submit(info, nullptr);
 
@@ -403,13 +434,19 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 	// swapchain image. Both layout transitions must be executed manually via memory barriers.
 
 	auto& syncObjects = mSwapchainSyncObjects[mCurrentSwapchainIndex];
-	syncObjects.presentCommandBuffer = commandQueue.createCommandBuffer({}).value();
 
-	auto commandBuffer       = syncObjects.presentCommandBuffer.get();
-	auto presentSemaphore    = syncObjects.presentSemaphore.get();
-	auto swapchainImage      = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image);
-	auto swapchainImageIndex = mCurrentSwapchainIndex;
+	// We store the command buffer for each swapchain image but recreate a new one each frame (destroyed the old one).
+	// This way, the command buffer's lifetime is guaranteed to exceed the duration of this function and the command
+	// buffer was created from the correct command queue.
+	syncObjects.transitionToPresent = commandQueue.createCommandBuffer({}).value();
 
+	auto commandBuffer             = syncObjects.transitionToPresent.get();
+	auto imagePresentableSemaphore = syncObjects.imagePresentableSemaphore.get();
+	auto swapchainImage            = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image);
+	auto swapchainImageIndex       = mCurrentSwapchainIndex;
+
+	// Use a built-in command buffer to perform memory layout transition from VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	// to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR prior to presenting the image.
 	commandBuffer->begin();
 	
 	VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
@@ -436,14 +473,19 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 
 	commandBuffer->end();
 
+	// Submit the command buffer from VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR. Use
+	// the `presentSemaphore` to signal the vkQueuePresentKHR call when the layout transition has finished. Note that
+	// this command buffer also awaits the suppied `waitSemaphores` to ensure proper synchronization.
 	Coral::CommandBufferSubmitInfo info{};
 	info.waitSemaphores   = waitSemaphores;
 	info.commandBuffers   = { &commandBuffer, 1 };
-	info.signalSemaphores = { &presentSemaphore, 1 };
+	info.signalSemaphores = { &imagePresentableSemaphore, 1 };
 
 	commandQueue.submit(info, nullptr);
 
-	VkSemaphore vkSemaphore = static_cast<SemaphoreImpl*>(presentSemaphore)->getVkSemaphore();
+	// Finally, dispatch the vkQueuePresentKHR call to display the newly rendered image. Note that this call must wait
+	// for the presentSemaphore so that presentation is performed after the memory layout transition is done.
+	VkSemaphore vkSemaphore = static_cast<SemaphoreImpl*>(imagePresentableSemaphore)->getVkSemaphore();
 
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.pWaitSemaphores    = &vkSemaphore;
@@ -451,6 +493,6 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 	presentInfo.pImageIndices      = &swapchainImageIndex;
 	presentInfo.pSwapchains        = &mSwapchain;
 	presentInfo.swapchainCount     = 1;
-	
+
 	vkQueuePresentKHR(commandQueue.getVkQueue(), &presentInfo);
 }

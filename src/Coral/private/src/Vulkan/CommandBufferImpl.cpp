@@ -598,11 +598,11 @@ CommandBufferImpl::cmdBindCachedDescriptors()
     auto layout       = mLastBoundPipelineState->getVkPipelineLayout();
     auto bindingPoint = mLastBoundPipelineState->getVkPipelineBindingPoint();
 
-    std::vector<VkWriteDescriptorSet> descriptorWrites;
-
+    mDescriptorWrites.clear();
+   
     for (const auto& [binding, info] : mCachedDescriptorInfos)
     {
-        auto& descriptorWrite           = descriptorWrites.emplace_back();
+        VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };// = descriptorWrites.emplace_back();
         descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrite.dstBinding      = binding;
         descriptorWrite.dstSet          = VK_NULL_HANDLE;
@@ -633,11 +633,14 @@ CommandBufferImpl::cmdBindCachedDescriptors()
             }
         }
         , info);
+
+        mDescriptorWrites.push_back(descriptorWrite);
+        //vkCmdPushDescriptorSetKHR(mCommandBuffer, bindingPoint, layout, 0, 1, &descriptorWrite);
     }
 
-    if (!descriptorWrites.empty())
+    if (!mDescriptorWrites.empty())
     {
-        vkCmdPushDescriptorSetKHR(mCommandBuffer, bindingPoint, layout, 0, static_cast<uint32_t>(descriptorWrites.size()), descriptorWrites.data());
+        vkCmdPushDescriptorSetKHR(mCommandBuffer, bindingPoint, layout, 0, mDescriptorWrites.size(), mDescriptorWrites.data());
     }
 }
 
