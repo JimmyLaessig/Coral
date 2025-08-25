@@ -26,37 +26,35 @@ add_library(${CORALSHADERLANGUAGE_TARGET_NAME} ${CSL_TARGET_TYPE})
 # Add the source files to the library
 #######################################################################################################################
 
-# Location of the public Coral library include files
 set(CSL_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include/Coral)
 
-set(CSL_SHADERGRAPH_INCLUDE_DIR ${CSL_INCLUDE_DIR}/ShaderGraph)
+set(CSL_SHADERLANGUAGE_INCLUDE_DIR ${CSL_INCLUDE_DIR}/ShaderLanguage)
 
-# Location of the Coral library source files
 set(CSL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-# Definition of all public module files of the Coral library
-set(CSL_SHADERGRAPH_HEADERS
-    ${CSL_SHADERGRAPH_INCLUDE_DIR}/Compiler.hpp
-    ${CSL_SHADERGRAPH_INCLUDE_DIR}/CompilerGLSL.hpp
-    ${CSL_SHADERGRAPH_INCLUDE_DIR}/CompilerSPV.hpp
-    ${CSL_SHADERGRAPH_INCLUDE_DIR}/ShaderGraph.hpp)
+set(CSL_SHADERLANGUAGE_HEADERS
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/ShaderModule.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Compiler.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/CompilerGLSL.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/CompilerSPV.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/ShaderGraph.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Attribute.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/ControlFlow.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Functions.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Matrix.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Parameter.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Sampler.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Scalar.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Vector.hpp)
 
-set(CSL_HEADERS
-    ${CSL_INCLUDE_DIR}/ShaderLanguage.hpp
-    ${CSL_INCLUDE_DIR}/ShaderLanguage/Functions.hpp
-    ${CSL_INCLUDE_DIR}/ShaderLanguage/Vector.hpp
-    ${CSL_INCLUDE_DIR}/ShaderLanguage/Matrix.hpp
-    ${CSL_INCLUDE_DIR}/ShaderLanguage/Scalar.hpp
-    ${CSL_INCLUDE_DIR}/ShaderLanguage/Sampler.hpp)
+set(CSL_HEADER
+    ${CSL_INCLUDE_DIR}/ShaderLanguage.hpp)
 
-
-# Definition of all source files of the Coral library
 set(CSL_SOURCES
     ${CSL_SOURCE_DIR}/Visitor.hpp
     ${CSL_SOURCE_DIR}/CompilerGLSL.cpp
     ${CSL_SOURCE_DIR}/CompilerSPV.cpp
-    ${CSL_SOURCE_DIR}/ShaderGraph.cpp)
-
+    ${CSL_SOURCE_DIR}/ShaderModule.cpp)
 
 #######################################################################################################################
 # Link the CSL library with the following libraries
@@ -65,6 +63,7 @@ set(CSL_SOURCES
 coral_configure_target(${CORALSHADERLANGUAGE_TARGET_NAME}
     PUBLIC_HEADERS 
         ${CSL_SHADERGRAPH_HEADERS}
+        ${CSL_SHADERLANGUAGE_HEADERS}
         ${CSL_HEADERS}
     SOURCES 
         ${CSL_SOURCES}
@@ -79,6 +78,5 @@ coral_configure_target(${CORALSHADERLANGUAGE_TARGET_NAME}
 # Organize files in the IDE
 #######################################################################################################################
 
-source_group("include/Coral" FILES ${CSL_HEADERS})
-source_group("include/Coral/ShaderGraph" FILES ${CSL_SHADERGRAPH_HEADERS})
-source_group("src/Coral/ShaderLanguage" FILES ${CSL_SOURCES})
+source_group("include/Coral" FILES ${CSL_HEADER})
+source_group("include/Coral/ShaderLanguage" FILES ${CSL_SHADERLANGUAGE_HEADERS})

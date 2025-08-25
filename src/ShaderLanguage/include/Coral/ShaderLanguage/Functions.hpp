@@ -8,35 +8,35 @@
 namespace Coral::ShaderLanguage
 {
 
-inline Float3 normalize(const Float3& v)
+inline float3 normalize(const float3& v)
 {
-	return { ShaderGraph::Node::createNativeFunction(ValueType::FLOAT3, "normalize", v.source()) };
+	return {  std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT3, "normalize", v.source()) };
 }
 
 
-inline Float dot(const Float3& v1, const Float3& v2)
+inline Float dot(const float3& v1, const float3& v2)
 {
-	return { ShaderGraph::Node::createNativeFunction(ValueType::FLOAT, "dot", v1.source(), v2.source()) };
+	return {  std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT, "dot", v1.source(), v2.source()) };
 }
 
 
-inline Float3 cross(const Float3& v1, const Float3& v2)
+inline float3 cross(const float3& v1, const float3& v2)
 {
-	return { ShaderGraph::Node::createNativeFunction(ValueType::FLOAT3, "cross", v1.source(), v2.source()) };
+	return {  std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT3, "cross", v1.source(), v2.source()) };
 }
 
 
 template<size_t S>
 inline Float length(const Vector<float, S>& v)
 {
-	return { ShaderGraph::Node::createNativeFunctionCall(ValueType::FLOAT, "length", v.source()) };
+	return { std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT, "length", v.source()) };
 }
 
 
 template<size_t S>
 inline Float distance(const Vector<float, S>& p0, const Vector<float, S>& p1)
 {
-	return { ShaderGraph::Node::createNativeFunctionCall(ValueType::FLOAT, "distance", p0.source(), p1.source()) };
+	return {  std::make_shared<ShaderGraph::NativeFunctionExpression>(ValueType::FLOAT, "distance", p0.source(), p1.source()) };
 }
 
 } // namespace ShaderLanguage 

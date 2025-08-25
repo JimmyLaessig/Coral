@@ -41,10 +41,25 @@ struct SwapchainExtent
 
 struct SwapchainImageInfo
 {
+	/// The framebuffer used to render to this swapchain image
 	Coral::Framebuffer* framebuffer{ nullptr };
+
+	/// The current swapchain color image
 	Coral::Image* image{ nullptr };
+
+	/// The current swapchain depth image. Can be null if no depth format was requested during swapchain creation
 	Coral::Image* depthImage{ nullptr };
+
+	/// Semaphore that is signaled once the image is ready for use
+	/**
+	 * Command buffers that render to the current framebuffer must wait for this semaphore before beginning rendering.
+	 */
 	Coral::Semaphore* imageAvailableSemaphore{ nullptr };
+
+	/// The extent of the current swapchain image
+	/**
+	 * The swapchain extent remains the same untik the window is changed
+	 */
 	SwapchainExtent extent{ 0, 0 };
 };
 

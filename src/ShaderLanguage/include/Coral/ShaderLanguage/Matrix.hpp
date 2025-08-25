@@ -9,12 +9,12 @@ namespace Coral::ShaderLanguage
 {
 /// Class representing a vector in the shader graph
 template<typename T, size_t C, size_t R> requires (C == R) && (C == 3 || C == 4)
-struct Matrix : public ValueTypeBase
+struct Matrix : public Value
 {
 public:
-	using ValueTypeBase::ValueTypeBase;
+	using Value::Value;
 
-	static constexpr ShaderGraph::ValueType toShaderTypeId();
+	static constexpr ValueType toShaderTypeId();
 
 	/// Create a new Matrix with the diagonal filled with the value
 	Matrix(T v)
@@ -36,7 +36,7 @@ public:
 
 	template<typename ...Ts> requires (sizeof...(Ts) == C * R)
 		Matrix(Ts... values)
-		: ValueTypeBase(ShaderGraph::Node::createConstructor(Matrix<T, C, R>::toShaderTypeId(), (Scalar<T>(values).source(), ...)))
+		: Value(std::make_shared<ShaderGraph::ConstructorExpression>(Matrix<T, C, R>::toShaderTypeId(), (Scalar<T>(values).source(), ...)))
 	{
 	}
 };
@@ -49,14 +49,14 @@ template<> constexpr ValueType Matrix<float, 4, 4>::toShaderTypeId() { return Va
 template<typename T, size_t S>
 inline Vector<T, S> operator*(const Matrix<T, S, S>& lhs, const Vector<T, S>& rhs)
 {
-	return { ShaderGraph::Node::createOperator(Vector<T, S>::toShaderTypeId(), ShaderGraph::Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::MULTIPLY, rhs.source()) };
 }
 
 
 template<typename T, size_t S>
 inline Vector<T, S> operator*(const Vector<T, S>& lhs, const Matrix<T, S, S>& rhs)
 {
-	return { ShaderGraph::Node::createOperator(Vector<T, S>::toShaderTypeId(), ShaderGraph::Operator::MULTIPLY, lhs.source(), rhs.source()) };
+	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::MULTIPLY, rhs.source()) };
 }
 
 

@@ -3,13 +3,10 @@
 
 #include <Coral/SwapchainBase.hpp>
 
+#include <Coral/Vulkan/Vulkan.hpp>
+
+
 #include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/FenceImpl.hpp>
-#include <Coral/Vulkan/FramebufferImpl.hpp>
-#include <Coral/Vulkan/ImageImpl.hpp>
-#include <Coral/Vulkan/VulkanFormat.hpp>
-#include <Coral/Vulkan/SemaphoreImpl.hpp>
-#include <Coral/Vulkan/CommandQueueImpl.hpp>
 
 #include <array>
 #include <memory>
@@ -17,8 +14,8 @@
 
 namespace Coral::Vulkan
 {
-
-class SemaphoreImpl;
+class CommandQueueImpl;
+class ContextImpl;
 
 class SwapchainImpl : public Coral::SwapchainBase
 {
@@ -30,7 +27,7 @@ public:
 
 	std::optional<Coral::SwapchainCreationError> init(const Coral::SwapchainCreateConfig& config);
 
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
+	ContextImpl& contextImpl();
 
 	void* nativeWindowHandle() override;
 
@@ -78,11 +75,22 @@ private:
 
 	struct SwapchainSyncObjects
 	{
+		/// Semaphore to be signaled once the tswapchainhe image has been acquired
+		Coral::SemaphorePtr imageAcquiredSemaphore;
+		
+		/// Commandbuffer to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL.
+		Coral::CommandBufferPtr transitionToColorAttachment;
+
+		/// Semaphore to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
+		/// to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL.
 		Coral::SemaphorePtr imageReadySemaphore;
-		Coral::CommandBufferPtr acquireCommandBuffer;
-		Coral::CommandBufferPtr presentCommandBuffer;
-		Coral::SemaphorePtr acquireSemaphore;
-		Coral::SemaphorePtr presentSemaphore;
+
+		/// Commandbuffer to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+		Coral::CommandBufferPtr transitionToPresent;
+		
+		/// Semaphore to be signaled once the swapchain image memory layout has transitioned to
+		/// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
+		Coral::SemaphorePtr imagePresentableSemaphore;
 	};
 
 	VkSemaphore mSemaphore{ VK_NULL_HANDLE };

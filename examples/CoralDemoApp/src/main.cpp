@@ -16,6 +16,12 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <Coral/Coral.hpp>
+#include <Coral/ImGui_Impl_Coral.hpp>
+
+#include <backends/imgui_impl_glfw.h>
+
+#include <iostream>
 #include <array>
 #include <chrono>
 #include <memory>
@@ -23,14 +29,6 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <Coral/Coral.hpp>
-#include <Coral/UniformBlockBuilder.hpp>
-#include <Coral/ShaderLanguage.hpp>
-#include <Coral/ShaderGraph/CompilerSPV.hpp>
-
-#include <Coral/ImGui_Impl_Coral.hpp>
-#include <backends/imgui_impl_glfw.h>
 
 namespace
 {
@@ -248,9 +246,10 @@ int main()
 	contextConfig.graphicsAPI = Coral::GraphicsAPI::VULKAN;
 	auto context			  = Coral::createContext(contextConfig).value();
 
-	auto swapchain = context->createSwapchain(swapchainConfig).value();
-	auto fence     = context->createFence().value();
-	auto queue     = context->getGraphicsQueue();
+	auto swapchain               = context->createSwapchain(swapchainConfig).value();
+	auto fence                   = context->createFence().value();
+	auto queue                   = context->getGraphicsQueue();
+	auto renderFinishedSemaphore = context->createSemaphore().value();
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -263,8 +262,9 @@ int main()
 	initInfo.swapchain = swapchain.get();
 	ImGui_ImplCoral_Init(&initInfo);
 
-	auto shader = TexturedWithLightingShader::shaderSource();
+	ImGui_ImplCoral_CreateFontsTexture();
 
+	auto shader = TexturedWithLightingShader::shaderSource();
 	if (!shader)
 	{
 		return EXIT_FAILURE;
@@ -319,13 +319,11 @@ int main()
 
 	auto pipelineState = context->createPipelineState(pipelineStateConfig).value();
 
-	auto renderFinishedSemaphore = context->createSemaphore().value();
-
 
 	auto before = std::chrono::system_clock::now();
 
 	auto rotation          = 0.f;
-	auto rotationPerSecond = 90.f;
+	auto rotationPerSecond = 0.25f;
 
 	// Update the displayed frame time every second
 	float displayedFrameTimeUpdateInterval = 1.f;
@@ -337,7 +335,6 @@ int main()
 	{
 		glfwPollEvents();
 
-		ImGui_ImplCoral_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
 
@@ -365,7 +362,7 @@ int main()
 		}
 
 		ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10, 10), 0, ImVec2(1, 0));
-		if (ImGui::Begin("Perf. Overlay", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize |  ImGuiWindowFlags_NoInputs | ImGuiWindowFlags_NoFocusOnAppearing))
+		if (ImGui::Begin("Perf. Overlay", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing))
 		{
 			if (ImGui::BeginTable("Perf. Overlay Table", 3, ImGuiTableFlags_SizingStretchProp))
 			{
@@ -392,14 +389,20 @@ int main()
 				ImGui::Text("%.2f", displayedFrameTime * 1000);
 
 				ImGui::EndTable();
+				
+				ImGui::Text("Rotation speed");
+				ImGui::PushID("rotationPerSecond");
+				ImGui::SliderFloat("", &rotationPerSecond, -1.f, 1.f);
+				ImGui::PopID();
 			}
+
+		
+	
 		}
 
 		ImGui::End();
 		
-
-
-		rotation += rotationPerSecond * deltaT;
+		rotation += (rotationPerSecond * 360.f) * deltaT;
 
 		modelMatrix = glm::rotate(glm::mat4(1), glm::radians(rotation), glm::vec3(0, 1, 0));
 
@@ -433,15 +436,17 @@ int main()
 		commandBuffer->cmdBindDescriptor(uniformBuffer.get(), 0);
 		commandBuffer->cmdBindDescriptor(texture.get(), sampler.get(),  1);
 		
-		commandBuffer->cmdBindVertexBuffer(positionBufferView.get(), 0);
-		commandBuffer->cmdBindVertexBuffer(normalBufferView.get(), 1);
-		commandBuffer->cmdBindVertexBuffer(uvBufferView.get(), 2);
+		commandBuffer->cmdBindVertexBuffer(positionBufferView.get(), TexturedWithLightingShader::POSITION_LOCATION);
+		commandBuffer->cmdBindVertexBuffer(normalBufferView.get(), TexturedWithLightingShader::NORMAL_LOCATION);
+		commandBuffer->cmdBindVertexBuffer(uvBufferView.get(), TexturedWithLightingShader::TEXCOORD0_LOCATION);
 		commandBuffer->cmdBindIndexBuffer(indexBufferView.get());
 
 		Coral::DrawIndexInfo drawInfo{};
 		drawInfo.firstIndex = 0;
 		drawInfo.indexCount = indexBufferView->count();
 		commandBuffer->cmdDrawIndexed(drawInfo);
+
+		ImGui_ImplCoral_NewFrame();
 
 		ImGui_ImplCoral_RenderDrawData(ImGui::GetDrawData(), commandBuffer.get());
 

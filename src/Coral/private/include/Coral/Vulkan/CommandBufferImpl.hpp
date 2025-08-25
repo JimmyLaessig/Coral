@@ -99,6 +99,8 @@ private:
 	std::vector<std::shared_ptr<Coral::Buffer>> mStagingBuffers;
 
 	std::unordered_map<uint32_t, std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>> mCachedDescriptorInfos;
+
+	std::vector<VkWriteDescriptorSet> mDescriptorWrites;
 };
 
 } // namespace Coral::Vulkan
