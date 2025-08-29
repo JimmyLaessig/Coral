@@ -131,7 +131,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	createInfo.imageColorSpace	= mSurfaceFormat.colorSpace;
 	createInfo.imageExtent		= mSwapchainExtent;
 	createInfo.imageArrayLayers = 1;
-	createInfo.imageUsage		= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+	createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	createInfo.presentMode      = choosePresentMode(context().getVkPhysicalDevice(), mSurface, config.lockToVSync);
 	createInfo.oldSwapchain		= mSwapchain;
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -170,11 +170,11 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 
 		// Store the swapchain image
 		if (!image->init(swapchainImages[i],
-			convert(createInfo.imageFormat),
-			mSwapchainExtent.width,
-			mSwapchainExtent.height,
-			1,
-			VK_IMAGE_LAYOUT_PRESENT_SRC_KHR))
+			             convert(createInfo.imageFormat),
+			             mSwapchainExtent.width,
+			             mSwapchainExtent.height,
+			             1,
+						 Coral::ImageUsageHint::FRAMEBUFFER_ATTACHMENT))
 		{
 			return false;
 		}
@@ -350,29 +350,17 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 
 	commandBuffer->begin();
 
-	VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-	barrier.dstAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	barrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
-	barrier.newLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	barrier.image                           = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image)->getVkImage();
-	barrier.srcQueueFamilyIndex             = context().getQueueFamilyIndex();
-	barrier.dstQueueFamilyIndex             = context().getQueueFamilyIndex();
-	barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount     = 1;
-	barrier.subresourceRange.baseMipLevel   = 0;
-	barrier.subresourceRange.levelCount     = mCurrentSwapchainImageInfo.image->getMipLevels();
+	auto image = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image);
 
-	vkCmdPipelineBarrier(commandBufferImpl->getVkCommandBuffer(),
-	                     VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,             // srcStageMask
-	                     VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // dstStageMask
-	                     0,
-	                     0,
-	                     nullptr,
-	                     0,
-	                     nullptr,
-	                     1,
-	                     &barrier);
+	ImageImpl::cmdTransitionImageLayout(commandBufferImpl->getVkCommandBuffer(), 
+                                        *image, 
+                                        image->getPreferredImageLayout(), 
+                                        /*firstMipLevel*/ 0, 
+                                        /*levelCount*/ 1, 
+                                        /*srcAccessMask*/ VK_ACCESS_NONE, 
+                                        /*dstAccessMask*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT, 
+                                        /*srcStageFlags*/ VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+                                        /*dstStageFlags*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT);
 
 	commandBuffer->end();
 
@@ -387,34 +375,6 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	commandQueue->submit(info, nullptr);
 
 	return mCurrentSwapchainImageInfo;
-}
-
-
-Coral::SwapchainImageInfo
-SwapchainImpl::getCurrentSwapchainImage()
-{
-	return mCurrentSwapchainImageInfo;
-}
-
-
- uint32_t
-SwapchainImpl::getCurrentSwapchainImageIndex()
-{
-	 return mCurrentSwapchainIndex;
-}
-
-
-uint32_t
-SwapchainImpl::getSwapchainImageCount() const
-{
-	return static_cast<uint32_t>(mSwapchainImageData.size());
-}
-
-
-Coral::FramebufferSignature
-SwapchainImpl::getFramebufferSignature()
-{
-	return mSwapchainImageData.front().framebuffer->getSignature();
 }
 
 
@@ -437,32 +397,21 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 	auto imagePresentableSemaphore = syncObjects.imagePresentableSemaphore.get();
 	auto swapchainImage            = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image);
 	auto swapchainImageIndex       = mCurrentSwapchainIndex;
+	auto commandBufferImpl         = static_cast<CommandBufferImpl*>(commandBuffer);
 
 	// Use a built-in command buffer to perform memory layout transition from VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 	// to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR prior to presenting the image.
 	commandBuffer->begin();
-	
-	VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-	barrier.srcAccessMask                   = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-	barrier.oldLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	barrier.newLayout                       = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	barrier.image                           = swapchainImage->getVkImage();
-	barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-	barrier.subresourceRange.baseArrayLayer = 0;
-	barrier.subresourceRange.layerCount     = 1;
-	barrier.subresourceRange.baseMipLevel   = 0;
-	barrier.subresourceRange.levelCount     = swapchainImage->getMipLevels();
 
-	vkCmdPipelineBarrier(static_cast<CommandBufferImpl*>(commandBuffer)->getVkCommandBuffer(),
-		                 VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, // srcStageMask
-		                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,          // dstStageMask
-		                 0,
-		                 0,
-		                 nullptr,
-		                 0,
-		                 nullptr,
-		                 1, // imageMemoryBarrierCount
-		                 &barrier);
+	ImageImpl::cmdTransitionImageLayout(commandBufferImpl->getVkCommandBuffer(),
+		                                *swapchainImage,
+		                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+		                                /*firstMipLevel*/ 0,
+		                                /*levelCount*/ 1,
+		                                /*srcAccessMask*/ VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+		                                /*dstAccessMask*/ VK_ACCESS_NONE,
+		                                /*srcStageFlags*/ VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		                                /*dstStageFlags*/ VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT);
 
 	commandBuffer->end();
 
@@ -488,4 +437,32 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 	presentInfo.swapchainCount     = 1;
 
 	vkQueuePresentKHR(commandQueue.getVkQueue(), &presentInfo);
+}
+
+
+Coral::SwapchainImageInfo
+SwapchainImpl::getCurrentSwapchainImage()
+{
+	return mCurrentSwapchainImageInfo;
+}
+
+
+uint32_t
+SwapchainImpl::getCurrentSwapchainImageIndex()
+{
+	return mCurrentSwapchainIndex;
+}
+
+
+uint32_t
+SwapchainImpl::getSwapchainImageCount() const
+{
+	return static_cast<uint32_t>(mSwapchainImageData.size());
+}
+
+
+Coral::FramebufferSignature
+SwapchainImpl::getFramebufferSignature()
+{
+	return mSwapchainImageData.front().framebuffer->getSignature();
 }

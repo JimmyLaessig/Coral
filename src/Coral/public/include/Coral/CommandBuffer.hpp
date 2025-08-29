@@ -155,9 +155,6 @@ struct UpdateImageDataInfo
 	
 	/// The data to be put into the image
 	std::span<const std::byte> data;
-
-	/// Flag indicating if the image data of the mip levels should be updated
-	bool updateMips{ false };
 };
 
 
@@ -188,9 +185,11 @@ public:
 
 	virtual bool cmdUpdateImageData(const UpdateImageDataInfo& info) = 0;
 
+	virtual bool cmdCopyImage(const CopyImageInfo& info) = 0;
+
 	virtual bool cmdCopyBuffer(const CopyBufferInfo& info) = 0;
 
-	virtual bool cmdCopyImage(const CopyImageInfo& info) = 0;
+	virtual bool cmdGenerateMipMaps(Image* image) = 0;
 
 	/// Bind the vertex buffer
 	/**
@@ -226,7 +225,7 @@ public:
 
 	virtual void cmdBindDescriptor(Coral::Image* image, uint32_t binding) = 0;
 
-	virtual void cmdBlitImage(Coral::Image* source, Coral::Image* dest) = 0;
+	virtual bool cmdBlitImage(Coral::Image* source, Coral::Image* dest) = 0;
 };
 
 

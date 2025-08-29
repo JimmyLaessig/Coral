@@ -54,6 +54,8 @@ public:
 
 	bool cmdUpdateImageData(const Coral::UpdateImageDataInfo& info) override;
 
+	bool cmdGenerateMipMaps(Coral::Image* image) override;
+
 	void cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding) override;
 
 	void cmdBindDescriptor(Coral::Image* image, Coral::Sampler* sampler, uint32_t binding) override;
@@ -62,21 +64,11 @@ public:
 
 	void cmdBindDescriptor(Coral::Image* image, uint32_t binding) override;
 
-	void cmdBlitImage(Coral::Image* source, Coral::Image* dest) override;
+	bool cmdBlitImage(Coral::Image* source, Coral::Image* dest) override;
 
 	VkCommandBuffer getVkCommandBuffer();
 
 	[[nodiscard]] std::vector<std::shared_ptr<Coral::Buffer>> getStagingBuffers();
-
-	void cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
-							uint32_t baseMipLevel,
-							uint32_t levelCount,
-							VkImageLayout oldLayout,
-							VkImageLayout newLayout,
-							VkAccessFlagBits srcAccessMask,
-							VkAccessFlags dstAccessMask,
-							VkPipelineStageFlags srcStageFlags,
-							VkPipelineStageFlags dstStageFlags);
 
 private:
 

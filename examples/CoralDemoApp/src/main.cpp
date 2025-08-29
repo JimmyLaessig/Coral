@@ -172,11 +172,12 @@ createTexture(Coral::Context& context, const std::string& path)
 	}
 
 	Coral::ImageCreateConfig imageConfig{};
-	imageConfig.width	= img.width;
-	imageConfig.height	= img.height;
-	imageConfig.format	= img.format;
-	imageConfig.hasMips = true;
-	auto image          = context.createImage(imageConfig).value();
+	imageConfig.width	   = img.width;
+	imageConfig.height	   = img.height;
+	imageConfig.format	   = img.format;
+	imageConfig.hasMipMaps = true;
+	imageConfig.usageHint  = Coral::ImageUsageHint::SHADER_READ_ONLY;
+	auto image             = context.createImage(imageConfig).value();
 
 	auto queue = context.getTransferQueue();
 
@@ -185,11 +186,15 @@ createTexture(Coral::Context& context, const std::string& path)
 
 	Coral::UpdateImageDataInfo updateInfo{};
 	updateInfo.image	  = image.get();
-	updateInfo.updateMips = image->getMipLevels() > 1;
 	updateInfo.data		  = { reinterpret_cast<const std::byte*>(img.data.data()), img.data.size() };
 
 	commandBuffer->begin();
 	commandBuffer->cmdUpdateImageData(updateInfo);
+	if (image->getMipLevels() > 1)
+	{
+		commandBuffer->cmdGenerateMipMaps(image.get());
+	}
+
 	commandBuffer->end();
 
 	Coral::CommandBuffer* commandBufferPtr = commandBuffer.get();
@@ -271,7 +276,6 @@ int main()
 	auto positionsBinding = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::POSITION_LOCATION; })->binding;
 	auto normalsBinding   = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::NORMAL_LOCATION; })->binding;
 	auto texcoordsBinding = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::TEXCOORD0_LOCATION; })->binding;
-
 
 	Coral::ShaderModuleCreateConfig fragmentShaderConfig{};
 	fragmentShaderConfig.name		= "FragmentShader";
@@ -444,6 +448,7 @@ int main()
 
 		commandBuffer->cmdEndRenderPass();
 
+		//commandBuffer->cmdBlitImage(texture.get(), info.image);
 		commandBuffer->end();
 
 		auto renderFinishedSemaphorePtr = renderFinishedSemaphore.get();
