@@ -1,10 +1,11 @@
 #ifndef CORAL_VULKAN_FRAMEBUFFERIMPL_HPP
 #define CORAL_VULKAN_FRAMEBUFFERIMPL_HPP
 
-#include <Coral/FramebufferBase.hpp>
+#include <Coral/Framebuffer.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/ImageImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 #include <optional>
 #include <vector>
@@ -13,15 +14,15 @@
 namespace Coral::Vulkan
 {
 
-class FramebufferImpl : public Coral::FramebufferBase
+class FramebufferImpl : public Coral::Framebuffer
+	                  , public Resource
+	                  , public std::enable_shared_from_this<FramebufferImpl>
 {
 public:
 	
-	using FramebufferBase::FramebufferBase;
+	using Resource::Resource;
 
 	std::optional<FramebufferCreationError> init(const Coral::FramebufferCreateConfig& config);
-
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	uint32_t width() const override;
 

@@ -1,23 +1,25 @@
 #ifndef CORAL_VULKAN_SEMAPHOREIMPL_HPP
 #define CORAL_VULKAN_SEMAPHOREIMPL_HPP
 
-#include <Coral/SemaphoreBase.hpp>
+#include <Coral/Semaphore.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 namespace Coral::Vulkan
 {
 
-class SemaphoreImpl : public Coral::SemaphoreBase
+class SemaphoreImpl : public Coral::Semaphore
+	                , public Resource
+	                , public std::enable_shared_from_this<SemaphoreImpl>
 {
 public:
-	using SemaphoreBase::SemaphoreBase;
+	using Resource::Resource;
 
 	virtual ~SemaphoreImpl();
 
 	std::optional<Coral::SemaphoreCreationError> init();
-
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	VkSemaphore getVkSemaphore();
 

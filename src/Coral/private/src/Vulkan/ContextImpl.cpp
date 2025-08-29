@@ -3,7 +3,6 @@
 #include <Coral/BufferPool.hpp>
 #include <Coral/Vulkan/CommandQueueImpl.hpp>
 #include <Coral/Vulkan/BufferImpl.hpp>
-#include <Coral/Vulkan/BufferViewImpl.hpp>
 #include <Coral/Vulkan/FenceImpl.hpp>
 #include <Coral/Vulkan/FramebufferImpl.hpp>
 #include <Coral/Vulkan/ImageImpl.hpp>
@@ -53,18 +52,17 @@ ContextImpl::~ContextImpl()
 }
 
 
-Coral::ContextPtr
+std::shared_ptr<ContextImpl>
 ContextImpl::create(const ContextCreateConfig& config)
 {
-	auto context = new Coral::Vulkan::ContextImpl;
+	auto context = std::make_shared<ContextImpl>();
 
 	if (!context->init(config))
 	{
-		delete context;
 		return nullptr;
 	}
 
-	return Coral::ContextPtr{ context };
+	return context;
 }
 
 
@@ -303,13 +301,6 @@ ContextImpl::createBuffer(const Coral::BufferCreateConfig& config)
 }
 
 
-std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError>
-ContextImpl::createBufferView(const Coral::BufferViewCreateConfig& config)
-{
-	return create<Coral::BufferView, BufferViewImpl, Coral::BufferViewCreationError>(config);
-}
-
-
 std::expected<Coral::FencePtr, Coral::FenceCreationError>
 ContextImpl::createFence()
 {
@@ -363,76 +354,6 @@ std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError>
 ContextImpl::createSwapchain(const Coral::SwapchainCreateConfig& config)
 {
 	return create<Coral::Swapchain, SwapchainImpl,Coral::SwapchainCreationError>(config);
-}
-
-
-void
-ContextImpl::destroy(Coral::BufferBase* buffer)
-{
-	delete buffer;
-}
-
-
-void
-ContextImpl::destroy(Coral::BufferViewBase* bufferView)
-{
-	delete bufferView;
-}
-
-
-void
-ContextImpl::destroy(Coral::FenceBase* fence)
-{
-	delete fence;
-}
-
-
-void
-ContextImpl::destroy(Coral::FramebufferBase* framebuffer)
-{
-	delete framebuffer;
-}
-
-
-void
-ContextImpl::destroy(Coral::ImageBase* image)
-{
-	delete image;
-}
-
-
-void
-ContextImpl::destroy(Coral::PipelineStateBase* pipelineState)
-{
-	delete pipelineState;
-}
-
-
-void
-ContextImpl::destroy(Coral::SamplerBase* sampler)
-{
-	delete sampler;
-}
-
-
-void
-ContextImpl::destroy(Coral::SemaphoreBase* semaphore)
-{
-	delete semaphore;
-}
-
-
-void
-ContextImpl::destroy(Coral::ShaderModuleBase* shaderModule)
-{
-	delete shaderModule;
-}
-
-
-void
-ContextImpl::destroy(Coral::SwapchainBase* swapchain)
-{
-	delete swapchain;
 }
 
 

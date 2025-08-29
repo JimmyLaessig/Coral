@@ -3,6 +3,7 @@
 
 #include <Coral/Visitor.hpp>
 #include <Coral/Vulkan/VulkanFormat.hpp>
+#include <Coral/Vulkan/ShaderModuleImpl.hpp>
 
 #include <array>
 #include <cassert>
@@ -164,17 +165,17 @@ PipelineStateImpl::~PipelineStateImpl()
 {
 	if (mPipeline != VK_NULL_HANDLE)
 	{
-		vkDestroyPipeline(contextImpl().getVkDevice(), mPipeline, nullptr);
+		vkDestroyPipeline(context().getVkDevice(), mPipeline, nullptr);
 	}
 
 	if (mPipelineLayout != VK_NULL_HANDLE)
 	{
-		vkDestroyPipelineLayout(contextImpl().getVkDevice(), mPipelineLayout, nullptr);
+		vkDestroyPipelineLayout(context().getVkDevice(), mPipelineLayout, nullptr);
 	}
 
 	if (mDescriptorSetLayout != VK_NULL_HANDLE)
 	{
-		vkDestroyDescriptorSetLayout(contextImpl().getVkDevice(), mDescriptorSetLayout, nullptr);
+		vkDestroyDescriptorSetLayout(context().getVkDevice(), mDescriptorSetLayout, nullptr);
 	}
 }
 
@@ -306,17 +307,17 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	std::vector<VkVertexInputBindingDescription> bindingDescriptions;
 	std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
 
-	for (const auto& description : vertexShader->inputAttributeBindingLayout())
+	for (const auto& info : vertexShader->inputAttributeLayout())
 	{
 		auto& bindingDescription		= bindingDescriptions.emplace_back();
-		bindingDescription.binding		= description.binding;
+		bindingDescription.binding		= info.binding;
 		bindingDescription.inputRate	= VK_VERTEX_INPUT_RATE_VERTEX;
 		bindingDescription.stride		= 0;
 
 		auto& attributeDescription		= attributeDescriptions.emplace_back();
-		attributeDescription.binding	= description.binding;
-		attributeDescription.location	= description.location;
-		attributeDescription.format		= ::convert(description.format);
+		attributeDescription.binding	= info.binding;
+		attributeDescription.location	= info.location;
+		attributeDescription.format		= ::convert(info.format);
 		attributeDescription.offset		= 0;
 	}
 
@@ -364,18 +365,18 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	std::unordered_set<uint32_t> visited;
 	for (auto shader : config.shaderModules)
 	{
-		for (const auto& definition : shader->descriptorBindingLayout())
+		for (const auto& info : shader->descriptorLayout())
 		{
-			if (!visited.insert(definition.binding).second)
+			if (!visited.insert(info.binding).second)
 			{
 				continue;
 			}
 
 			auto& binding			= bindings.emplace_back();
-			binding.binding			= definition.binding;
+			binding.binding			= info.binding;
 			binding.descriptorCount = 1;
 			binding.stageFlags		= VK_SHADER_STAGE_ALL_GRAPHICS;
-			binding.descriptorType = std::visit([](auto a) { return toVkDescriptorType<decltype(a)>(); }, definition.definition);
+			binding.descriptorType = std::visit([](auto a) { return toVkDescriptorType<decltype(a)>(); }, info.definition);
 		}
 	}
 
@@ -385,7 +386,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	descriptorSetLayoutCreateInfo.flags			= VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 
 	VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
-	if (vkCreateDescriptorSetLayout(contextImpl().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
+	if (vkCreateDescriptorSetLayout(context().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
 	{
 		return PipelineStateCreationError::INTERNAL_ERROR;
 	}
@@ -398,7 +399,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	pipelineLayoutCreateInfo.setLayoutCount = 1;
 	pipelineLayoutCreateInfo.pSetLayouts	= &mDescriptorSetLayout;
 
-	if (vkCreatePipelineLayout(contextImpl().getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
+	if (vkCreatePipelineLayout(context().getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
 	{
 		return PipelineStateCreationError::INTERNAL_ERROR;
 	}
@@ -422,7 +423,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	createInfo.layout				= mPipelineLayout;
 	createInfo.pNext				= &renderingCreateInfo;
 
-	if (vkCreateGraphicsPipelines(contextImpl().getVkDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline) != VK_SUCCESS)
+	if (vkCreateGraphicsPipelines(context().getVkDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline) != VK_SUCCESS)
 	{
 		return PipelineStateCreationError::INTERNAL_ERROR;
 	}

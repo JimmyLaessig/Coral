@@ -3,20 +3,21 @@
 
 #include <Coral/CommandQueueBase.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
 #include <Coral/Vulkan/Vulkan.hpp>
 
+#include <future>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
-#include <future>
 #include <unordered_set>
-
 
 namespace Coral::Vulkan
 {
 
-class CommandQueueImpl : public Coral::CommandQueueBase
+class CommandQueueImpl : public Coral::CommandQueue,
+	                     public Resource
 {
 public:
 
@@ -24,11 +25,7 @@ public:
 
 	virtual ~CommandQueueImpl();
 
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
-
 	std::expected<Coral::CommandBufferPtr, Coral::CommandBufferCreationError> createCommandBuffer(const Coral::CommandBufferCreateConfig& config) override;
-
-	void destroyCommandBuffer(CommandBufferBase* commandBuffer) override;
 
 	bool submit(const Coral::CommandBufferSubmitInfo& info, Fence* fence) override;
 

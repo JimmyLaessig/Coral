@@ -1,9 +1,11 @@
 #ifndef CORAL_VULKAN_SHADERMODULEIMPL_HPP
 #define CORAL_VULKAN_SHADERMODULEIMPL_HPP
 
-#include <Coral/ShaderModuleBase.hpp>
+#include <Coral/ShaderModule.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 #include <span>
 #include <string_view>
@@ -12,11 +14,13 @@
 namespace Coral::Vulkan
 {
 
-class ShaderModuleImpl : public Coral::ShaderModuleBase
+class ShaderModuleImpl : public Coral::ShaderModule
+	                   , public Resource
+	                   , public std::enable_shared_from_this<ShaderModuleImpl>
 {
 public:
 
-	using ShaderModuleBase::ShaderModuleBase;
+	using Resource::Resource;
 
 	virtual ~ShaderModuleImpl();
 
@@ -30,11 +34,11 @@ public:
 
 	const std::string& entryPoint() const override;
 
-	std::span<const AttributeBindingLayout> inputAttributeBindingLayout() const override;
+	const AttributeLayout& inputAttributeLayout() const override;
 
-	std::span<const AttributeBindingLayout> outputAttributeBindingLayout() const override;
+	const AttributeLayout& outputAttributeLayout() const override;
 
-	std::span<const DescriptorBindingLayout> descriptorBindingLayout() const override;
+	const DescriptorLayout& descriptorLayout() const override;
 
 	VkShaderModule getVkShaderModule();
 
@@ -44,11 +48,11 @@ private:
 
 	std::string mName;
 
-	std::vector<AttributeBindingLayout> mInputDescriptions;
+	AttributeLayout mInputAttributeLayout;
 
-	std::vector<AttributeBindingLayout> mOutputDescriptions;
+	AttributeLayout mOutputAttributeLayout;
 
-	std::vector<DescriptorBindingLayout> mDescriptorBindings;
+	DescriptorLayout mDescriptorLayout;
 
 	std::string mEntryPoint;
 

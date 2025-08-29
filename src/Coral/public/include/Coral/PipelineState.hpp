@@ -2,8 +2,8 @@
 #define CORAL_PIPELINESTATE_HPP
 
 #include <Coral/System.hpp>
+#include <Coral/CoralFwd.hpp>
 #include <Coral/Framebuffer.hpp>
-#include <Coral/ShaderModule.hpp>
 
 #include <cstdint>
 #include <optional>

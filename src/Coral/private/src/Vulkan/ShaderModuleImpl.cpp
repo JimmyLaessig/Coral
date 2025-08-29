@@ -148,7 +148,7 @@ ShaderModuleImpl::~ShaderModuleImpl()
 {
 	if (mShaderModule != VK_NULL_HANDLE)
 	{
-		vkDestroyShaderModule(contextImpl().getVkDevice(), mShaderModule, nullptr);
+		vkDestroyShaderModule(context().getVkDevice(), mShaderModule, nullptr);
 	}
 }
 
@@ -164,7 +164,7 @@ ShaderModuleImpl::init(const ShaderModuleCreateConfig& config)
 	createInfo.pCode = (uint32_t*)config.source.data();
 	createInfo.codeSize = config.source.size();
 
-	if (vkCreateShaderModule(contextImpl().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
+	if (vkCreateShaderModule(context().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
 	{
 		return ShaderModuleCreationError::INTERNAL_ERROR;
 	}
@@ -212,7 +212,7 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 	{
 		for (auto binding : std::span{ set->bindings, set->binding_count })
 		{	
-			auto& descriptorBinding	  = mDescriptorBindings.emplace_back();
+			auto& descriptorBinding	  = mDescriptorLayout.emplace_back();
 			//descriptorBinding.set	  = set->set;
 			descriptorBinding.binding = binding->binding;
 
@@ -258,17 +258,17 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 			return false;
 		}
 
-		auto& description		= mInputDescriptions.emplace_back();
+		auto& description		= mInputAttributeLayout.emplace_back();
 		description.location	= variable->location;
 		description.name		= variable->name;
 		description.format		= *format;
 	}
 
-	std::sort(mInputDescriptions.begin(), mInputDescriptions.end(), 
-			  [](const AttributeBindingLayout& lhs, const AttributeBindingLayout& rhs) { return lhs.location < rhs.location; });
+	std::sort(mInputAttributeLayout.begin(), mInputAttributeLayout.end(), 
+			  [](const auto& lhs, const auto& rhs) { return lhs.location < rhs.location; });
 
 	uint32_t binding{ 0 };
-	for (auto& description : mInputDescriptions)
+	for (auto& description : mInputAttributeLayout)
 	{
 		description.binding = binding++;
 	}
@@ -296,7 +296,7 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 			return false;
 		}
 
-		auto& description		= mOutputDescriptions.emplace_back();
+		auto& description		= mOutputAttributeLayout.emplace_back();
 		description.location	= variable->location;
 		description.name		= variable->name;
 		description.format		= *format;
@@ -327,24 +327,24 @@ ShaderModuleImpl::entryPoint() const
 }
 
 
-std::span<const Coral::AttributeBindingLayout>
-ShaderModuleImpl::inputAttributeBindingLayout() const
+const Coral::AttributeLayout&
+ShaderModuleImpl::inputAttributeLayout() const
 {
-	return mInputDescriptions;
+	return mInputAttributeLayout;
 }
 
 
-std::span<const Coral::AttributeBindingLayout>
-ShaderModuleImpl::outputAttributeBindingLayout() const
+const Coral::AttributeLayout&
+ShaderModuleImpl::outputAttributeLayout() const
 {
-	return mOutputDescriptions;
+	return mOutputAttributeLayout;
 }
 
 
-std::span<const Coral::DescriptorBindingLayout>
-ShaderModuleImpl::descriptorBindingLayout() const
+const Coral::DescriptorLayout&
+ShaderModuleImpl::descriptorLayout() const
 {
-	return mDescriptorBindings;
+	return mDescriptorLayout;
 }
 
 

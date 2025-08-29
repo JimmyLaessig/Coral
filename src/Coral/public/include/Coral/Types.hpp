@@ -71,7 +71,7 @@ enum class PixelFormat
 	DEPTH32_F
 };
 
-/// Attribute format for buffers
+/// Attribute format for vertex attribute buffers
 enum class AttributeFormat
 {
 	UINT16,
@@ -82,6 +82,13 @@ enum class AttributeFormat
 	VEC2F,
 	VEC3F,
 	VEC4F
+};
+
+/// Format for index buffers
+enum class IndexFormat
+{
+	UINT16,
+	UINT32,
 };
 
 /// Format of uniform members 
@@ -173,6 +180,18 @@ constexpr inline uint32_t sizeInBytes(Coral::AttributeFormat format)
 	std::unreachable();
 }
 
+/// Get the size in bytes of the index format
+constexpr inline uint32_t sizeInBytes(Coral::IndexFormat format)
+{
+	switch (format)
+	{
+		case IndexFormat::UINT16:	return 2;
+		case IndexFormat::UINT32:	return 4;
+	}
+
+	std::unreachable();
+}
+
 /// Get the size in bytes of the uniform format
 /**
  * Returns the packed size of the uniform format without padding or alignment.
@@ -196,6 +215,18 @@ constexpr inline uint32_t sizeInBytes(UniformFormat format)
 
 	std::unreachable();
 }
+
+
+/// Specifies how content of an attachment are initialized at the beginning of a render pass.
+enum class ClearOp
+{
+	/// Specifies that the content of the image will be cleared.
+	CLEAR,
+	/// Specifies that the previous content of the image will be be preserved the initial values.
+	LOAD,
+	/// Specifies that the previous content of the image need not be preserved.
+	DONT_CARE,
+};
 
 } // namespace Coral
 

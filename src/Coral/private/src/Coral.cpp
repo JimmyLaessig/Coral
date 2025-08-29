@@ -24,7 +24,7 @@ createContext(const Coral::ContextCreateConfig& config)
     switch (config.graphicsAPI)
     {
         case GraphicsAPI::VULKAN:
-            return Coral::ContextPtr{ Coral::Vulkan::ContextImpl::create(config) };
+            return Coral::Vulkan::ContextImpl::create(config);
         default:
             return nullptr;
     }
@@ -41,86 +41,78 @@ destroy(Context* context)
 void
 destroy(Coral::Buffer* buffer)
 {
-    auto base = static_cast<Coral::BufferBase*>(buffer);
-    base->context().destroy(base);
-}
-
-
-void
-destroy(Coral::BufferView* bufferView)
-{
-    auto base = static_cast<Coral::BufferViewBase*>(bufferView);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::BufferBase*>(buffer);
+    //base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::CommandBuffer* commandBuffer)
 {
-    auto base = static_cast<Coral::CommandBufferBase*>(commandBuffer);
-    base->commandQueue().destroyCommandBuffer(base);
+    //auto base = static_cast<Coral::CommandBufferBase*>(commandBuffer);
+    //base->commandQueue().destroyCommandBuffer(base);
 }
 
 
 void
 destroy(Coral::Fence* fence)
 {
-    auto base = static_cast<Coral::FenceBase*>(fence);
-    base->context().destroy(base);
+//    auto base = static_cast<Coral::FenceBase*>(fence);
+//    base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::Framebuffer* framebuffer)
 {
-    auto base = static_cast<Coral::FramebufferBase*>(framebuffer);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::FramebufferBase*>(framebuffer);
+    //base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::Image* image)
 {
-    auto base = static_cast<Coral::ImageBase*>(image);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::ImageBase*>(image);
+    //base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::PipelineState* pipelineState)
 {
-    auto base = static_cast<Coral::PipelineStateBase*>(pipelineState);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::PipelineStateBase*>(pipelineState);
+    //base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::Sampler* sampler)
 {
-    auto base = static_cast<Coral::SamplerBase*>(sampler);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::SamplerBase*>(sampler);
+    //base->context().destroy(base);
 }
 
 void
 destroy(Coral::Semaphore* semaphore)
 {
-    auto base = static_cast<Coral::SemaphoreBase*>(semaphore);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::SemaphoreBase*>(semaphore);
+    //base->context().destroy(base);
 }
 
 
 void
 destroy(Coral::ShaderModule* shaderModule)
 {
-    auto base = static_cast<Coral::ShaderModuleBase*>(shaderModule);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::ShaderModuleBase*>(shaderModule);
+    //base->context().destroy(base);
 }
 
 void
 destroy(Coral::Swapchain* surface)
 {
-    auto base = static_cast<Coral::SwapchainBase*>(surface);
-    base->context().destroy(base);
+    //auto base = static_cast<Coral::SwapchainBase*>(surface);
+    //base->context().destroy(base);
 }
 
 

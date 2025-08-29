@@ -7,41 +7,27 @@
 namespace Coral
 {
 
-class BufferBase;
-class BufferViewBase;
-class FenceBase;
-class FramebufferBase;
-class ImageBase;
-class PipelineStateBase;
-class SamplerBase;
-class SemaphoreBase;
-class ShaderModuleBase;
-class SwapchainBase;
-
-
 class ContextBase : public Coral::Context
 {
 public:
 
-    virtual void destroy(Coral::BufferBase* buffer) = 0;
+    virtual void destroy(Coral::Buffer* buffer) = 0;
 
-    virtual void destroy(Coral::BufferViewBase* bufferView) = 0;
+    virtual void destroy(Coral::Fence* fence) = 0;
 
-    virtual void destroy(Coral::FenceBase* fence) = 0;
+    virtual void destroy(Coral::Framebuffer* framebuffer) = 0;
 
-    virtual void destroy(Coral::FramebufferBase* framebuffer) = 0;
+    virtual void destroy(Coral::Image* image) = 0;
 
-    virtual void destroy(Coral::ImageBase* image) = 0;
+    virtual void destroy(Coral::PipelineState* pipelineState) = 0;
 
-    virtual void destroy(Coral::PipelineStateBase* pipelineState) = 0;
+    virtual void destroy(Coral::Sampler* sampler) = 0;
 
-    virtual void destroy(Coral::SamplerBase* sampler) = 0;
+    virtual void destroy(Coral::Semaphore* semaphore) = 0;
 
-    virtual void destroy(Coral::SemaphoreBase* semaphore) = 0;
+    virtual void destroy(Coral::ShaderModule* shaderModule) = 0;
 
-    virtual void destroy(Coral::ShaderModuleBase* shaderModule) = 0;
-
-    virtual void destroy(Coral::SwapchainBase* surface) = 0;
+    virtual void destroy(Coral::Swapchain* surface) = 0;
 };
 
 } // namespace

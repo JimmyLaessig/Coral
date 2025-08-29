@@ -1,10 +1,11 @@
 #ifndef CORAL_VULKAN_PIPELINESTATEIMPL_HPP
 #define CORAL_VULKAN_PIPELINESTATEIMPL_HPP
 
-#include <Coral/PipelineStateBase.hpp>
+#include <Coral/PipelineState.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/ShaderModuleImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 #include <optional>
 #include <span>
@@ -13,17 +14,17 @@
 namespace Coral::Vulkan
 {
 
-class PipelineStateImpl : public Coral::PipelineStateBase
+class PipelineStateImpl : public Coral::PipelineState
+	                    , public Resource
+	                    , public std::enable_shared_from_this<PipelineStateImpl>
 {
 public:
 
-	using PipelineStateBase::PipelineStateBase;
+	using Resource::Resource;
 
 	virtual ~PipelineStateImpl();
 
 	std::optional<PipelineStateCreationError> init(const PipelineStateCreateConfig& config);
-
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	VkPipeline getVkPipeline();
 

@@ -1,12 +1,10 @@
 #ifndef CORAL_SWAPCHAIN_HPP
 #define CORAL_SWAPCHAIN_HPP
 
-#include <Coral/Fence.hpp>
-#include <Coral/Framebuffer.hpp>
-#include <Coral/Image.hpp>
-#include <Coral/Semaphore.hpp>
 #include <Coral/System.hpp>
+#include <Coral/CoralFwd.hpp>
 #include <Coral/Types.hpp>
+#include <Coral/Framebuffer.hpp>
 
 #include <cstdint>
 #include <optional>

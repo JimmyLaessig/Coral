@@ -1,8 +1,10 @@
 #ifndef CORAL_VULKAN_CONTEXTIMPL_HPP
 #define CORAL_VULKAN_CONTEXTIMPL_HPP
 
-#include <Coral/ContextBase.hpp>
+#include <Coral/Context.hpp>
 
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
 #include <Coral/Vulkan/Vulkan.hpp>
 
 #include <map>
@@ -18,13 +20,11 @@ class BufferPool;
 namespace Coral::Vulkan
 {
 
-class CommandQueueImpl;
-
-class ContextImpl : public Coral::ContextBase
+class ContextImpl : public Coral::Context
 {
 public:
 
-	static Coral::ContextPtr create(const ContextCreateConfig& config);
+	static std::shared_ptr<ContextImpl> create(const ContextCreateConfig& config);
 
 	bool init(const ContextCreateConfig& config);
 
@@ -39,8 +39,6 @@ public:
 	Coral::CommandQueue* getTransferQueue() override;
 
 	std::expected<Coral::BufferPtr, Coral::BufferCreationError> createBuffer(const Coral::BufferCreateConfig& config) override;
-
-	std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError> createBufferView(const Coral::BufferViewCreateConfig& config) override;
 
 	std::expected<Coral::FencePtr, Coral::FenceCreationError> createFence()  override;
 
@@ -57,26 +55,6 @@ public:
 	std::expected<Coral::ShaderModulePtr, Coral::ShaderModuleCreationError> createShaderModule(const Coral::ShaderModuleCreateConfig& config) override;
 	
 	std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError> createSwapchain(const Coral::SwapchainCreateConfig& config) override;
-
-	void destroy(Coral::BufferBase* buffer) override;
-
-	void destroy(Coral::BufferViewBase* bufferView) override;
-
-	void destroy(Coral::FenceBase* fence) override;
-
-	void destroy(Coral::FramebufferBase* framebuffer) override;
-
-	void destroy(Coral::ImageBase* image) override;
-
-	void destroy(Coral::PipelineStateBase* pipelineState) override;
-
-	void destroy(Coral::SamplerBase* sampler) override;
-
-	void destroy(Coral::SemaphoreBase* semaphore) override;
-
-	void destroy(Coral::ShaderModuleBase* shaderModule) override;
-
-	void destroy(Coral::SwapchainBase* surface) override;
 
 	VkInstance getVkInstance() { return mInstance; }
 
@@ -97,20 +75,16 @@ public:
 
 private:
 	
-	ContextImpl() = default;
-
 	template<typename T, typename U, typename CreateError, typename ...InitArgs>
-	std::expected<std::unique_ptr<T, Deleter<T>>, CreateError> create(InitArgs... args)
+	std::expected<std::shared_ptr<T>,  CreateError> create(InitArgs... args)
 	{
-		auto obj = new U(*this);
-
+		auto obj = std::make_shared<U>(*this);
 		if (auto error = obj->init(args...))
 		{
-			delete obj;
 			return std::unexpected(*error);
 		}
 
-		return { std::unique_ptr<T, Deleter<T>>(obj) };
+		return obj;
 	}
 
 	VkInstance mInstance{ VK_NULL_HANDLE };

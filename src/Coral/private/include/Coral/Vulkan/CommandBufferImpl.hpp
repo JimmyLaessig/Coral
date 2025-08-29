@@ -1,16 +1,11 @@
 #ifndef CORAL_VULKAN_COMMANDBUFFERIMPL_HPP
 #define CORAL_VULKAN_COMMANDBUFFERIMPL_HPP
 
-#include <Coral/CommandBufferBase.hpp>
+#include <Coral/CommandBuffer.hpp>
 
-#include <Coral/Vulkan/BufferImpl.hpp>
-#include <Coral/Vulkan/BufferViewImpl.hpp>
-#include <Coral/Vulkan/CommandQueueImpl.hpp>
-#include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/FramebufferImpl.hpp>
-#include <Coral/Vulkan/ImageImpl.hpp>
-#include <Coral/Vulkan/PipelineStateImpl.hpp>
-#include <Coral/Vulkan/SamplerImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 #include <memory>
 #include <string>
@@ -18,21 +13,18 @@
 
 namespace Coral::Vulkan
 {
-class CommandQueueImpl;
 
-class CommandBufferImpl : public Coral::CommandBufferBase
+class CommandBufferImpl : public Coral::CommandBuffer,
+	                      public std::enable_shared_from_this<CommandBufferImpl>,
+	                      public Resource
 {
 public:
 
-	using CommandBufferBase::CommandBufferBase;
+	CommandBufferImpl(CommandQueueImpl& commandQueue);
 
 	virtual ~CommandBufferImpl();
 
 	bool init(const CommandBufferCreateConfig& config);
-
-	CommandQueueImpl& commandQueueImpl() { return static_cast<CommandQueueImpl&>(commandQueue()); }
-
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	bool begin() override; 
 
@@ -48,9 +40,9 @@ public:
 
 	bool cmdCopyImage(const CopyImageInfo& info) override;
 
-	bool cmdBindVertexBuffer(Coral::BufferView* bufferView, uint32_t binding) override;
+	bool cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, size_t offset, size_t stride) override;
 
-	bool cmdBindIndexBuffer(Coral::BufferView* bufferView) override;
+	bool cmdBindIndexBuffer(Coral::Buffer* buffer, IndexFormat format, size_t offset) override;
 
 	bool cmdBindPipeline(Coral::PipelineState* pipeline) override;
 
@@ -62,6 +54,8 @@ public:
 
 	bool cmdUpdateImageData(const Coral::UpdateImageDataInfo& info) override;
 
+	bool cmdGenerateMipMaps(Coral::Image* image) override;
+
 	void cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding) override;
 
 	void cmdBindDescriptor(Coral::Image* image, Coral::Sampler* sampler, uint32_t binding) override;
@@ -70,25 +64,17 @@ public:
 
 	void cmdBindDescriptor(Coral::Image* image, uint32_t binding) override;
 
-	void cmdBlitImage(Coral::Image* source, Coral::Image* dest) override;
+	bool cmdBlitImage(Coral::Image* source, Coral::Image* dest) override;
 
 	VkCommandBuffer getVkCommandBuffer();
 
 	[[nodiscard]] std::vector<std::shared_ptr<Coral::Buffer>> getStagingBuffers();
 
-	void cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
-							uint32_t baseMipLevel,
-							uint32_t levelCount,
-							VkImageLayout oldLayout,
-							VkImageLayout newLayout,
-							VkAccessFlagBits srcAccessMask,
-							VkAccessFlags dstAccessMask,
-							VkPipelineStageFlags srcStageFlags,
-							VkPipelineStageFlags dstStageFlags);
-
 private:
 
 	void cmdBindCachedDescriptors();
+
+	CommandQueueImpl& mCommandQueue;
 
 	VkCommandBuffer mCommandBuffer{ VK_NULL_HANDLE };
 

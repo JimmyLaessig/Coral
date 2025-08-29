@@ -5,6 +5,7 @@
 #include <Coral/Vulkan/ContextImpl.hpp>
 #include <Coral/Vulkan/SwapchainImpl.hpp>
 #include <Coral/Vulkan/CommandBufferImpl.hpp>
+#include <Coral/Vulkan/CommandQueueImpl.hpp>
 #include <Coral/Vulkan/VulkanFormat.hpp>
 #include <backends/imgui_impl_vulkan.h>
 

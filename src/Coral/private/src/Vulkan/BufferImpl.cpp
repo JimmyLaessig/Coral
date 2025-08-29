@@ -13,7 +13,7 @@ BufferImpl::~BufferImpl()
 {
 	if (mBuffer != VK_NULL_HANDLE)
 	{
-		vmaDestroyBuffer(contextImpl().getVmaAllocator(), mBuffer, mAllocation);
+		vmaDestroyBuffer(context().getVmaAllocator(), mBuffer, mAllocation);
 	}
 }
 
@@ -30,7 +30,7 @@ BufferImpl::init(const Coral::BufferCreateConfig& config)
 	mSize		= config.size;
 	mCpuVisible = config.cpuVisible;
 
-	uint32_t queueFamilyIndex = contextImpl().getQueueFamilyIndex();
+	uint32_t queueFamilyIndex = context().getQueueFamilyIndex();
 
 	VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
 	createInfo.pQueueFamilyIndices   = &queueFamilyIndex;
@@ -48,7 +48,7 @@ BufferImpl::init(const Coral::BufferCreateConfig& config)
 	}
 
 	VmaAllocationInfo allocInfo{};
-	switch (vmaCreateBuffer(contextImpl().getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
+	switch (vmaCreateBuffer(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
 	{
 		case VK_SUCCESS:
 			return {};
@@ -96,7 +96,7 @@ BufferImpl::map()
 
 	void* data{ nullptr };
 
-	if (vmaMapMemory(contextImpl().getVmaAllocator(), mAllocation, &data) != VK_SUCCESS)
+	if (vmaMapMemory(context().getVmaAllocator(), mAllocation, &data) != VK_SUCCESS)
 	{
 		return nullptr;
 	}
@@ -115,7 +115,7 @@ BufferImpl::unmap()
 	}
 
 	mMapped = nullptr;
-	vmaUnmapMemory(contextImpl().getVmaAllocator(), mAllocation);
+	vmaUnmapMemory(context().getVmaAllocator(), mAllocation);
 
 	return true;
 }

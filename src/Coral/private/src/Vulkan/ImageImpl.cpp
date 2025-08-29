@@ -50,26 +50,39 @@ ImageImpl::~ImageImpl()
 {
 	if (mImageView != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(contextImpl().getVkDevice(), mImageView, nullptr);
+		vkDestroyImageView(context().getVkDevice(), mImageView, nullptr);
 	}
 
 	if (mImage != VK_NULL_HANDLE && mIsOwner)
 	{
-		vmaDestroyImage(contextImpl().getVmaAllocator(), mImage, mAllocation);
+		vmaDestroyImage(context().getVmaAllocator(), mImage, mAllocation);
 	}
 }
 
 
 bool
-ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, VkImageLayout layout)
+ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, ImageUsageHint usageHint)
 {
 	mImage			= image;
 	mFormat			= format;
 	mWidth			= width;
 	mHeight			= height;
 	mMipLevelCount	= mipLevelCount;
-	mLayout			= layout;
 	mIsOwner		= false;
+
+	mCurrentLayout.resize(mMipLevelCount, VK_IMAGE_LAYOUT_UNDEFINED);
+
+	switch (usageHint)
+	{
+		case ImageUsageHint::FRAMEBUFFER_ATTACHMENT:
+			mPreferredImageLayout = isDepthFormat(format) ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+			break;
+		case ImageUsageHint::SHADER_READ_ONLY:
+			mPreferredImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+			break;
+		default:
+			std::unreachable();
+	}
 
 	VkImageViewCreateInfo viewCreateInfo{ VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
 	viewCreateInfo.image							= image;
@@ -81,7 +94,7 @@ ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32
 	viewCreateInfo.subresourceRange.baseMipLevel	= 0;
 	viewCreateInfo.subresourceRange.levelCount		= mMipLevelCount;
 
-	if (vkCreateImageView(contextImpl().getVkDevice(), &viewCreateInfo, nullptr, &mImageView) != VK_SUCCESS)
+	if (vkCreateImageView(context().getVkDevice(), &viewCreateInfo, nullptr, &mImageView) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -98,7 +111,7 @@ ImageImpl::init(const Coral::ImageCreateConfig& config)
 	mHeight		= config.height;
 	mIsOwner	= true;
 
-	if (config.hasMips)
+	if (config.hasMipMaps)
 	{
 		mMipLevelCount = static_cast<uint32_t>(std::floor(std::log2(std::max(mWidth, mHeight)))) + 1;
 	}
@@ -126,12 +139,12 @@ ImageImpl::init(const Coral::ImageCreateConfig& config)
 	allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 	VmaAllocationInfo info{};
-	if (vmaCreateImage(contextImpl().getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
+	if (vmaCreateImage(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
 	{
 		return ImageCreationError::INTERNAL_ERROR;
 	}
 
-	if (!init(mImage, config.format, config.width, config.height, mMipLevelCount, VK_IMAGE_LAYOUT_GENERAL))
+	if (!init(mImage, config.format, config.width, config.height, mMipLevelCount, config.usageHint))
 	{
 		return ImageCreationError::INTERNAL_ERROR;
 	}
@@ -153,13 +166,6 @@ VkImageView
 ImageImpl::getVkImageView()
 {
 	return mImageView;
-}
-
-
-VkImageLayout
-ImageImpl::getVkImageLayout() const
-{
-	return mLayout;
 }
 
 
@@ -194,5 +200,60 @@ ImageImpl::getMipLevels() const
 bool
 ImageImpl::presentable() const
 {
-	return mLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	return !mIsOwner;
+}
+
+
+VkImageLayout
+ImageImpl::getPreferredImageLayout()
+{
+	return mPreferredImageLayout;
+}
+
+
+void
+ImageImpl::cmdTransitionImageLayout(VkCommandBuffer commandBuffer, ImageImpl& image, VkImageLayout layout, 
+	                                uint32_t firstMipLevel, uint32_t levelCount, VkAccessFlagBits srcAccessMask,
+	                                VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageFlags, 
+	                                VkPipelineStageFlags dstStageFlags)
+{
+	auto& context = image.context();
+	std::vector<VkImageMemoryBarrier> barriers;
+	barriers.reserve(levelCount);
+	for (size_t i = 0; i < levelCount; ++i)
+	{
+		auto level = firstMipLevel + i;
+		VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
+		barrier.oldLayout                   = image.mCurrentLayout[level];
+		barrier.newLayout                   = layout;
+		barrier.srcQueueFamilyIndex         = context.getQueueFamilyIndex();
+		barrier.dstQueueFamilyIndex         = context.getQueueFamilyIndex();
+		barrier.image                       = image.getVkImage();
+
+		image.mCurrentLayout[level] = layout;
+
+		if (isDepthFormat(image.mFormat))
+		{ 
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+		}
+		else
+		{
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_COLOR_BIT;
+		}
+		if (isStencilFormat(image.mFormat))
+		{
+			barrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		}
+
+		barrier.subresourceRange.baseMipLevel   = level;
+		barrier.subresourceRange.levelCount     = 1;
+		barrier.subresourceRange.layerCount     = 1;
+		barrier.subresourceRange.baseArrayLayer = 0;
+		barrier.srcAccessMask                   = srcAccessMask;
+		barrier.dstAccessMask                   = dstAccessMask;
+
+		barriers.push_back(barrier);
+	}
+
+	vkCmdPipelineBarrier(commandBuffer, srcStageFlags, dstStageFlags, 0, 0, nullptr, 0, nullptr, static_cast<uint32_t>(barriers.size()), barriers.data());
 }

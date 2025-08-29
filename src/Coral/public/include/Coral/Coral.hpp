@@ -2,7 +2,6 @@
 #define CORAL_CORAL_HPP
 
 #include <Coral/Buffer.hpp>
-#include <Coral/BufferView.hpp>
 #include <Coral/CommandBuffer.hpp>
 #include <Coral/CommandQueue.hpp>
 #include <Coral/Context.hpp>
