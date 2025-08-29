@@ -2,9 +2,7 @@
 #define CORAL_IMGUI_HPP
 
 #include <Coral/System.hpp>
-
-#include <Coral/Context.hpp>
-#include <Coral/Swapchain.hpp>
+#include <Coral/CoralFwd.hpp>
 
 #include <imgui.h>
 

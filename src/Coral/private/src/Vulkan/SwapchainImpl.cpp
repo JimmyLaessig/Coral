@@ -88,12 +88,12 @@ SwapchainImpl::~SwapchainImpl()
 {
 	if (mSwapchain)
 	{
-		vkDestroySwapchainKHR(contextImpl().getVkDevice(), mSwapchain, nullptr);
+		vkDestroySwapchainKHR(context().getVkDevice(), mSwapchain, nullptr);
 	}
 
 	if (mSurface)
 	{
-		vkDestroySurfaceKHR(contextImpl().getVkInstance(), mSurface, nullptr);
+		vkDestroySurfaceKHR(context().getVkInstance(), mSurface, nullptr);
 	}
 }
 
@@ -106,7 +106,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	mSwapchainImageData.clear();
 	mSwapchainDepthImage.reset();
 
-	auto surfaceFormat = chooseSwapchainFormat(contextImpl().getVkPhysicalDevice(), mSurface, convert(config.format));
+	auto surfaceFormat = chooseSwapchainFormat(context().getVkPhysicalDevice(), mSurface, convert(config.format));
 
 	if (!surfaceFormat)
 	{
@@ -116,7 +116,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	mSurfaceFormat = *surfaceFormat;
 
 	VkSurfaceCapabilitiesKHR surfaceCapabilites{ };
-	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(contextImpl().getVkPhysicalDevice(), mSurface, &surfaceCapabilites) != VK_SUCCESS)
+	if (vkGetPhysicalDeviceSurfaceCapabilitiesKHR(context().getVkPhysicalDevice(), mSurface, &surfaceCapabilites) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -132,13 +132,13 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	createInfo.imageExtent		= mSwapchainExtent;
 	createInfo.imageArrayLayers = 1;
 	createInfo.imageUsage		= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-	createInfo.presentMode      = choosePresentMode(contextImpl().getVkPhysicalDevice(), mSurface, config.lockToVSync);
+	createInfo.presentMode      = choosePresentMode(context().getVkPhysicalDevice(), mSurface, config.lockToVSync);
 	createInfo.oldSwapchain		= mSwapchain;
 	createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	createInfo.preTransform		= surfaceCapabilites.currentTransform;
 	createInfo.compositeAlpha	= VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
 
-	if (vkCreateSwapchainKHR(contextImpl().getVkDevice(), &createInfo, nullptr, &mSwapchain) != VK_SUCCESS)
+	if (vkCreateSwapchainKHR(context().getVkDevice(), &createInfo, nullptr, &mSwapchain) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -146,18 +146,18 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	// Destroy the old swapchain after creating the new swapchain
 	if (createInfo.oldSwapchain != VK_NULL_HANDLE)
 	{
-		vkDestroySwapchainKHR(contextImpl().getVkDevice(), createInfo.oldSwapchain, nullptr);
+		vkDestroySwapchainKHR(context().getVkDevice(), createInfo.oldSwapchain, nullptr);
 	}
 
 	// Query the number of swapchain images
-	if (vkGetSwapchainImagesKHR(contextImpl().getVkDevice(), mSwapchain, &mSwapchainImageCount, nullptr) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(context().getVkDevice(), mSwapchain, &mSwapchainImageCount, nullptr) != VK_SUCCESS)
 	{
 		return false;
 	}
 
 	// Query the handles to the swapchain images
 	std::vector<VkImage> swapchainImages(mSwapchainImageCount);
-	if (vkGetSwapchainImagesKHR(contextImpl().getVkDevice(), mSwapchain, &mSwapchainImageCount, swapchainImages.data()) != VK_SUCCESS)
+	if (vkGetSwapchainImagesKHR(context().getVkDevice(), mSwapchain, &mSwapchainImageCount, swapchainImages.data()) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -166,7 +166,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	mSwapchainImageData.resize(mSwapchainImageCount);
 	for (size_t i = 0; i < mSwapchainImageCount; ++i)
 	{
-		auto image = std::make_unique<Coral::Vulkan::ImageImpl>(contextImpl());
+		auto image = std::make_shared<Coral::Vulkan::ImageImpl>(context());
 
 		// Store the swapchain image
 		if (!image->init(swapchainImages[i],
@@ -179,7 +179,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 			return false;
 		}
 
-		mSwapchainImageData[i].image.reset(image.release());
+		mSwapchainImageData[i].image = image;
 	}
 
 	// Create the depth buffer
@@ -194,16 +194,16 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 
 		Coral::ImageCreateConfig depthImageConfig{};
 		depthImageConfig.format = *config.depthFormat;
-		depthImageConfig.width = createInfo.imageExtent.width;
+		depthImageConfig.width  = createInfo.imageExtent.width;
 		depthImageConfig.height = createInfo.imageExtent.height;
 
-		auto swapchainImage = contextImpl().createImage(depthImageConfig);
+		auto swapchainImage = context().createImage(depthImageConfig);
 		if (!swapchainImage)
 		{
 			return false;
 		}
 
-		mSwapchainDepthImage = std::move(swapchainImage.value());
+		mSwapchainDepthImage = swapchainImage.value();
 	}
 
 	// Create the Framebuffer for each swapchain image
@@ -220,24 +220,24 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 			framebufferConfig.depthAttachment = { mSwapchainDepthImage.get() };
 		}
 
-		auto framebuffer = contextImpl().createFramebuffer(framebufferConfig);
+		auto framebuffer = context().createFramebuffer(framebufferConfig);
 
 		if (!framebuffer.has_value())
 		{
 			return false;
 		}
 
-		mSwapchainImageData[i].framebuffer = std::move(framebuffer.value());
+		mSwapchainImageData[i].framebuffer = framebuffer.value();
 	}
-	
+
 	if (mSwapchainSyncObjects.empty())
 	{
 		for (size_t i = 0; i < mSwapchainImageCount; ++i)
 		{
 			SwapchainSyncObjects syncs{};
-			syncs.imageReadySemaphore = contextImpl().createSemaphore().value();
-			syncs.imagePresentableSemaphore    = contextImpl().createSemaphore().value();
-			syncs.imageAcquiredSemaphore    = contextImpl().createSemaphore().value();
+			syncs.imageReadySemaphore       = context().createSemaphore().value();
+			syncs.imagePresentableSemaphore = context().createSemaphore().value();
+			syncs.imageAcquiredSemaphore    = context().createSemaphore().value();
 
 			mSwapchainSyncObjects.push_back(std::move(syncs));
 		}
@@ -250,7 +250,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 std::optional<Coral::SwapchainCreationError>
 SwapchainImpl::init(const Coral::SwapchainCreateConfig& config)
 {
-	mSurface = Coral::Vulkan::createVkSurface(contextImpl().getVkInstance(), config.nativeWindowHandle);
+	mSurface = Coral::Vulkan::createVkSurface(context().getVkInstance(), config.nativeWindowHandle);
 
 	if (mSurface == VK_NULL_HANDLE)
 	{
@@ -263,13 +263,6 @@ SwapchainImpl::init(const Coral::SwapchainCreateConfig& config)
 	}
 
 	return {};
-}
-
-
-ContextImpl&
-SwapchainImpl::contextImpl()
-{
-	return static_cast<ContextImpl&>(context());
 }
 
 
@@ -302,7 +295,7 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	// Once rendering is done, the image layout must transition to 'VK_IMAGE_LAYOUT_PRESENT_SRC_KHR' in order to
 	// present the swapchain image. Both layout transitions must be executed manually via memory barriers. 
 
-	auto commandQueue = contextImpl().getGraphicsQueue();
+	auto commandQueue = context().getGraphicsQueue();
 
 	auto& syncObjects = mSwapchainSyncObjects[mCurrentSwapchainIndex];
 
@@ -322,7 +315,7 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	// Acquire the next swapchain image and signal the `acquireSemaphore` semaphore that the layout can be
 	// transitioned to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
 	auto vkFence = fence ? static_cast<Coral::Vulkan::FenceImpl*>(fence)->getVkFence() : VK_NULL_HANDLE;
-	auto result = vkAcquireNextImageKHR(contextImpl().getVkDevice(), 
+	auto result = vkAcquireNextImageKHR(context().getVkDevice(), 
 										mSwapchain, 
 										UINT32_MAX, 
 		                                imageAcquiredSemaphoreImpl->getVkSemaphore(),
@@ -333,7 +326,7 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	// recreate the swapchain and try image acquisition again
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
-		vkDeviceWaitIdle(contextImpl().getVkDevice());
+		vkDeviceWaitIdle(context().getVkDevice());
 
 		if (!initSwapchain(mConfig))
 		{
@@ -362,8 +355,8 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	barrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
 	barrier.newLayout                       = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 	barrier.image                           = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image)->getVkImage();
-	barrier.srcQueueFamilyIndex             = contextImpl().getQueueFamilyIndex();
-	barrier.dstQueueFamilyIndex             = contextImpl().getQueueFamilyIndex();
+	barrier.srcQueueFamilyIndex             = context().getQueueFamilyIndex();
+	barrier.dstQueueFamilyIndex             = context().getQueueFamilyIndex();
 	barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
 	barrier.subresourceRange.baseArrayLayer = 0;
 	barrier.subresourceRange.layerCount     = 1;

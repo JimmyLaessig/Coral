@@ -72,9 +72,6 @@ public:
 	 */
 	virtual bool unmap() = 0;
 
-	/// Get the render context
-	virtual class Context& context() = 0;
-
 };
 
 

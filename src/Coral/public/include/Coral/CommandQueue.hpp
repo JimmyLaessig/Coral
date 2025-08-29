@@ -2,12 +2,8 @@
 #define CORAL_COMMANDQUEUE_HPP
 
 #include <Coral/System.hpp>
-
+#include <Coral/CoralFwd.hpp>
 #include <Coral/CommandBuffer.hpp>
-#include <Coral/Context.hpp>
-#include <Coral/Fence.hpp>
-#include <Coral/Semaphore.hpp>
-#include <Coral/Swapchain.hpp>
 
 #include <expected>
 #include <span>

@@ -76,7 +76,7 @@ SamplerImpl::~SamplerImpl()
 {
 	if (mSampler != VK_NULL_HANDLE)
 	{
-		vkDestroySampler(contextImpl().getVkDevice(), mSampler, nullptr);
+		vkDestroySampler(context().getVkDevice(), mSampler, nullptr);
 	}
 }
 
@@ -114,7 +114,7 @@ SamplerImpl::init(const Coral::SamplerCreateConfig& config)
 
 	createInfo.unnormalizedCoordinates = VK_FALSE;
 
-	if (vkCreateSampler(contextImpl().getVkDevice(), &createInfo, nullptr, &mSampler) != VK_SUCCESS)
+	if (vkCreateSampler(context().getVkDevice(), &createInfo, nullptr, &mSampler) != VK_SUCCESS)
 	{
 		return SamplerCreationError::INTERNAL_ERROR;
 	}

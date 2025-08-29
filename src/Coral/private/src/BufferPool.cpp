@@ -14,7 +14,7 @@ BufferPool::BufferPool(Coral::Context& context, Coral::BufferType bufferType, bo
 }
 
 
-std::shared_ptr<Coral::Buffer>
+Coral::BufferPtr
 BufferPool::requestBuffer(size_t bufferSize)
 {
 	if (!mContext)
@@ -25,26 +25,30 @@ BufferPool::requestBuffer(size_t bufferSize)
 	std::lock_guard lock(mBufferPoolProtection);
 
 	// Find the smallest staging buffer that fits the buffer size
-	auto candidate = mBufferPool.end();
+	auto buffer = mBufferPool.end();
 	for (auto iter = mBufferPool.begin(); iter != mBufferPool.end(); iter++)
 	{
 		if (iter->first >= bufferSize && iter->second.use_count() == 1)
 		{
-			candidate = iter;
+			buffer = iter;
 		}
 	}
 
 	// If no staging buffer was found, create one that fits the buffer size
-	if (candidate != mBufferPool.end())
+	if (buffer == mBufferPool.end())
 	{
-		auto buffer = std::move(candidate->second);
-		mBufferPool.erase(candidate);
+		Coral::BufferCreateConfig bufferConfig{};
+		bufferConfig.cpuVisible = mCpuVisible;
+		bufferConfig.type       = mBufferType;
+		bufferConfig.size       = bufferSize;
+
+		auto buf = mContext->createBuffer(bufferConfig).value_or(nullptr);
+
+		if (buf)
+		{
+			buffer = mBufferPool.emplace(bufferConfig.size, buf);
+		}
 	}
 
-	Coral::BufferCreateConfig bufferConfig{};
-	bufferConfig.cpuVisible = mCpuVisible;
-	bufferConfig.type		= mBufferType;
-	bufferConfig.size		= bufferSize;
-
-	return Coral::BufferPtr(mContext->createBuffer(bufferConfig).value_or(nullptr));
+	return buffer != mBufferPool.end() ? buffer->second: nullptr;
 }

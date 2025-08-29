@@ -37,11 +37,11 @@ set(CORAL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/private/src)
 # Definition of all public module files of the Coral library
 set(CORAL_PUBLIC_INCLUDES
     ${CORAL_PUBLIC_INCLUDE_DIR}/Buffer.hpp
-    ${CORAL_PUBLIC_INCLUDE_DIR}/BufferView.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/CommandBuffer.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/CommandQueue.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Context.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Coral.hpp
+    ${CORAL_PUBLIC_INCLUDE_DIR}/CoralFwd.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Fence.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Framebuffer.hpp
     ${CORAL_PUBLIC_INCLUDE_DIR}/Image.hpp
@@ -62,28 +62,15 @@ set(CORAL_SOURCES
 
 set(CORAL_INCLUDES
     ${CORAL_PRIVATE_INCLUDE_DIR}/BufferPool.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/ContextBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/CommandQueueBase.hpp
+
     ${CORAL_PRIVATE_INCLUDE_DIR}/Visitor.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/BufferBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/BufferViewBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/CommandBufferBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/CommandQueueBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/ContextBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/FenceBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/FramebufferBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/ImageBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/PipelineStateBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/SamplerBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/SemaphoreBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/ShaderModuleBase.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/Finally.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/SwapchainBase.hpp)
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Finally.hpp)
 
 # Definition of all private vulkan header files of the Coral library
 set(CORAL_VULKAN_INCLUDES
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/Fwd.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/BufferImpl.hpp
-    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/BufferViewImpl.hpp
+    ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/Resource.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/CommandBufferImpl.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/CommandQueueImpl.hpp
     ${CORAL_PRIVATE_INCLUDE_DIR}/Vulkan/ContextImpl.hpp
@@ -100,8 +87,8 @@ set(CORAL_VULKAN_INCLUDES
 
 # Definition of all Vulkan source files of the Coral library
 set(CORAL_VULKAN_SOURCES
+    ${CORAL_SOURCE_DIR}/Vulkan/Resource.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/BufferImpl.cpp
-    ${CORAL_SOURCE_DIR}/Vulkan/BufferViewImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/CommandBufferImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/CommandQueueImpl.cpp
     ${CORAL_SOURCE_DIR}/Vulkan/ContextImpl.cpp

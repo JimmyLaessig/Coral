@@ -14,7 +14,7 @@
 using namespace Coral::Vulkan;
 
 CommandQueueImpl::CommandQueueImpl(ContextImpl& context, VkQueue queue, uint32_t queueIndex, uint32_t queueFamilyIndex)
-	: CommandQueueBase(context)
+	: Resource(context)
 	, mQueue(queue)
 	, mQueueIndex(queueIndex)
 	, mQueueFamilyIndex(queueFamilyIndex)
@@ -28,7 +28,7 @@ CommandQueueImpl::~CommandQueueImpl()
 	
 	for (auto [_, commandPool] : mCommandPools)
 	{
-		vkDestroyCommandPool(contextImpl().getVkDevice(), commandPool, nullptr);
+		vkDestroyCommandPool(context().getVkDevice(), commandPool, nullptr);
 	}
 }
 
@@ -45,13 +45,6 @@ CommandQueueImpl::createCommandBuffer(const Coral::CommandBufferCreateConfig& co
 	}
 
 	return Coral::CommandBufferPtr(cb);
-}
-
-
-void
-CommandQueueImpl::destroyCommandBuffer(CommandBufferBase* commandBuffer)
-{
-	delete commandBuffer;
 }
 
 
@@ -104,7 +97,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 	if (!stagingBuffers.empty() && !vkFence)
 	{
 		VkFenceCreateInfo info{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-		if (vkCreateFence(contextImpl().getVkDevice(), &info, nullptr, &vkFence) != VK_SUCCESS)
+		if (vkCreateFence(context().getVkDevice(), &info, nullptr, &vkFence) != VK_SUCCESS)
 		{
 			// TODO: FATAL ERROR
 			return false;
@@ -137,7 +130,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 		auto task = [stagingBuffers = std::move(stagingBuffers), fence = vkFence, ownsFence = ownsFence, this]() mutable
 		{
 			// Wait until the fence is signaled
-			vkWaitForFences(contextImpl().getVkDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
+			vkWaitForFences(context().getVkDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
 
 			auto count = stagingBuffers.size();
 			// Clear all staging buffers (this reduces the use count of the shared ptr which effectively  returns
@@ -148,7 +141,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 
 			if (ownsFence)
 			{
-				vkDestroyFence(contextImpl().getVkDevice(), fence, nullptr);
+				vkDestroyFence(context().getVkDevice(), fence, nullptr);
 			}
 		};
 
@@ -210,7 +203,7 @@ CommandQueueImpl::getVkCommandPool()
 	createInfo.flags			= VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 	VkCommandPool commandPool{ VK_NULL_HANDLE };
-	if (vkCreateCommandPool(contextImpl().getVkDevice(), &createInfo, nullptr, &commandPool) != VK_SUCCESS)
+	if (vkCreateCommandPool(context().getVkDevice(), &createInfo, nullptr, &commandPool) != VK_SUCCESS)
 	{
 		return VK_NULL_HANDLE;
 	}

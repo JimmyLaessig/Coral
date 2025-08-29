@@ -86,7 +86,7 @@ private:
 	const ShaderModule* mVertexShader{ nullptr };
 	const ShaderModule* mFragmentShader{ nullptr };
 
-	std::map<uint32_t, Coral::DescriptorBindingLayout> mDescriptorBindings;
+	std::map<uint32_t, Coral::DescriptorBindingInfo> mDescriptorBindings;
 
 	std::unordered_map<std::string, uint32_t> mInputAttributeBindingOverrides;
 

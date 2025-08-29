@@ -2,10 +2,11 @@
 #define CORAL_CONTEXT_HPP
 
 #include <Coral/System.hpp>
+#include <Coral/CoralFwd.hpp>
 
 #include <Coral/Buffer.hpp>
-#include <Coral/BufferView.hpp>
 #include <Coral/CommandBuffer.hpp>
+#include <Coral/CommandQueue.hpp>
 #include <Coral/Fence.hpp>
 #include <Coral/Framebuffer.hpp>
 #include <Coral/Image.hpp>
@@ -16,70 +17,10 @@
 #include <Coral/Swapchain.hpp>
 
 #include <expected>
+#include <string_view>
 
 namespace Coral
 {
-class Context;
-class CommandQueue;
-
-/// Destroy the Buffer object
-CORAL_API void destroy(Buffer* buffer);
-
-/// Destroy the BufferView object
-CORAL_API void destroy(BufferView* bufferView);
-
-/// Destroy the Context object
-CORAL_API void destroy(Context* context);
-
-/// Destroy the Fence object
-CORAL_API void destroy(Fence* fence);
-
-/// Destroy the Framebuffer object
-CORAL_API void destroy(Framebuffer* framebuffer);
-
-/// Destroy the CommandBuffer object
-CORAL_API void destroy(CommandBuffer* commandBuffer);
-
-/// Destroy the Image object
-CORAL_API void destroy(Image* image);
-
-/// Destroy the PipelineState object
-CORAL_API void destroy(PipelineState* pipelineState);
-
-/// Destroy the Sampler object
-CORAL_API void destroy(Sampler* sampler);
-
-/// Destroy the Semaphore object
-CORAL_API void destroy(Semaphore* semaphore);
-
-/// Destroy the ShaderModule object
-CORAL_API void destroy(ShaderModule* shaderModule);
-
-/// Destroy the Swapchain object
-CORAL_API void destroy(Swapchain* swapchain);
-
-
-template<typename T>
-struct CORAL_API Deleter
-{
-	void operator()(T* t)
-	{
-		Coral::destroy(t);
-	}
-};
-
-using BufferPtr        = std::unique_ptr<Buffer, Deleter<Buffer>>;
-using BufferViewPtr    = std::unique_ptr<BufferView, Deleter<BufferView>>;
-using CommandBufferPtr = std::unique_ptr<CommandBuffer, Deleter<CommandBuffer>>;
-using FencePtr         = std::unique_ptr<Fence, Deleter<Fence>>;
-using FramebufferPtr   = std::unique_ptr<Framebuffer, Deleter<Framebuffer>>;
-using ImagePtr		   = std::unique_ptr<Image, Deleter<Image>>;
-using PipelineStatePtr = std::unique_ptr<PipelineState, Deleter<PipelineState>>;
-using SamplerPtr	   = std::unique_ptr<Sampler, Deleter<Sampler>>;
-using SemaphorePtr     = std::unique_ptr<Semaphore, Deleter<Semaphore>>;
-using ShaderModulePtr  = std::unique_ptr<ShaderModule, Deleter<ShaderModule>>;
-using SwapchainPtr	   = std::unique_ptr<Swapchain, Deleter<Swapchain>>;
-
 
 enum class GraphicsAPI
 {
@@ -119,9 +60,6 @@ public:
 	/// Create a new Buffer object
     virtual std::expected<Coral::BufferPtr, Coral::BufferCreationError> createBuffer(const Coral::BufferCreateConfig& config) = 0;
 
-	/// Create a new BufferView object
-    virtual std::expected<Coral::BufferViewPtr, Coral::BufferViewCreationError> createBufferView(const Coral::BufferViewCreateConfig& config) = 0;
-
 	/// Create a new Fence object
 	virtual std::expected<Coral::FencePtr, Coral::FenceCreationError> createFence() = 0;
 
@@ -147,10 +85,10 @@ public:
 	virtual std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError> createSwapchain(const Coral::SwapchainCreateConfig& config) = 0;
 };
 
-using ContextPtr = std::unique_ptr<Context, Deleter<Context>>;
 
 /// Create a new context object
 CORAL_API std::expected<Coral::ContextPtr, Coral::ContextCreationError> createContext(const ContextCreateConfig& config);
+
 
 } // namespace Coral
 

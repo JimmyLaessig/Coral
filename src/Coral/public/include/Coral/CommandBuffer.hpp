@@ -1,11 +1,9 @@
 #ifndef CORAL_COMMANDBUFFER_HPP
 #define CORAL_COMMANDBUFFER_HPP
 
-#include <Coral/Buffer.hpp>
-#include <Coral/BufferView.hpp>
-#include <Coral/Image.hpp>
-#include <Coral/Sampler.hpp>
-#include <Coral/PipelineState.hpp>
+#include <Coral/System.hpp>
+#include <Coral/CoralFwd.hpp>
+#include <Coral/Types.hpp>
 
 #include <functional>
 #include <optional>
@@ -115,8 +113,10 @@ struct CopyImageInfo
 
 struct DrawIndexInfo
 {
+	/// The number of vertices to draw
 	uint32_t indexCount{ 0 };
 
+	/// The base index within the index buffer
 	uint32_t firstIndex{ 0 };
 };
 
@@ -192,12 +192,28 @@ public:
 
 	virtual bool cmdCopyImage(const CopyImageInfo& info) = 0;
 
-	virtual bool cmdBindVertexBuffer(Coral::BufferView* vertexBuffer, uint32_t binding) = 0;
+	/// Bind the vertex buffer
+	/**
+	 * \param buffer The buffer containing the vertex attribute data
+	 * \param binding Index of the vertex input whose state is updated by the command
+	 * \param offset The offset from the base address of the buffer to the first element in bytes
+	 * \param stride The byte stride between attributes in the buffer. If zero, the elements are assumed to be tightly
+	 * packed and the stride will be set to the byte size of one element.
+	 */
+	virtual bool cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, size_t offset, size_t stride) = 0;
 
-	virtual bool cmdBindIndexBuffer(Coral::BufferView* indexBuffer) = 0;
+	/// Bind the index buffer
+	/**
+	 * \param buffer The buffer containing the vertex indices
+	 * \param format The format of the indices contained in the buffer
+	 * \param offset The offset from the base address of the buffer to the first element in bytes
+	 */
+	virtual bool cmdBindIndexBuffer(Coral::Buffer* buffer, IndexFormat format, size_t offset) = 0;
 
+	/// Bind the graphics pipeline to the command buffer
 	virtual bool cmdBindPipeline(Coral::PipelineState* pipeline) = 0;
 
+	/// Draw the primitives with indexed vertices
 	virtual bool cmdDrawIndexed(const DrawIndexInfo& info) = 0;
 
 	virtual bool cmdSetViewport(const Coral::ViewportInfo& info) = 0;

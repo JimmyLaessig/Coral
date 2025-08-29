@@ -48,8 +48,9 @@ enum class ShaderModuleCreationError
 	INTERNAL_ERROR
 };
 
-/// Definition of a shader attribute of the shader module
-struct AttributeBindingLayout
+
+/// Structure specifying a shader attribute binding
+struct AttributeBindingInfo
 {
 	/// The buffer binding index
 	uint32_t binding{ 0 };
@@ -60,6 +61,10 @@ struct AttributeBindingLayout
 	/// The name of the attribute in the shader
 	std::string name;
 };
+
+
+using AttributeLayout = std::vector<AttributeBindingInfo>;
+
 
 /// Description of one member value of a uniform block
 struct MemberDefinition
@@ -97,11 +102,10 @@ struct CombinedTextureSamplerDefinition
 {
 };
 
-
 using DescriptorDefinition = std::variant<UniformBlockDefinition, SamplerDefinition, TextureDefinition, CombinedTextureSamplerDefinition>;
 
-/// Definition of a descriptor required by the shader
-struct DescriptorBindingLayout
+/// Structure specifying a shader descriptor binding
+struct DescriptorBindingInfo
 {
 	/// The binding index within the descriptor set to which a descriptor matching this definition must be bound
 	uint32_t binding{ 0 };
@@ -115,6 +119,9 @@ struct DescriptorBindingLayout
 	/// The type definition of the descriptor
 	DescriptorDefinition definition{ SamplerDefinition{} };
 };
+
+
+using DescriptorLayout = std::vector<DescriptorBindingInfo>;
 
 
 class CORAL_API ShaderModule
@@ -132,14 +139,14 @@ public:
 	/// Get the entry point of the shader module
 	virtual const std::string& entryPoint() const = 0;
 
-	/// Get a list of the input attribute definitions required by this shader
-	virtual std::span<const AttributeBindingLayout> inputAttributeBindingLayout() const = 0;
+	/// Get the layout of input attributes required by this shader
+	virtual const AttributeLayout& inputAttributeLayout() const = 0;
 
-	/// Get a list of the out attribute definitions produced by this shader
-	virtual std::span<const AttributeBindingLayout> outputAttributeBindingLayout() const = 0;
+	/// Get the layout of output attributes required by this shader
+	virtual const AttributeLayout& outputAttributeLayout() const = 0;
 
-	/// Get a list of descriptor binding definitions required by this shader
-	virtual std::span<const DescriptorBindingLayout> descriptorBindingLayout() const = 0;
+	/// Get the layout of descriptors required by this shader
+	virtual const DescriptorLayout& descriptorLayout() const = 0;
 };
 
 } // namespace Coral

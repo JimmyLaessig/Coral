@@ -98,34 +98,27 @@ template<> Coral::AttributeFormat toAttributeFormat<glm::vec2>() { return Coral:
 template<> Coral::AttributeFormat toAttributeFormat<uint32_t>()  { return Coral::AttributeFormat::UINT32; }
 template<> Coral::AttributeFormat toAttributeFormat<uint16_t>()  { return Coral::AttributeFormat::UINT16; }
 
+
 template<typename T, size_t S>
-std::pair<Coral::BufferPtr, Coral::BufferViewPtr>
+Coral::BufferPtr
 createBuffer(Coral::Context* context, const std::array<T, S>& elements, Coral::BufferType type)
 {
 	Coral::BufferCreateConfig bufferConfig{};
 	bufferConfig.size       = elements.size() * sizeof(T);
 	bufferConfig.type       = type;
 	bufferConfig.cpuVisible = false;
-	Coral::BufferPtr buffer(context->createBuffer(bufferConfig).value());
-
-	Coral::BufferViewCreateConfig bufferViewConfig{};
-	bufferViewConfig.buffer      = buffer.get();
-	bufferViewConfig.count		 = static_cast<uint32_t>(elements.size());
-	bufferViewConfig.offset		 = 0;
-	bufferViewConfig.stride		 = 0;
-	bufferViewConfig.attribute   = toAttributeFormat<T>();
-	Coral::BufferViewPtr bufferView(context->createBufferView(bufferViewConfig).value());
+	auto buffer             = context->createBuffer(bufferConfig).value();
 
 	auto queue = context->getTransferQueue();
 
 	Coral::CommandBufferCreateConfig commandBufferConfig{};
-	Coral::CommandBufferPtr commandBuffer(queue->createCommandBuffer(commandBufferConfig).value());
+	auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
 
 	Coral::UpdateBufferDataInfo updateInfo{};
 	updateInfo.buffer = buffer.get();
 	updateInfo.offset = 0;
 	updateInfo.data   = std::as_bytes(std::span(elements));
-	
+
 	commandBuffer->begin();
 	commandBuffer->cmdUpdateBufferData(updateInfo);
 	commandBuffer->end();
@@ -139,7 +132,7 @@ createBuffer(Coral::Context* context, const std::array<T, S>& elements, Coral::B
 	queue->submit(submitInfo, fence.get());
 	fence->wait();
 
-	return { std::move(buffer), std::move(bufferView) };
+	return buffer;
 }
 
 
@@ -161,8 +154,7 @@ createUniformBuffer(Coral::Context& context, Coral::UniformBlockBuilder& block)
 	config.cpuVisible	= true;
 	config.size			= block.data().size();
 	config.type			= Coral::BufferType::UNIFORM_BUFFER;
-
-	Coral::BufferPtr buffer(context.createBuffer(config).value());
+	auto buffer         = context.createBuffer(config).value();
 
 	updateUniformBuffer(*buffer, block);
 
@@ -189,7 +181,6 @@ createTexture(Coral::Context& context, const std::string& path)
 	auto queue = context.getTransferQueue();
 
 	Coral::CommandBufferCreateConfig commandBufferConfig{};
-
 	auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
 
 	Coral::UpdateImageDataInfo updateInfo{};
@@ -206,7 +197,7 @@ createTexture(Coral::Context& context, const std::string& path)
 	Coral::CommandBufferSubmitInfo submitInfo{};
 	submitInfo.commandBuffers = { &commandBufferPtr , 1 };
 
-	auto fence = context.createFence().value();
+	auto fence = Coral::FencePtr(context.createFence().value());
 	queue->submit(submitInfo, fence.get());
 	fence->wait();
 
@@ -244,12 +235,12 @@ int main()
 
 	Coral::ContextCreateConfig contextConfig{};
 	contextConfig.graphicsAPI = Coral::GraphicsAPI::VULKAN;
-	auto context			  = Coral::createContext(contextConfig).value();
+	auto context			  = Coral::ContextPtr(Coral::createContext(contextConfig).value());
 
-	auto swapchain               = context->createSwapchain(swapchainConfig).value();
-	auto fence                   = context->createFence().value();
+	auto swapchain               = Coral::SwapchainPtr(context->createSwapchain(swapchainConfig).value());
+	auto fence                   = Coral::FencePtr(context->createFence().value());
 	auto queue                   = context->getGraphicsQueue();
-	auto renderFinishedSemaphore = context->createSemaphore().value();
+	auto renderFinishedSemaphore = Coral::SemaphorePtr(context->createSemaphore().value());
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -275,7 +266,12 @@ int main()
 	vertexShaderConfig.stage	  = Coral::ShaderStage::VERTEX;
 	vertexShaderConfig.entryPoint = "main";
 	vertexShaderConfig.source	  = std::as_bytes(std::span{ shader->vertexShader });
-	auto vertexShader             = context->createShaderModule(vertexShaderConfig).value();
+	auto vertexShader = context->createShaderModule(vertexShaderConfig).value();
+
+	auto positionsBinding = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::POSITION_LOCATION; })->binding;
+	auto normalsBinding   = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::NORMAL_LOCATION; })->binding;
+	auto texcoordsBinding = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::TEXCOORD0_LOCATION; })->binding;
+
 
 	Coral::ShaderModuleCreateConfig fragmentShaderConfig{};
 	fragmentShaderConfig.name		= "FragmentShader";
@@ -302,10 +298,11 @@ int main()
 
 	auto [texture, sampler] = createTexture(*context, "resources/uvtest.png");
 
-	auto [positionBuffer, positionBufferView] = ::createBuffer(context.get(), Cube::Positions, Coral::BufferType::VERTEX_BUFFER);
-	auto [normalBuffer, normalBufferView]	  = ::createBuffer(context.get(), Cube::Normals, Coral::BufferType::VERTEX_BUFFER);
-	auto [uvBuffer, uvBufferView]			  = ::createBuffer(context.get(), Cube::Texcoords, Coral::BufferType::VERTEX_BUFFER);
-	auto [indexBuffer, indexBufferView]		  = ::createBuffer(context.get(), Cube::Indices, Coral::BufferType::INDEX_BUFFER);
+	auto positions   = ::createBuffer(context.get(), Cube::Positions, Coral::BufferType::VERTEX_BUFFER);
+	auto normals	 = ::createBuffer(context.get(), Cube::Normals, Coral::BufferType::VERTEX_BUFFER);
+	auto texcoords 	 = ::createBuffer(context.get(), Cube::Texcoords, Coral::BufferType::VERTEX_BUFFER);
+	auto indices	 = ::createBuffer(context.get(), Cube::Indices, Coral::BufferType::INDEX_BUFFER);
+	auto indexFormat = Coral::IndexFormat::UINT16;
 
 	context->getTransferQueue()->waitIdle();
 	std::array shaderModules = { vertexShader.get(), fragmentShader.get() };
@@ -316,9 +313,7 @@ int main()
 	pipelineStateConfig.topology				= Coral::Topology::TRIANGLE_LIST;
 	pipelineStateConfig.faceCullingMode			= Coral::FaceCullingModes::BackFaceCulling;
 	pipelineStateConfig.framebufferSignature	= swapchain->getFramebufferSignature();
-
-	auto pipelineState = context->createPipelineState(pipelineStateConfig).value();
-
+	auto pipelineState                          = context->createPipelineState(pipelineStateConfig).value();
 
 	auto before = std::chrono::system_clock::now();
 
@@ -395,9 +390,6 @@ int main()
 				ImGui::SliderFloat("", &rotationPerSecond, -1.f, 1.f);
 				ImGui::PopID();
 			}
-
-		
-	
 		}
 
 		ImGui::End();
@@ -417,7 +409,7 @@ int main()
 		updateUniformBuffer(*uniformBuffer, uniformBlock);
 
 		Coral::CommandBufferCreateConfig commandBufferConfig{};
-		Coral::CommandBufferPtr commandBuffer(queue->createCommandBuffer(commandBufferConfig).value());
+		auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
 		commandBuffer->begin();
 
 		Coral::BeginRenderPassInfo beginRenderPassInfo{};
@@ -435,15 +427,15 @@ int main()
 
 		commandBuffer->cmdBindDescriptor(uniformBuffer.get(), 0);
 		commandBuffer->cmdBindDescriptor(texture.get(), sampler.get(),  1);
-		
-		commandBuffer->cmdBindVertexBuffer(positionBufferView.get(), TexturedWithLightingShader::POSITION_LOCATION);
-		commandBuffer->cmdBindVertexBuffer(normalBufferView.get(), TexturedWithLightingShader::NORMAL_LOCATION);
-		commandBuffer->cmdBindVertexBuffer(uvBufferView.get(), TexturedWithLightingShader::TEXCOORD0_LOCATION);
-		commandBuffer->cmdBindIndexBuffer(indexBufferView.get());
+
+		commandBuffer->cmdBindVertexBuffer(positions.get(), positionsBinding, 0, Coral::sizeInBytes(Coral::AttributeFormat::VEC3F));
+		commandBuffer->cmdBindVertexBuffer(normals.get(),   normalsBinding,   0, Coral::sizeInBytes(Coral::AttributeFormat::VEC3F));
+		commandBuffer->cmdBindVertexBuffer(texcoords.get(), texcoordsBinding, 0, Coral::sizeInBytes(Coral::AttributeFormat::VEC2F));
+		commandBuffer->cmdBindIndexBuffer(indices.get(),    indexFormat, 0);
 
 		Coral::DrawIndexInfo drawInfo{};
 		drawInfo.firstIndex = 0;
-		drawInfo.indexCount = indexBufferView->count();
+		drawInfo.indexCount = indices->size() / Coral::sizeInBytes(indexFormat);
 		commandBuffer->cmdDrawIndexed(drawInfo);
 
 		ImGui_ImplCoral_NewFrame();

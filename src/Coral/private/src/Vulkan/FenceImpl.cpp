@@ -7,7 +7,7 @@ FenceImpl::~FenceImpl()
 {
 	if (mFence != VK_NULL_HANDLE)
 	{
-		vkDestroyFence(contextImpl().getVkDevice(), mFence, nullptr);
+		vkDestroyFence(context().getVkDevice(), mFence, nullptr);
 	}
 }
 
@@ -17,7 +17,7 @@ FenceImpl::init()
 {
 	VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 
-	if (vkCreateFence(contextImpl().getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
+	if (vkCreateFence(context().getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
 	{
 		return Coral::FenceCreationError::INTERNAL_ERROR;
 	}
@@ -36,12 +36,12 @@ FenceImpl::getVkFence()
 bool
 FenceImpl::wait()
 {
-	return vkWaitForFences(contextImpl().getVkDevice(), 1, &mFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+	return vkWaitForFences(context().getVkDevice(), 1, &mFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
 }
 
 
 void
 FenceImpl::reset()
 {
-	vkResetFences(contextImpl().getVkDevice(), 1, &mFence);
+	vkResetFences(context().getVkDevice(), 1, &mFence);
 }

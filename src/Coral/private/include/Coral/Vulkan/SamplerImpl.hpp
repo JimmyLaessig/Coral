@@ -1,24 +1,25 @@
 #ifndef CORAL_VULKAN_SAMPLERIMPL_HPP
 #define CORAL_VULKAN_SAMPLERIMPL_HPP
 
-#include <Coral/SamplerBase.hpp>
+#include <Coral/Sampler.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/ImageImpl.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 namespace Coral::Vulkan
 {
 
-class SamplerImpl : public Coral::SamplerBase
+class SamplerImpl : public Coral::Sampler
+	              , public Resource
+	              , public std::enable_shared_from_this<SamplerImpl>
 {
 public:
-	using SamplerBase::SamplerBase;
+	using Resource::Resource;
 
 	virtual ~SamplerImpl();
 
 	std::optional<Coral::SamplerCreationError> init(const Coral::SamplerCreateConfig& config);
-
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	Filter magFilter() const override;
 

@@ -7,7 +7,7 @@ SemaphoreImpl::~SemaphoreImpl()
 {
 	if (mSemaphore != VK_NULL_HANDLE)
 	{
-		vkDestroySemaphore(contextImpl().getVkDevice(), mSemaphore, nullptr);
+		vkDestroySemaphore(context().getVkDevice(), mSemaphore, nullptr);
 	}
 }
 
@@ -23,7 +23,7 @@ SemaphoreImpl::init()
 	VkSemaphoreCreateInfo info{ VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
 	info.pNext = &timelineCreateInfo;
 
-	if (vkCreateSemaphore(contextImpl().getVkDevice(), &info, nullptr, &mSemaphore) != VK_SUCCESS)
+	if (vkCreateSemaphore(context().getVkDevice(), &info, nullptr, &mSemaphore) != VK_SUCCESS)
 	{
 		return Coral::SemaphoreCreationError::INTERNAL_ERROR;
 	}

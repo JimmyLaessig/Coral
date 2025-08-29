@@ -1,25 +1,26 @@
 #ifndef CORAL_VULKAN_BUFFERIMPL_HPP
 #define CORAL_VULKAN_BUFFERIMPL_HPP
 
-#include <Coral/BufferBase.hpp>
+#include <Coral/Buffer.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/VulkanFormat.hpp>
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
+#include <Coral/Vulkan/Vulkan.hpp>
 
 namespace Coral::Vulkan
 {
 
-class BufferImpl : public Coral::BufferBase
+class BufferImpl : public Coral::Buffer,
+	               public std::enable_shared_from_this<BufferImpl>,
+	               public Resource
 {
 public:
 
-	using BufferBase::BufferBase;
+	using Resource::Resource;
 
 	virtual ~BufferImpl();
 
 	std::optional<Coral::BufferCreationError> init(const BufferCreateConfig& config);
-
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
 	size_t size() const override;
 

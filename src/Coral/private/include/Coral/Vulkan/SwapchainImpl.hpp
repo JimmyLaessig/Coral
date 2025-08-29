@@ -1,12 +1,11 @@
 #ifndef CORAL_VULKAN_SWAPCHAINIMPL_HPP
 #define CORAL_VULKAN_SWAPCHAINIMPL_HPP
 
-#include <Coral/SwapchainBase.hpp>
+#include <Coral/Swapchain.hpp>
 
+#include <Coral/Vulkan/Fwd.hpp>
+#include <Coral/Vulkan/Resource.hpp>
 #include <Coral/Vulkan/Vulkan.hpp>
-
-
-#include <Coral/Vulkan/ContextImpl.hpp>
 
 #include <array>
 #include <memory>
@@ -14,20 +13,18 @@
 
 namespace Coral::Vulkan
 {
-class CommandQueueImpl;
-class ContextImpl;
 
-class SwapchainImpl : public Coral::SwapchainBase
+class SwapchainImpl : public Coral::Swapchain
+	                , public Resource
+	                , public std::enable_shared_from_this<SwapchainImpl>
 {
 public:
 
-	using SwapchainBase::SwapchainBase;
+	using Resource::Resource;
 
 	virtual ~SwapchainImpl();
 
 	std::optional<Coral::SwapchainCreationError> init(const Coral::SwapchainCreateConfig& config);
-
-	ContextImpl& contextImpl();
 
 	void* nativeWindowHandle() override;
 

@@ -1,14 +1,17 @@
 #include <Coral/Vulkan/CommandBufferImpl.hpp>
 
+#include <Coral/Vulkan/BufferImpl.hpp>
+#include <Coral/Vulkan/CommandQueueImpl.hpp>
+#include <Coral/Vulkan/FramebufferImpl.hpp>
+#include <Coral/Vulkan/ImageImpl.hpp>
+#include <Coral/Vulkan/PipelineStateImpl.hpp>
+#include <Coral/Vulkan/SamplerImpl.hpp>
+
 #include <Coral/Visitor.hpp>
 
-#include <Coral/Types.hpp>
-
-#include <cassert>
-#include <mutex>
 #include <optional>
-#include <vector>
 #include <ranges>
+#include <vector>
 
 using namespace Coral::Vulkan;
 
@@ -61,8 +64,8 @@ CommandBufferImpl::cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
     VkImageMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.oldLayout                       = oldLayout;
     barrier.newLayout                       = newLayout;
-    barrier.srcQueueFamilyIndex             = contextImpl().getQueueFamilyIndex();
-    barrier.dstQueueFamilyIndex             = contextImpl().getQueueFamilyIndex();
+    barrier.srcQueueFamilyIndex             = context().getQueueFamilyIndex();
+    barrier.dstQueueFamilyIndex             = context().getQueueFamilyIndex();
     barrier.image                           = image->getVkImage();
     barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
     barrier.subresourceRange.baseMipLevel   = baseMipLevel;
@@ -75,12 +78,18 @@ CommandBufferImpl::cmdAddImageBarrier(Coral::Vulkan::ImageImpl* image,
     vkCmdPipelineBarrier(mCommandBuffer, srcStageFlags, dstStageFlags, 0, 0, nullptr, 0, nullptr, 1, &barrier);
 }
 
+CommandBufferImpl::CommandBufferImpl(CommandQueueImpl& commandQueue)
+    : Resource(commandQueue.context())
+    , mCommandQueue(commandQueue)
+{
+}
+
 
 CommandBufferImpl::~CommandBufferImpl()
 {
     if (mCommandBuffer != VK_NULL_HANDLE)
     {
-        vkFreeCommandBuffers(contextImpl().getVkDevice(), commandQueueImpl().getVkCommandPool(), 1, &mCommandBuffer);
+        vkFreeCommandBuffers(context().getVkDevice(), mCommandQueue.getVkCommandPool(), 1, &mCommandBuffer);
     }
 }
 
@@ -89,10 +98,10 @@ bool
 CommandBufferImpl::init(const Coral::CommandBufferCreateConfig& config)
 {
     mName        = config.name;
-    auto device  = contextImpl().getVkDevice();
+    auto device  = context().getVkDevice();
 
     VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    allocInfo.commandPool        = commandQueueImpl().getVkCommandPool();
+    allocInfo.commandPool        = mCommandQueue.getVkCommandPool();
     allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
     if (vkAllocateCommandBuffers(device, &allocInfo, &mCommandBuffer) != VK_SUCCESS)
@@ -275,59 +284,50 @@ CommandBufferImpl::cmdCopyImage(const CopyImageInfo& info)
 
 
 bool
-CommandBufferImpl::cmdBindVertexBuffer(Coral::BufferView* vertexBuffer, uint32_t binding)
+CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, size_t offset, size_t stride)
 {
-    auto bufferView = static_cast<Coral::Vulkan::BufferViewImpl*>(vertexBuffer);
-    auto buffer     = static_cast<Coral::Vulkan::BufferImpl*>(bufferView->buffer());
-
     if (buffer->type() != BufferType::VERTEX_BUFFER)
     {
         return false;
     }
-    auto vkBuffer       = buffer->getVkBuffer();
-    VkDeviceSize offset = bufferView->offset();
-    VkDeviceSize size   = bufferView->count() * bufferView->stride() - offset;
-    VkDeviceSize stride = bufferView->stride();
 
-    vkCmdBindVertexBuffers2(mCommandBuffer, binding, 1, &vkBuffer, &offset, &size, &stride);
+    auto bufferImpl       = static_cast<Coral::Vulkan::BufferImpl*>(buffer);
+    auto vkBuffer         = bufferImpl->getVkBuffer();
+    VkDeviceSize vkOffset = offset;
+    VkDeviceSize vkSize   = bufferImpl->size();
+    VkDeviceSize vkStride = stride;
+
+    vkCmdBindVertexBuffers2(mCommandBuffer, binding, 1, &vkBuffer, &vkOffset, &vkSize, &vkStride);
 
     return true;
 }
 
 
 bool
-CommandBufferImpl::cmdBindIndexBuffer(Coral::BufferView* indexBuffer)
-{
-    auto bufferView = static_cast<Coral::Vulkan::BufferViewImpl*>(indexBuffer);
-    auto buffer     = static_cast<Coral::Vulkan::BufferImpl*>(bufferView->buffer());
-        
+CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, IndexFormat format, size_t offset)
+{  
     if (buffer->type() != BufferType::INDEX_BUFFER)
     {
-        // TODO bufer type must be index buffer
+        // TODO buffer type must be index buffer
         return false;
     }
 
+    auto bufferImpl = static_cast<Coral::Vulkan::BufferImpl*>(buffer);
+
     VkIndexType indexType{};
-    switch (bufferView->attributeFormat())
+    switch (format)
     {
-        case AttributeFormat::UINT16 :
+        case IndexFormat::UINT16 :
             indexType = VK_INDEX_TYPE_UINT16;
             break;
-        case AttributeFormat::UINT32:
+        case IndexFormat::UINT32:
             indexType = VK_INDEX_TYPE_UINT32;
             break;
         default:
-            //TODO Invalid format
-            return false;
+            std::unreachable();
     }
 
-    if (bufferView->stride() != sizeInBytes(bufferView->attributeFormat()))
-    {
-        // TODO: INDEX BUFFER MUST BE TIGHTLY PACKED
-        return false;
-    }
-
-    vkCmdBindIndexBuffer(mCommandBuffer, buffer->getVkBuffer(), bufferView->offset(), indexType);
+    vkCmdBindIndexBuffer(mCommandBuffer, bufferImpl->getVkBuffer(), offset, indexType);
 
     return true;
 }
@@ -407,7 +407,7 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
 
     auto buffer = static_cast<Coral::Vulkan::BufferImpl*>(info.buffer);
 
-    auto stagingBuffer = contextImpl().requestStagingBuffer(info.data.size());
+    auto stagingBuffer = context().requestStagingBuffer(info.data.size());
     auto stagingBufferVK = static_cast<Coral::Vulkan::BufferImpl*>(stagingBuffer.get());
 
     auto mapped = stagingBuffer->map();
@@ -423,8 +423,8 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
 
     /*VkBufferMemoryBarrier barrier{};
     barrier.buffer = bufferImpl->getVkBuffer();
-    barrier.dstQueueFamilyIndex = contextImpl().getQueueFamilyIndex();
-    barrier.srcQueueFamilyIndex = contextImpl().getQueueFamilyIndex();*/
+    barrier.dstQueueFamilyIndex = context().getQueueFamilyIndex();
+    barrier.srcQueueFamilyIndex = context().getQueueFamilyIndex();*/
 
     /*VkBufferMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
     barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
@@ -452,7 +452,7 @@ CommandBufferImpl::cmdUpdateImageData(const Coral::UpdateImageDataInfo& info)
 {
     auto image = static_cast<Coral::Vulkan::ImageImpl*>(info.image);
 
-    auto stagingBuffer   = contextImpl().requestStagingBuffer(info.data.size());
+    auto stagingBuffer   = context().requestStagingBuffer(info.data.size());
     auto stagingBufferVK = static_cast<Coral::Vulkan::BufferImpl*>(stagingBuffer.get());
 
     auto mapped = stagingBuffer->map();
@@ -614,7 +614,6 @@ CommandBufferImpl::cmdBindCachedDescriptors()
                 descriptorWrite.pBufferInfo    = &info;
                 descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
             },
-
             [&](const VkDescriptorImageInfo& info)
             {
                 descriptorWrite.pImageInfo = &info;
@@ -631,11 +630,9 @@ CommandBufferImpl::cmdBindCachedDescriptors()
                     descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 }
             }
-        }
-        , info);
+        }, info);
 
         mDescriptorWrites.push_back(descriptorWrite);
-        //vkCmdPushDescriptorSetKHR(mCommandBuffer, bindingPoint, layout, 0, 1, &descriptorWrite);
     }
 
     if (!mDescriptorWrites.empty())

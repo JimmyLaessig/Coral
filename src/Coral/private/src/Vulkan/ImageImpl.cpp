@@ -50,12 +50,12 @@ ImageImpl::~ImageImpl()
 {
 	if (mImageView != VK_NULL_HANDLE)
 	{
-		vkDestroyImageView(contextImpl().getVkDevice(), mImageView, nullptr);
+		vkDestroyImageView(context().getVkDevice(), mImageView, nullptr);
 	}
 
 	if (mImage != VK_NULL_HANDLE && mIsOwner)
 	{
-		vmaDestroyImage(contextImpl().getVmaAllocator(), mImage, mAllocation);
+		vmaDestroyImage(context().getVmaAllocator(), mImage, mAllocation);
 	}
 }
 
@@ -81,7 +81,7 @@ ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32
 	viewCreateInfo.subresourceRange.baseMipLevel	= 0;
 	viewCreateInfo.subresourceRange.levelCount		= mMipLevelCount;
 
-	if (vkCreateImageView(contextImpl().getVkDevice(), &viewCreateInfo, nullptr, &mImageView) != VK_SUCCESS)
+	if (vkCreateImageView(context().getVkDevice(), &viewCreateInfo, nullptr, &mImageView) != VK_SUCCESS)
 	{
 		return false;
 	}
@@ -126,7 +126,7 @@ ImageImpl::init(const Coral::ImageCreateConfig& config)
 	allocCreateInfo.flags = VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT;
 
 	VmaAllocationInfo info{};
-	if (vmaCreateImage(contextImpl().getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
+	if (vmaCreateImage(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
 	{
 		return ImageCreationError::INTERNAL_ERROR;
 	}
