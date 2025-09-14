@@ -7,46 +7,12 @@ namespace Coral::ShaderLanguage
 {
 
 template<typename T>
-struct Then;
-
-template<typename T>
-struct Else;
-
-struct If
-{
-public:
-
-	If(Bool condition)
-		: mCondition(condition)
-	{
-	}
-
-	template<typename T>
-	Then<T> Then(T then)
-	{
-		return Then<T>(mCondition, then);
-	}
-
-	If(const If& other) = delete;
-	If(If&& other) = delete;
-
-	If& operator=(If&& other) = delete;
-	If& operator=(const If& other) = delete;
-
-private:
-
-	Bool mCondition;
-
-};
-
-
-template<typename T>
 struct Then
 {
 public:
 	T Else(T value)
 	{
-		return { std::make_shared<ShaderGraph::ConditionalExpression>(mCondition.source(), mIf.source(), value.source()) };
+		return T{ std::make_shared<ShaderGraph::ConditionalExpression>(mCondition.source(), mIf.source(), value.source()) };
 	}
 
 	Then(const Then& other) = delete;
@@ -67,6 +33,33 @@ private:
 
 	Bool mCondition;
 	T mIf;
+};
+
+struct If
+{
+public:
+
+	If(Bool condition)
+		: mCondition(condition)
+	{
+	}
+
+	template<typename T>
+	Then<T> Then(T value)
+	{
+		return Then<T>(mCondition, value);
+	}
+
+	If(const If& other) = delete;
+	If(If&& other) = delete;
+
+	If& operator=(If&& other) = delete;
+	If& operator=(const If& other) = delete;
+
+private:
+
+	Bool mCondition;
+
 };
 
 } // namespace ShaderLanguage 

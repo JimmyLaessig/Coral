@@ -358,6 +358,7 @@ CompilerGLSL::shouldHaveVariableAssignment(const ShaderGraph::Expression& expr)
 		[](const ParameterExpression&)       { return false; },
 		[](const NativeFunctionExpression&)  { return true; },
 	});
+
 }
 
 
@@ -629,23 +630,25 @@ CompilerGLSL::buildVariableNames(const ShaderModule& shader)
 			continue;
 		}
 
-		visit(*expr, Visitor{
+		auto name = visit(*expr, Visitor{
 			[&](const OutputAttributeExpression& attr)
 			{
-				mNameLookUp[expr] = std::visit(Visitor{
+				return std::visit(Visitor{
 						[](DefaultAttribute attribute) { return std::string(toString(attribute)); },
 						[](const std::string& attribute) { return std::format("out_{}", attribute); },
 					}, attr.attribute());
 			},
 			[&](const InputAttributeExpression& attr)
 			{
-				mNameLookUp[expr] = attr.attribute();
+				return attr.attribute();
 			},
 			[&](const auto& e)
 			{
-				mNameLookUp[expr] = std::format("{}_{}", getTypeShortName(expr->outputValueType()), mNameLookUp.size());
+				return std::format("{}_{}", getTypeShortName(expr->outputValueType()), mNameLookUp.size());
 			}
 		});
+
+		mNameLookUp.try_emplace(expr, name);
 	}
 }
 
