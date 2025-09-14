@@ -78,6 +78,8 @@ private:
 
 	VkCommandBuffer mCommandBuffer{ VK_NULL_HANDLE };
 
+	VkCommandPool mCommandPool{ VK_NULL_HANDLE };
+
 	std::string mName;
 
 	PipelineStateImpl* mLastBoundPipelineState{ nullptr };

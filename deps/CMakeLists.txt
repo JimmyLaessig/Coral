@@ -1,5 +1,3 @@
-set(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_BINARY_DIR})
-
 include(vulkan-headers.cmake)
 include(spirv-reflect.cmake)
 include(vk-bootstrap.cmake)

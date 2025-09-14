@@ -60,8 +60,11 @@ CommandBufferImpl::~CommandBufferImpl()
 {
     if (mCommandBuffer != VK_NULL_HANDLE)
     {
-        vkFreeCommandBuffers(context().getVkDevice(), mCommandQueue.getVkCommandPool(), 1, &mCommandBuffer);
+        vkFreeCommandBuffers(context().getVkDevice(), mCommandPool, 1, &mCommandBuffer);
     }
+
+    mCommandBuffer = VK_NULL_HANDLE;
+    mCommandPool   = VK_NULL_HANDLE;
 }
 
 
@@ -69,10 +72,12 @@ bool
 CommandBufferImpl::init(const Coral::CommandBufferCreateConfig& config)
 {
     mName        = config.name;
+    mCommandPool = mCommandQueue.getVkCommandPool();
+ 
     auto device  = context().getVkDevice();
 
     VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
-    allocInfo.commandPool        = mCommandQueue.getVkCommandPool();
+    allocInfo.commandPool        = mCommandPool;
     allocInfo.level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     allocInfo.commandBufferCount = 1;
     if (vkAllocateCommandBuffers(device, &allocInfo, &mCommandBuffer) != VK_SUCCESS)
