@@ -28,7 +28,9 @@ public:
 
 	uint32_t height() const override;
 
-	Coral::FramebufferSignature getSignature() override;
+	Coral::FramebufferSignature signature() override;
+
+	Coral::Image* colorAttachment(uint32_t attachment) override;
 
 	const std::vector<ColorAttachment>& colorAttachments();
 

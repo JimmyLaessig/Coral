@@ -2,9 +2,11 @@
 
 #include <Coral/Vulkan/VulkanFormat.hpp>
 
-#include <vector>
+#include <algorithm>
 #include <cassert>
 #include <optional>
+#include <ranges>
+#include <vector>
 
 using namespace Coral::Vulkan;
 
@@ -29,9 +31,9 @@ convert(Coral::ClearOp clearOp)
 std::optional<VkExtent2D>
 getFramebufferExtent(const Coral::FramebufferCreateConfig& config)
 {
-	if (!config.colorAttachment.empty())
+	if (!config.colorAttachments.empty())
 	{
-		return VkExtent2D{ config.colorAttachment.front().image->width(), config.colorAttachment.front().image->height() };
+		return VkExtent2D{ config.colorAttachments.front().image->width(), config.colorAttachments.front().image->height() };
 	}
 	else if (config.depthAttachment)
 	{
@@ -47,14 +49,6 @@ getFramebufferExtent(const Coral::FramebufferCreateConfig& config)
 std::optional<Coral::FramebufferCreationError>
 FramebufferImpl::init(const Coral::FramebufferCreateConfig& config)
 {
-	std::vector<VkAttachmentDescription> attachmentDescriptions;
-	attachmentDescriptions.reserve(config.colorAttachment.size());
-
-	std::vector<VkAttachmentReference> attachmentReferences;
-	attachmentReferences.reserve(config.colorAttachment.size());
-
-	VkAttachmentReference depthStencilAttachmentRefernce;
-
 	auto extent = getFramebufferExtent(config);
 
 	if (!extent)
@@ -62,27 +56,44 @@ FramebufferImpl::init(const Coral::FramebufferCreateConfig& config)
 		return FramebufferCreationError::INTERNAL_ERROR;
 	}
 
-	mWidth = extent->width;
+	mWidth  = extent->width;
 	mHeight = extent->height;
-	
-	for (auto attachment : config.colorAttachment)
+
+	mColorAttachments.assign_range(config.colorAttachments);
+	mDepthAttachment = config.depthAttachment;
+
+	// Sort the color attachments by attachment index for easier validation
+	std::ranges::sort(mColorAttachments, {}, &Coral::ColorAttachment::attachment);
+
+	// Validate the attachments:
+	// 1. The image format must not be a depth format
+	// 2. The attachment index must be unique
+	// 3. The depth attachment format must be a depth format
+
+	bool colorFormatsValid = std::ranges::none_of(config.colorAttachments, [](const auto& attachment)
 	{
-		if (isDepthFormat(attachment.image->format()))
-		{
-			return FramebufferCreationError::INTERNAL_ERROR;
-		}
-		mColorAttachments.push_back(attachment);
-	}
-	
-	if (config.depthAttachment)
+		return isDepthFormat(attachment.image->format());
+	});
+
+	if (!colorFormatsValid)
 	{
-		if (!isDepthFormat(config.depthAttachment->image->format()))
-		{
-			return FramebufferCreationError::INTERNAL_ERROR;
-		}
+		return FramebufferCreationError::INVALID_COLOR_ATTACHMENT_FORMAT;
 	}
 
-	mDepthAttachment = config.depthAttachment;
+	// Check if the color attachments are unique
+	bool attachmentsValid = std::ranges::adjacent_find(mColorAttachments, {}, &Coral::ColorAttachment::attachment) == mColorAttachments.end();
+	if (!attachmentsValid)
+	{
+		return FramebufferCreationError::DUPLICATE_COLOR_ATTACHMENTS;
+	}
+
+	if (mDepthAttachment)
+	{
+		if (!isDepthFormat(mDepthAttachment->image->format()))
+		{
+			return FramebufferCreationError::INTERNAL_ERROR;
+		}
+	}
 
 	return {};
 }
@@ -116,7 +127,7 @@ FramebufferImpl::height() const
 
 
 Coral::FramebufferSignature
-FramebufferImpl::getSignature()
+FramebufferImpl::signature()
 {
 	Coral::FramebufferSignature signature{};
 
@@ -131,4 +142,18 @@ FramebufferImpl::getSignature()
 	}
 
 	return signature;
+}
+
+
+Coral::Image*
+FramebufferImpl::colorAttachment(uint32_t attachment)
+{
+	for (const auto& ca : mColorAttachments)
+	{
+		if (ca.attachment == attachment)
+		{
+			return ca.image;
+		}
+	}
+	return nullptr;
 }

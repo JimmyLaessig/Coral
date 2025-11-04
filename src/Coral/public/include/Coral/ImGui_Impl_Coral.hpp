@@ -3,13 +3,15 @@
 
 #include <Coral/System.hpp>
 #include <Coral/CoralFwd.hpp>
+#include <Coral/Framebuffer.hpp>
 
 #include <imgui.h>
 
 struct ImGui_ImplCoral_InitInfo
 {
     Coral::Context* context{ nullptr };
-    Coral::Swapchain* swapchain{ nullptr };
+    Coral::FramebufferSignature framebufferSignature{};
+    uint32_t swapchainImageCount{ 0 };
 };
 
 bool CORAL_API ImGui_ImplCoral_Init(ImGui_ImplCoral_InitInfo* initInfo);

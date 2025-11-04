@@ -1,37 +1,40 @@
-
-#include <Coral/Vulkan/Vulkan.hpp>
 #include <Coral/ImGui_Impl_Coral.hpp>
 
-#include <Coral/Vulkan/ContextImpl.hpp>
-#include <Coral/Vulkan/SwapchainImpl.hpp>
+#include <backends/imgui_impl_vulkan.h>
+
+#include <Coral/Vulkan/Vulkan.hpp>
 #include <Coral/Vulkan/CommandBufferImpl.hpp>
 #include <Coral/Vulkan/CommandQueueImpl.hpp>
+#include <Coral/Vulkan/ContextImpl.hpp>
 #include <Coral/Vulkan/VulkanFormat.hpp>
-#include <backends/imgui_impl_vulkan.h>
+
 
 bool
 ImGui_ImplCoral_Init(ImGui_ImplCoral_InitInfo* initInfo)
 {
-	auto context   = static_cast<Coral::Vulkan::ContextImpl*>(initInfo->context);
-	auto swapchain = static_cast<Coral::Vulkan::SwapchainImpl*>(initInfo->swapchain);
-	auto queue     = static_cast<Coral::Vulkan::CommandQueueImpl*>(context->getGraphicsQueue());
+	auto context = static_cast<Coral::Vulkan::ContextImpl*>(initInfo->context);
+	auto queue   = static_cast<Coral::Vulkan::CommandQueueImpl*>(context->getGraphicsQueue());
 
-	const auto& swapchainConfig = swapchain->config();
-	auto colorAttachmentFormat  = Coral::Vulkan::convert(swapchainConfig.format);
-	auto depthAttachmentFormat  = Coral::Vulkan::convert(swapchainConfig.depthFormat.value_or(Coral::PixelFormat::DEPTH24_STENCIL8));
+	std::vector<VkFormat> colorAttachments;
+	for (auto format : initInfo->framebufferSignature.colorAttachmentFormats)
+	{
+		colorAttachments.push_back(Coral::Vulkan::convert(format));
+	}
 	
 	VkPipelineRenderingCreateInfo renderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
-	renderingCreateInfo.colorAttachmentCount    = 1;
-	renderingCreateInfo.pColorAttachmentFormats = &colorAttachmentFormat;
+	renderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colorAttachments.size());
+	renderingCreateInfo.pColorAttachmentFormats = colorAttachments.data();
 	renderingCreateInfo.depthAttachmentFormat   = VK_FORMAT_UNDEFINED;
 	renderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-	if (swapchainConfig.depthFormat)
+	
+	if (auto format = initInfo->framebufferSignature.depthStencilAttachmentFormat)
 	{
-		renderingCreateInfo.depthAttachmentFormat = Coral::Vulkan::convert(*swapchainConfig.depthFormat);
+		auto vkFormat = Coral::Vulkan::convert(*format);
+		renderingCreateInfo.depthAttachmentFormat = vkFormat;
 
-		if (swapchainConfig.depthFormat == Coral::PixelFormat::DEPTH24_STENCIL8)
+		if (Coral::Vulkan::isStencilFormat(*format))
 		{
-			renderingCreateInfo.stencilAttachmentFormat = depthAttachmentFormat;
+			renderingCreateInfo.stencilAttachmentFormat = vkFormat;
 		}
 	}
 
@@ -44,8 +47,8 @@ ImGui_ImplCoral_Init(ImGui_ImplCoral_InitInfo* initInfo)
 	vkInitInfo.Queue                       = queue->getVkQueue();
 	vkInitInfo.DescriptorPool              = VK_NULL_HANDLE;
 	vkInitInfo.RenderPass                  = VK_NULL_HANDLE;
-	vkInitInfo.MinImageCount               = swapchain->config().swapchainImageCount;
-	vkInitInfo.ImageCount                  = swapchain->getSwapchainImageCount();
+	vkInitInfo.MinImageCount               = initInfo->swapchainImageCount;
+	vkInitInfo.ImageCount                  = initInfo->swapchainImageCount;
 	vkInitInfo.MSAASamples                 = VK_SAMPLE_COUNT_1_BIT;
 	vkInitInfo.PipelineCache               = VK_NULL_HANDLE;
 	vkInitInfo.Subpass                     = 0;

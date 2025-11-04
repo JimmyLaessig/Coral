@@ -42,12 +42,6 @@ struct SwapchainImageInfo
 	/// The framebuffer used to render to this swapchain image
 	Coral::Framebuffer* framebuffer{ nullptr };
 
-	/// The current swapchain color image
-	Coral::Image* image{ nullptr };
-
-	/// The current swapchain depth image. Can be null if no depth format was requested during swapchain creation
-	Coral::Image* depthImage{ nullptr };
-
 	/// Semaphore that is signaled once the image is ready for use
 	/**
 	 * Command buffers that render to the current framebuffer must wait for this semaphore before beginning rendering.
@@ -65,20 +59,22 @@ class CORAL_API Swapchain
 {
 
 public:
-	
+
 	virtual ~Swapchain() = default;
 
 	virtual void* nativeWindowHandle() = 0;
 
 	virtual SwapchainImageInfo acquireNextSwapchainImage(Fence* fence) = 0;
 
-	virtual SwapchainImageInfo getCurrentSwapchainImage() = 0;
+	virtual SwapchainImageInfo currentSwapchainImage() const = 0;
 
-	virtual uint32_t getCurrentSwapchainImageIndex() = 0;
+	virtual uint32_t currentSwapchainImageIndex() const = 0;
 
-	virtual uint32_t getSwapchainImageCount() const = 0;
+	virtual uint32_t swapchainImageCount() const = 0;
 
-	virtual FramebufferSignature getFramebufferSignature() = 0;
+	virtual SwapchainExtent swapchainExtent() const = 0;
+
+	virtual FramebufferSignature framebufferSignature() const = 0;
 };
 
 } // namespace Coral
