@@ -30,13 +30,15 @@ public:
 
 	SwapchainImageInfo acquireNextSwapchainImage(Fence* fence) override;
 
-	SwapchainImageInfo getCurrentSwapchainImage() override;
+	SwapchainImageInfo currentSwapchainImage() const override;
 
-	uint32_t getCurrentSwapchainImageIndex() override;
+	uint32_t currentSwapchainImageIndex() const override;
 
-	uint32_t getSwapchainImageCount() const override;
+	uint32_t swapchainImageCount() const override;
 
-	FramebufferSignature getFramebufferSignature() override;
+	FramebufferSignature framebufferSignature() const override;
+
+	SwapchainExtent swapchainExtent() const override;
 
 	VkSurfaceKHR getVkSurface();
 

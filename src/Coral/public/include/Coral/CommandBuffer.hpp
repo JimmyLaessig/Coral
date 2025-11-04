@@ -57,9 +57,9 @@ enum class CommandBufferCreationError
 ///
 struct ClearColor
 {
+	uint32_t attachment;
 	ClearOp clearOp{ ClearOp::LOAD };
 	float color[4];
-	uint32_t attachment;
 };
 
 ///

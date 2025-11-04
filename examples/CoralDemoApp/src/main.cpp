@@ -254,8 +254,9 @@ int main()
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 
 	ImGui_ImplCoral_InitInfo initInfo{};
-	initInfo.context   = context.get();
-	initInfo.swapchain = swapchain.get();
+	initInfo.context                      = context.get();
+	initInfo.framebufferSignature         = swapchain->framebufferSignature();
+	initInfo.swapchainImageCount          = swapchain->swapchainImageCount();
 	ImGui_ImplCoral_Init(&initInfo);
 
 	ImGui_ImplCoral_CreateFontsTexture();
@@ -316,7 +317,7 @@ int main()
 	pipelineStateConfig.polygonMode				= Coral::PolygonMode::SOLID;
 	pipelineStateConfig.topology				= Coral::Topology::TRIANGLE_LIST;
 	pipelineStateConfig.faceCullingMode			= Coral::FaceCullingModes::BackFaceCulling;
-	pipelineStateConfig.framebufferSignature	= swapchain->getFramebufferSignature();
+	pipelineStateConfig.framebufferSignature	= swapchain->framebufferSignature();
 	auto pipelineState                          = context->createPipelineState(pipelineStateConfig).value();
 
 	auto before = std::chrono::system_clock::now();
@@ -418,7 +419,7 @@ int main()
 
 		Coral::BeginRenderPassInfo beginRenderPassInfo{};
 		beginRenderPassInfo.framebuffer = info.framebuffer;
-		Coral::ClearColor clearColor	= { Coral::ClearOp::CLEAR, { 1.f, 1.f, 1.f, 1.f }, 0 };
+		Coral::ClearColor clearColor	= { 0, Coral::ClearOp::CLEAR, { 1.f, 1.f, 1.f, 1.f } };
 		Coral::ClearDepth clearDepth	= { Coral::ClearOp::CLEAR, 1.f, 0 };
 		beginRenderPassInfo.clearColor	= { &clearColor, 1 };
 		beginRenderPassInfo.clearDepth	= clearDepth;
@@ -435,7 +436,7 @@ int main()
 		commandBuffer->cmdBindVertexBuffer(positions.get(), positionsBinding, 0, Coral::sizeInBytes(Coral::AttributeFormat::VEC3F));
 		commandBuffer->cmdBindVertexBuffer(normals.get(),   normalsBinding,   0, Coral::sizeInBytes(Coral::AttributeFormat::VEC3F));
 		commandBuffer->cmdBindVertexBuffer(texcoords.get(), texcoordsBinding, 0, Coral::sizeInBytes(Coral::AttributeFormat::VEC2F));
-		commandBuffer->cmdBindIndexBuffer(indices.get(),    indexFormat, 0);
+		commandBuffer->cmdBindIndexBuffer(indices.get(),    indexFormat,      0);
 
 		Coral::DrawIndexInfo drawInfo{};
 		drawInfo.firstIndex = 0;

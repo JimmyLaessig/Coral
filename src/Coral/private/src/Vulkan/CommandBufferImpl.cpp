@@ -122,14 +122,31 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
     {
         return false;
     }
+    // Validate the clear colors
+    // Each framebuffer attachment must have a corresponding clear color in the liust
+    auto clearColors = info.clearColor;
+    std::ranges::sort(clearColors, {}, &Coral::ClearColor::attachment);
 
-    if (depthAttachment.has_value() != info.clearDepth.has_value())
+    auto zipped = std::views::zip(colorAttachments, clearColors);
+
+    bool clearColorsValid = std::ranges::all_of(zipped, [](const auto& tuple)
+    { 
+            return std::get<0>(tuple).attachment == std::get<1>(tuple).attachment;
+    });
+
+    if (!clearColorsValid)
+    {
+        return false;
+    }
+
+    bool clearDepthValid = depthAttachment.has_value() == info.clearDepth.has_value();
+    if (!clearDepthValid)
     {
         return false;
     }
 
     std::vector<VkRenderingAttachmentInfo> attachments;
-    for (const auto& [colorAttachment, clearColor] : std::views::zip(colorAttachments, info.clearColor))
+    for (const auto& [colorAttachment, clearColor] : zipped)
     {
         VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
  

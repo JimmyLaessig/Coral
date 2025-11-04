@@ -211,9 +211,9 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 	{
 		Coral::FramebufferCreateConfig framebufferConfig{};
 
-		Coral::ColorAttachment colorAttachment{ mSwapchainImageData[i].image.get() };
+		Coral::ColorAttachment colorAttachment{ 0, mSwapchainImageData[i].image.get() };
 
-		framebufferConfig.colorAttachment = { &colorAttachment, 1 };
+		framebufferConfig.colorAttachments = { &colorAttachment, 1 };
 
 		if (config.depthFormat)
 		{
@@ -344,13 +344,11 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	// Update the cached SwapchainImageInfo 
 	mCurrentSwapchainImageInfo                         = {};
 	mCurrentSwapchainImageInfo.imageAvailableSemaphore = imageReadySemaphore;
-	mCurrentSwapchainImageInfo.image                   = mSwapchainImageData[mCurrentSwapchainIndex].image.get();
-	mCurrentSwapchainImageInfo.depthImage              = mSwapchainDepthImage.get();
 	mCurrentSwapchainImageInfo.framebuffer             = mSwapchainImageData[mCurrentSwapchainIndex].framebuffer.get();
 
 	commandBuffer->begin();
 
-	auto image = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image);
+	auto image = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.framebuffer->colorAttachment(0));
 
 	ImageImpl::cmdTransitionImageLayout(commandBufferImpl->getVkCommandBuffer(), 
                                         *image, 
@@ -395,7 +393,7 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 
 	auto commandBuffer             = syncObjects.transitionToPresent.get();
 	auto imagePresentableSemaphore = syncObjects.imagePresentableSemaphore.get();
-	auto swapchainImage            = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.image);
+	auto swapchainImage            = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.framebuffer->colorAttachment(0));
 	auto swapchainImageIndex       = mCurrentSwapchainIndex;
 	auto commandBufferImpl         = static_cast<CommandBufferImpl*>(commandBuffer);
 
@@ -441,28 +439,35 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 
 
 Coral::SwapchainImageInfo
-SwapchainImpl::getCurrentSwapchainImage()
+SwapchainImpl::currentSwapchainImage() const
 {
 	return mCurrentSwapchainImageInfo;
 }
 
 
 uint32_t
-SwapchainImpl::getCurrentSwapchainImageIndex()
+SwapchainImpl::currentSwapchainImageIndex() const
 {
 	return mCurrentSwapchainIndex;
 }
 
 
 uint32_t
-SwapchainImpl::getSwapchainImageCount() const
+SwapchainImpl::swapchainImageCount() const
 {
 	return static_cast<uint32_t>(mSwapchainImageData.size());
 }
 
 
-Coral::FramebufferSignature
-SwapchainImpl::getFramebufferSignature()
+Coral::SwapchainExtent
+SwapchainImpl::swapchainExtent() const
 {
-	return mSwapchainImageData.front().framebuffer->getSignature();
+	return { mSwapchainImageData.front().framebuffer->width(), mSwapchainImageData.front().framebuffer->height()};
+}
+
+
+Coral::FramebufferSignature
+SwapchainImpl::framebufferSignature() const
+{
+	return mSwapchainImageData.front().framebuffer->signature();
 }
