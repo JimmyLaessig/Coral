@@ -1,43 +1,83 @@
 #ifndef CORAL_SHADERLANGUAGE_SHADERMODULE_HPP
 #define CORAL_SHADERLANGUAGE_SHADERMODULE_HPP
 
-#include <Coral/ShaderLanguage/Attribute.hpp>
-
+#include <Coral/ShaderLanguage/Expression.hpp>
+#include <Coral/ShaderLanguage/Variable.hpp>
+#include <cassert>
 #include <memory>
 #include <vector>
 
 namespace Coral::ShaderLanguage
 {
+template<typename T>
+class ReadOnly : public T
+{
+public:
+	using T::T;
+
+	ReadOnly(const T&) = delete;
+	ReadOnly(T&&) = delete;
+	ReadOnly& operator=(const T&) = delete;
+	ReadOnly& operator=(T&&) = delete;
+};
+
 
 class ShaderModule
 {
 public:
 
-	/// Register a new shader output attribute
-	template<typename T>
-	void registerOutputAttribute(const Output<T>& attribute)
+	ShaderModule()
 	{
-		registerOutputAttribute(std::static_pointer_cast<ShaderGraph::OutputAttributeExpression>(attribute.source()));
+
 	}
 
-	/// Get the input attributes of the shader module
-	std::vector<const ShaderGraph::InputAttributeExpression*> inputs() const;
+	void buildInstructionList()
+	{
+		sCurrentShaderModule = this;
+		main();
+		sCurrentShaderModule = nullptr;
+	}
 
-	/// Get the parameters used by this shader module
-	std::vector<const ShaderGraph::ParameterExpression*> parameters() const;
+	static ShaderModule* current()
+	{
+		assert(sCurrentShaderModule != nullptr);
+		return sCurrentShaderModule;
+	}
 
-	/// Get the output attributes of the shader module
-	std::vector<const ShaderGraph::OutputAttributeExpression*> outputs() const;
+	void addExpression(std::shared_ptr<Expression> ex);
 
-	/// Build a flattened list of all shader expression
-	std::vector<const ShaderGraph::Expression*> buildExpressionList() const;
+	std::vector<const InputAttributeExpression*> inputs() const;
+
+	std::vector<const OutputAttributeExpression*> outputs() const;
+
+	std::vector<const ParameterExpression*> parameters() const;
+
+	std::vector<const Expression*> expressionList() const;
+
+	template<typename T, typename ...Args>
+	std::shared_ptr<Expression>addExpression(Args&&... args)
+	{
+		auto expression = std::make_shared<T>(std::forward<Args>(args)...);
+		mInstructions.push_back(expression);
+		return expression;
+	}
+
+protected:
+
+	virtual ~ShaderModule() = default;
+
+	virtual void main() = 0;
 
 private:
 
-	void registerOutputAttribute(std::shared_ptr<ShaderGraph::OutputAttributeExpression> attribute);
+	static inline ShaderModule* sCurrentShaderModule{ nullptr };
 
-	std::vector<std::shared_ptr<ShaderGraph::OutputAttributeExpression>> mOutputs;
-};
+	std::vector<std::shared_ptr<Expression>> mInstructions;
+
+	std::unordered_map<Expression*, std::string> mNameLookUp;
+
+	size_t mNameCounter{ 0 };
+}; // class ShaderModule
 
 } // namespace Coral::ShaderLanguage 
 

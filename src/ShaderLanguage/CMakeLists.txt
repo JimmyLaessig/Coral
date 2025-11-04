@@ -34,7 +34,9 @@ set(CSL_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
 set(CSL_SHADERLANGUAGE_HEADERS
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/ShaderModule.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Variable.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Compiler.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Expression.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/CompilerGLSL.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/CompilerSPV.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/ShaderGraph.hpp
@@ -52,8 +54,10 @@ set(CSL_HEADER
 
 set(CSL_SOURCES
     ${CSL_SOURCE_DIR}/Visitor.hpp
+    ${CSL_SOURCE_DIR}/Variable.cpp
     ${CSL_SOURCE_DIR}/CompilerGLSL.cpp
     ${CSL_SOURCE_DIR}/CompilerSPV.cpp
+    ${CSL_SOURCE_DIR}/Expression.cpp
     ${CSL_SOURCE_DIR}/ShaderModule.cpp)
 
 #######################################################################################################################

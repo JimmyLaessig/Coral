@@ -1,30 +1,18 @@
 #include <Coral/ShaderLanguage/ShaderModule.hpp>
 
 #include <algorithm>
-#include <unordered_set>
 #include <cassert>
 #include <ranges>
+#include <set>
+#include <unordered_set>
 
 using namespace Coral::ShaderLanguage;
-using namespace Coral::ShaderLanguage::ShaderGraph;
 
 
-template<typename T>
 void
-collectShaderModuleExpressionsRecursive(const Expression& expression, std::vector<const T*>& result, std::unordered_set<const T*>& visited)
+ShaderModule::addExpression(std::shared_ptr<Expression> ex)
 {
-	if (expression.typeId() == T::classTypeId())
-	{
-		if (visited.insert(static_cast<const T*>(&expression)).second)
-		{
-			result.push_back(static_cast<const T*>(&expression));
-		}
-	}
-
-	for (const auto* input : expression.inputs())
-	{
-		collectShaderModuleExpressionsRecursive(*input, result, visited);
-	}
+	mInstructions.push_back(ex);
 }
 
 
@@ -32,12 +20,16 @@ std::vector<const InputAttributeExpression*>
 ShaderModule::inputs() const
 {
 	std::vector<const InputAttributeExpression*> result;
-	std::unordered_set<const InputAttributeExpression*> visited;
-	for (const auto output : mOutputs)
+	std::set<const InputAttributeExpression*> visited;
+	for (const auto instruction : mInstructions)
 	{
-		for (auto input : output->inputs())
+		if (instruction->expressionType() == InputAttributeExpression::ClassType())
 		{
-			collectShaderModuleExpressionsRecursive(*input, result, visited);
+			auto attr = static_cast<const InputAttributeExpression*>(instruction.get());
+			if (visited.insert(attr).second)
+			{
+				result.push_back(attr);
+			}
 		}
 	}
 
@@ -49,13 +41,16 @@ std::vector<const ParameterExpression*>
 ShaderModule::parameters() const
 {
 	std::vector<const ParameterExpression*> result;
-	std::unordered_set<const ParameterExpression*> visited;
-
-	for (const auto output : mOutputs)
+	std::set<const ParameterExpression*> visited;
+	for (const auto instruction : mInstructions)
 	{
-		for (auto input : output->inputs())
+		if (instruction->expressionType() == ParameterExpression::ClassType())
 		{
-			collectShaderModuleExpressionsRecursive(*input, result, visited);
+			auto attr = static_cast<const ParameterExpression*>(instruction.get());
+			if (visited.insert(attr).second)
+			{
+				result.push_back(attr);
+			}
 		}
 	}
 
@@ -66,47 +61,29 @@ ShaderModule::parameters() const
 std::vector<const OutputAttributeExpression*>
 ShaderModule::outputs() const
 {
-	return mOutputs
-		| std::views::transform([](auto node) { return node.get(); })
-		| std::ranges::to<std::vector<const OutputAttributeExpression*>>();
-}
+	std::vector<const OutputAttributeExpression*> result;
+	std::set<const OutputAttributeExpression*> visited;
 
-
-void
-buildExpressionListRecursive(const Expression& expression, std::vector<const Expression*>& expressions)
-{
-	expressions.push_back(&expression);
-
-	for (auto input : expression.inputs())
+	for (const auto instruction : mInstructions)
 	{
-		buildExpressionListRecursive(*input, expressions);
-	}
-}
-
-
-std::vector<const Expression*>
-ShaderModule::buildExpressionList() const
-{
-	auto result = mOutputs
-		| std::views::transform([](auto node) { return node.get(); })
-		| std::ranges::to<std::vector<const Expression*>>();
-
-	for (auto node : mOutputs)
-	{
-		for (auto input : node->inputs())
+		if (instruction->expressionType() == OutputAttributeExpression::ClassType())
 		{
-			buildExpressionListRecursive(*input, result);
+			auto attr = static_cast<const OutputAttributeExpression*>(instruction.get());
+			if (visited.insert(attr).second)
+			{
+				result.push_back(attr);
+			}
 		}
 	}
 
-	std::reverse(result.begin(), result.end());
-	
 	return result;
 }
 
 
-void
-ShaderModule::registerOutputAttribute(std::shared_ptr<OutputAttributeExpression> attribute)
+std::vector<const Expression*>
+ShaderModule::expressionList() const
 {
-	mOutputs.push_back(attribute);
+	return mInstructions 
+		| std::views::transform(&std::shared_ptr<Expression>::get)
+		| std::ranges::to<std::vector<const Expression*>>();
 }

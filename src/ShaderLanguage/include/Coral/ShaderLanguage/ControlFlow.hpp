@@ -6,61 +6,61 @@
 namespace Coral::ShaderLanguage
 {
 
-template<typename T>
-struct Then
-{
-public:
-	T Else(T value)
-	{
-		return T{ std::make_shared<ShaderGraph::ConditionalExpression>(mCondition.source(), mIf.source(), value.source()) };
-	}
-
-	Then(const Then& other) = delete;
-	Then(Then&& other) = delete;
-
-	Then& operator=(Then&& other) = delete;
-	Then& operator=(const Then& other) = delete;
-
-private:
-
-	friend class If;
-
-	Then(Bool condition, T ifCond)
-		: mCondition(condition)
-		, mIf(ifCond)
-	{
-	}
-
-	Bool mCondition;
-	T mIf;
-};
-
-struct If
-{
-public:
-
-	If(Bool condition)
-		: mCondition(condition)
-	{
-	}
-
-	template<typename T>
-	Then<T> Then(T value)
-	{
-		return Then<T>(mCondition, value);
-	}
-
-	If(const If& other) = delete;
-	If(If&& other) = delete;
-
-	If& operator=(If&& other) = delete;
-	If& operator=(const If& other) = delete;
-
-private:
-
-	Bool mCondition;
-
-};
+//template<typename T>
+//struct Then
+//{
+//public:
+//	T Else(T value)
+//	{
+//		return T{ ShaderModule::current()->addExpression<ConditionalExpression>(mCondition.source(), mIf.source(), value.source()) };
+//	}
+//
+//	Then(const Then& other) = delete;
+//	Then(Then&& other) = delete;
+//
+//	Then& operator=(Then&& other) = delete;
+//	Then& operator=(const Then& other) = delete;
+//
+//private:
+//
+//	friend class If;
+//
+//	Then(Bool condition, T ifCond)
+//		: mCondition(condition)
+//		, mIf(ifCond)
+//	{
+//	}
+//
+//	std::shared_ptr<Expression> mCondition;
+//	T mIf;
+//};
+//
+//struct If
+//{
+//public:
+//
+//	If(Bool condition)
+//		: mCondition(condition.source())
+//	{
+//	}
+//
+//	template<typename T>
+//	Then<T> Then(T value)
+//	{
+//		return Then<T>(mCondition, value);
+//	}
+//
+//	If(const If& other) = delete;
+//	If(If&& other) = delete;
+//
+//	If& operator=(If&& other) = delete;
+//	If& operator=(const If& other) = delete;
+//
+//private:
+//
+//	std::shared_ptr<Expression> mCondition;
+//
+//};
 
 } // namespace ShaderLanguage 
 

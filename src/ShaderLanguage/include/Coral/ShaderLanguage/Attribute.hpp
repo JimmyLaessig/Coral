@@ -1,48 +1,93 @@
 #ifndef CORAL_SHADERLANGUAGE_ATTRIBUTE_HPP
 #define CORAL_SHADERLANGUAGE_ATTRIBUTE_HPP
 
-#include <Coral/ShaderLanguage/ShaderGraph.hpp>
-
-#include <Coral/ShaderLanguage/Scalar.hpp>
+#include <Coral/ShaderLanguage/Expression.hpp>
+#include <Coral/ShaderLanguage/Variable.hpp>
+#include <concepts>
 
 namespace Coral::ShaderLanguage
 {
 
-template<typename T>
-struct Input : public T
+template<std::size_t N>
+struct StringLiteral
 {
-	Input(std::string_view name)
-		: T(std::make_shared<ShaderGraph::InputAttributeExpression>(T::toShaderTypeId(), name))
+	char value[N];
+
+	constexpr StringLiteral(const char(&str)[N])
 	{
+		std::copy_n(str, N, value);
+	}
+};
+
+namespace DefaultAttributes
+{
+	/// Set the position of a vertex in homogenous space. Every vertex shader must write out a parameter with this output.
+	/*
+	 * \Note: The position output value must be a 4-component float vector.
+	 * \Note: The POSITION semantic is only available in vertex shaders.
+	 */
+	constexpr const auto POSITION = StringLiteral("POSITION");
+
+	/// Shader output that is used to override the z buffer value in the fragment shader.
+	/*
+	 * \Note: The depth output value must be a single float.
+	 * \Note: the DEPTH semantic is only in fragment shaders.
+	 */
+	constexpr const auto DEPTH    = StringLiteral("DEPTH");
+} // namespace DefaultAttributes
+
+
+template<typename T, StringLiteral Name>
+struct InAttribute final : public T
+{
+	InAttribute()
+		: T(ShaderModule::current()->addExpression<InputAttributeExpression>(T::toShaderTypeId(), Name.value))
+	{
+		
 	}
 
-	Input(const Input&)            = delete;
-	Input(Input&&)                 = delete;
-	Input& operator=(const Input&) = delete;
-	Input& operator=(Input&&)      = delete;
+	InAttribute(const InAttribute&) = delete;
+	InAttribute(InAttribute&&)      = delete;
 };
 
 
-using DefaultAttribute = ShaderGraph::DefaultAttribute;
-
-
-template<typename T>
-struct Output final: public Value
+template<typename T, StringLiteral Name>
+struct OutAttribute final : public T
 {
-	Output(std::string_view name, const T& value)
-		: Value(std::make_shared<ShaderGraph::OutputAttributeExpression>(name, value.source()))
+	OutAttribute()
+		: T(ShaderModule::current()->addExpression<OutputAttributeExpression>(T::toShaderTypeId(), Name.value))
 	{
 	}
 
-	Output(DefaultAttribute attribute, const T& value)
-		: Value(std::make_shared<ShaderGraph::OutputAttributeExpression>(attribute, value.source()))
+	OutAttribute(const OutAttribute&) = delete;
+	OutAttribute(OutAttribute&&) = delete;
+
+	OutAttribute& operator=(const T& other)
+	{
+		ShaderModule::current()->addExpression<OperatorExpression>(T::toShaderTypeId(), T::source(), Operator::ASSIGNMENT, other.source());
+		return *this;
+	}
+
+	OutAttribute& operator=(T&& other)
+	{
+		ShaderModule::current()->addExpression<OperatorExpression>(T::toShaderTypeId(), T::source(), Operator::ASSIGNMENT, other.source());
+		return *this;
+	}
+};
+
+
+template<typename T, StringLiteral Name>
+struct Parameter final : public T
+{
+	Parameter()
+		: T(ShaderModule::current()->addExpression<ParameterExpression>(T::toShaderTypeId(), Name.value))
 	{
 	}
 
-	Output(const Output&)            = delete;
-	Output(Output&&)                 = delete;
-	Output& operator=(const Output&) = delete;
-	Output& operator=(Output&&)      = delete;
+	Parameter(const Parameter&) = delete;
+	Parameter(Parameter&&) = delete;
+	Parameter& operator=(const Parameter&) = delete;
+	Parameter& operator=(Parameter&&) = delete;
 };
 
 } // namespace ShaderLanguage 

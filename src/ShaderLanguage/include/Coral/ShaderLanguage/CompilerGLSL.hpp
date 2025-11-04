@@ -27,43 +27,37 @@ public:
 
 private:
 
-	std::string format(const ShaderGraph::ConstantExpression<float>& expr);
+	std::string format(const ConstantExpression<float>& expr);
 
-	std::string format(const ShaderGraph::ConstantExpression<int>& expr);
+	std::string format(const ConstantExpression<int>& expr);
 
-	std::string format(const ShaderGraph::ConstantExpression<bool>& expr);
+	std::string format(const ConstantExpression<bool>& expr);
 
-	std::string format(const ShaderGraph::InputAttributeExpression& expr);
+	std::string format(const InputAttributeExpression& expr);
 
-	std::string format(const ShaderGraph::OutputAttributeExpression& expr);
+	std::string format(const OutputAttributeExpression& expr);
 
-	std::string format(const ShaderGraph::OperatorExpression& expr);
+	std::string format(const OperatorExpression& expr);
 
-	std::string format(const ShaderGraph::ParameterExpression& expr);
+	std::string format(const ParameterExpression& expr);
 
-	std::string format(const ShaderGraph::NativeFunctionExpression& expr);
+	std::string format(const NativeFunctionExpression& expr);
 
-	std::string format(const ShaderGraph::ConstructorExpression& expr);
+	std::string format(const ConstructorExpression& expr);
 
-	std::string format(const ShaderGraph::CastExpression& expr);
+	std::string format(const CastExpression& expr);
 
-	std::string format(const ShaderGraph::SwizzleExpression& expr);
+	std::string format(const SwizzleExpression& expr);
 
-	std::string format(const ShaderGraph::ConditionalExpression& expr);
+	std::string format(const ConditionalExpression& expr);
 
-	std::string format(const ShaderGraph::Expression* expr);
+	std::string format(const Expression* expr);
 
-	std::string resolve(const ShaderGraph::Expression& expr);
+	std::string resolve(const Expression& expr);
 
-	std::optional<uint32_t> findUniformBinding(std::string_view parameterName);
+	std::string formatFunctionArgumentList(const std::vector<const Expression*>& expressions);
 
-	bool shouldHaveVariableAssignment(const ShaderGraph::Expression& epxr);
-
-	std::string buildVariableAssignments(const ShaderGraph::Expression& expr);
-
-	std::string formatFunctionArgumentList(const std::vector<const ShaderGraph::Expression*>& expressions);
-
-	void buildVariableNames(const ShaderModule& shader);
+	bool createAttributeBindings();
 
 	std::string buildInputAttributeDefinitionsString(const ShaderModule& shader);
 
@@ -73,9 +67,11 @@ private:
 
 	std::string buildUniformBlocksString(const ShaderModule& shader);
 
+	std::optional<uint32_t> findUniformBinding(std::string_view parameterName);
+
 	void createUniformBlockDefinitions();
 
-	bool createAttributeBindings();
+
 
 	struct ShaderStageAttributeBindings
 	{	
@@ -94,7 +90,7 @@ private:
 
 	std::unordered_map<const ShaderModule*, ShaderStageAttributeBindings> mShaderStageAttributeBindingsLookUp;
 
-	std::unordered_map<const ShaderGraph::Expression*, std::string> mNameLookUp;
+	std::unordered_map<const Expression*, std::string> mNameLookUp;
 
 	std::string mDefaultUniformBlockName{ "Uniforms" };
 
