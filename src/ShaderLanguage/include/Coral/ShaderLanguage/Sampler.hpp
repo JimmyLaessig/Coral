@@ -2,23 +2,34 @@
 #define CORAL_SHADERLANGUAGE_SAMPLER_HPP
 
 #include <Coral/ShaderLanguage/Vector.hpp>
+#include <Coral/ShaderLanguage/Expression.hpp>
 
 namespace Coral::ShaderLanguage
 {
-struct Sampler2D : Variable
+struct Sampler2D : Value
 {
-	using Variable::Variable;
+	using Value::Value;
 
-	static constexpr ValueType toShaderTypeId() { return ValueType::SAMPLER2D; }
+	static constexpr ValueType toValueType() { return ValueType::SAMPLER2D; }
 
-	float4 sample(float2 uv)
+	template<typename VectorType> 
+		requires IsVector<VectorType, float, 2>
+	float4 sample(VectorType&& uv)
 	{
-		return { ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT4, "texture", source(), uv.source()) };
+		return float4{ pushExpression<NativeFunctionExpression>(ValueType::FLOAT4,
+			                                                    "texture", 
+			                                                    source(), 
+			                                                    std::forward<VectorType&&>(uv).source()) };
 	}
 
-	int2 size(Int lod)
+	template<typename ScalarType>
+		requires IsScalar<ScalarType, int>
+	int2 size(ScalarType&& lod)
 	{
-		return { ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT3, "textureSize", source(), lod.source()) };
+		return { pushExpression<NativeFunctionExpression>(ValueType::FLOAT3,
+			                                              "textureSize", 
+			                                              source(), 
+			                                              std::forward<ScalarType&&>(lod).source()) };
 	}
 };
 

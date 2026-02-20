@@ -13,17 +13,7 @@ class CompilerGLSL : public Compiler
 {
 public:
 
-	Compiler& addShaderModule(Coral::ShaderStage stage, const ShaderModule& shader) override;
-
-	Compiler& addUniformBlockOverride(uint32_t binding, std::string_view name, const UniformBlockDefinition& override) override;
-
-	Compiler& addInputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& addOutputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& setDefaultUniformBlockName(std::string_view name) override;
-
-	std::expected<Result, Error> compile() override;
+	std::expected<Result, Error> Compile(const ShaderModule& vertexShader, const ShaderModule& fragmentShader) override;
 
 private:
 
@@ -39,7 +29,9 @@ private:
 
 	std::string format(const OperatorExpression& expr);
 
-	std::string format(const ParameterExpression& expr);
+	std::string format(const UniformBufferExpression& expr);
+
+	std::string format(const StructMemberExpression& expr);
 
 	std::string format(const NativeFunctionExpression& expr);
 
@@ -82,7 +74,7 @@ private:
 	const ShaderModule* mVertexShader{ nullptr };
 	const ShaderModule* mFragmentShader{ nullptr };
 
-	std::map<uint32_t, Coral::DescriptorBindingInfo> mDescriptorBindings;
+	//std::map<uint32_t, CoDescriptorBindingInfo> mDescriptorBindings;
 
 	std::unordered_map<std::string, uint32_t> mInputAttributeBindingOverrides;
 

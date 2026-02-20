@@ -37,16 +37,16 @@ ShaderModule::inputs() const
 }
 
 
-std::vector<const ParameterExpression*>
+std::vector<const UniformBufferExpression*>
 ShaderModule::parameters() const
 {
-	std::vector<const ParameterExpression*> result;
-	std::set<const ParameterExpression*> visited;
+	std::vector<const UniformBufferExpression*> result;
+	std::set<const UniformBufferExpression*> visited;
 	for (const auto instruction : mInstructions)
 	{
-		if (instruction->expressionType() == ParameterExpression::ClassType())
+		if (instruction->expressionType() == UniformBufferExpression::ClassType())
 		{
-			auto attr = static_cast<const ParameterExpression*>(instruction.get());
+			auto attr = static_cast<const UniformBufferExpression*>(instruction.get());
 			if (visited.insert(attr).second)
 			{
 				result.push_back(attr);

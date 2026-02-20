@@ -2,34 +2,23 @@
 #define CORAL_SHADERLANGUAGE_SHADERMODULE_HPP
 
 #include <Coral/ShaderLanguage/Expression.hpp>
-#include <Coral/ShaderLanguage/Variable.hpp>
+#include <Coral/ShaderLanguage/Value.hpp>
 #include <cassert>
 #include <memory>
 #include <vector>
 
+#include <print>
+
 namespace Coral::ShaderLanguage
 {
-template<typename T>
-class ReadOnly : public T
-{
-public:
-	using T::T;
-
-	ReadOnly(const T&) = delete;
-	ReadOnly(T&&) = delete;
-	ReadOnly& operator=(const T&) = delete;
-	ReadOnly& operator=(T&&) = delete;
-};
-
 
 class ShaderModule
 {
 public:
 
-	ShaderModule()
-	{
+	ShaderModule() = default;
 
-	}
+	virtual ~ShaderModule() = default;
 
 	void buildInstructionList()
 	{
@@ -50,12 +39,12 @@ public:
 
 	std::vector<const OutputAttributeExpression*> outputs() const;
 
-	std::vector<const ParameterExpression*> parameters() const;
+	std::vector<const UniformBufferExpression*> parameters() const;
 
 	std::vector<const Expression*> expressionList() const;
 
 	template<typename T, typename ...Args>
-	std::shared_ptr<Expression>addExpression(Args&&... args)
+	std::shared_ptr<Expression> addExpression(Args&&... args)
 	{
 		auto expression = std::make_shared<T>(std::forward<Args>(args)...);
 		mInstructions.push_back(expression);
@@ -63,8 +52,6 @@ public:
 	}
 
 protected:
-
-	virtual ~ShaderModule() = default;
 
 	virtual void main() = 0;
 
@@ -78,6 +65,13 @@ private:
 
 	size_t mNameCounter{ 0 };
 }; // class ShaderModule
+
+
+template<typename T, typename ...Args>
+std::shared_ptr<Expression> pushExpression(Args&&... args)
+{
+	return ShaderModule::current()->addExpression<T>(std::forward<Args>(args)...);
+}
 
 } // namespace Coral::ShaderLanguage 
 

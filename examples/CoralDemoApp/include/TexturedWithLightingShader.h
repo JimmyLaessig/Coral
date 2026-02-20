@@ -1,4 +1,4 @@
-#include <Coral/Coral.hpp>
+#include <Coral/Coral.h>
 #include <Coral/UniformBlockBuilder.hpp>
 #include <Coral/ShaderLanguage.hpp>
 
@@ -20,24 +20,28 @@ constexpr const auto COLOR     = "Color";
 class VertexShader : public csl::ShaderModule
 {
 public:
+	VertexShader() = default;
+
+	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::IN, "Position"> inPosition;
+	csl::Attribute<csl::float3, csl::Location{ 1 }, csl::Qualifier::IN, "Normal"> inNormal;
+	csl::Attribute<csl::float2, csl::Location{ 2 }, csl::Qualifier::IN, "Texcoord0"> inTexcoord0;
+
+	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::OUT, csl::DefaultAttributes::POSITION> outPosition;
+	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::OUT, "OutNormal"> outWorldNormal;
+	csl::Attribute<csl::float2, csl::Location{ 1 }, csl::Qualifier::OUT, "OutTexcoord0"> outTexcoord0;
+
+	struct Uniforms
+	{
+		csl::Float4x4 modelViewProjectionMatrix;
+		csl::Float3x3 normalMatrix;
+	};
+
+	csl::UniformBuffer<Uniforms, csl::Location{ 0 }> uniforms;
 
 	void main() override
 	{
-		csl::InAttribute<csl::float3, "Position"> inPosition;
-		csl::InAttribute<csl::float3, "Normal"> inNormal;
-		csl::InAttribute<csl::float2, "Texcoord0"> inTexcoord0;
-
-		csl::Parameter<csl::Float4x4, "modelViewProjectionMatrix"> modelViewProjectionMatrix;
-		csl::Parameter<csl::Float3x3, "normalMatrix"> normalMatrix;
-
-		csl::OutAttribute<csl::float4, csl::DefaultAttributes::POSITION> outPosition;
-		csl::OutAttribute<csl::float3, "WorldNormal"> outWorldNormal;
-		csl::OutAttribute<csl::float2, "Texcoord0"> outTexcoord0;
-
-
-		auto p = modelViewProjectionMatrix * csl::float4(inPosition, 1.f);
-		outPosition    = p;
-		outWorldNormal = normalMatrix * inNormal;
+		outPosition    = (uniforms->modelViewProjectionMatrix * csl::float4(*inPosition, 1.f)).xyz();
+		outWorldNormal = uniforms->normalMatrix * *inNormal;
 		outTexcoord0   = inTexcoord0;
 	}
 
@@ -47,36 +51,45 @@ public:
 class FragmentShader : public csl::ShaderModule
 {
 public:
+	FragmentShader() = default;
+
+	using csl::ShaderModule::ShaderModule;
+
+	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::IN, "Normal"> inWorldNormal;
+	csl::Attribute<csl::float2, csl::Location{ 1 }, csl::Qualifier::IN, "Texcoord0" > inTexcoord0;
+
+	csl::Attribute<csl::float4, csl::Location{ 0 }, csl::Qualifier::OUT, "Color">  outColor;
+
+	csl::Sampler2D colorTexture;
+
+	struct Uniforms
+	{
+		csl::float3 lightColor;
+		csl::float3 lightDirection;
+	};
+
+	csl::UniformBuffer<Uniforms, csl::Location{ 1 }> uniforms;
 
 	void main() override
 	{
-		csl::InAttribute<csl::float3, "WorldNormal"> inWorldNormal;
-		csl::InAttribute<csl::float2, "Texcoord0"> inTexcoord0;
-
-		csl::Parameter<csl::float3, "lightColor"> lightColor;
-		csl::Parameter<csl::float3, "lightDirection"> lightDirection;
-		csl::Parameter<csl::Sampler2D, "colorTexture"> colorTexture;
-
-		csl::OutAttribute<csl::float4, "Color"> outColor;
-
-		//auto worldNormal = csl::normalize(inWorldNormal);
-		//auto n_dot_l     = csl::dot(normalize(lightDirection), worldNormal);
-		//auto color       = colorTexture.sample(inTexcoord0).xyz();
-		//outColor         = csl::float4(color * lightColor * n_dot_l, 1.f);
+		auto worldNormal = csl::normalize(*inWorldNormal);
+		auto n_dot_l     = csl::dot(normalize(uniforms->lightDirection), worldNormal);
+		auto color       = colorTexture.sample(*inTexcoord0).xyz();
+		outColor         = csl::float4(color * uniforms->lightColor * n_dot_l * 0.5f, 1.f);
 	}
 
 }; // class FragmentShader
 
-inline Coral::UniformBlockDefinition
-uniformBlockDefinition()
-{
-	return Coral::UniformBlockDefinition({
-		{ Coral::UniformFormat::MAT44F, "modelViewProjectionMatrix",  1 },
-		{ Coral::UniformFormat::MAT33F, "normalMatrix",  1 },
-		{ Coral::UniformFormat::VEC3F, "lightColor", 1 },
-		{ Coral::UniformFormat::VEC3F, "lightDirection",  1 },
-	});
-}
+//inline Coral::UniformBlockDefinition
+//uniformBlockDefinition()
+//{
+//	return Coral::UniformBlockDefinition({
+//		{ Coral::UniformFormat::MAT44F, "modelViewProjectionMatrix",  1 },
+//		{ Coral::UniformFormat::MAT33F, "normalMatrix",               1 },
+//		{ Coral::UniformFormat::VEC3F,  "lightColor",                 1 },
+//		{ Coral::UniformFormat::VEC3F,  "lightDirection",             1 },
+//	});
+//}
 
 
 inline std::optional<Coral::ShaderLanguage::Compiler::Result>
@@ -87,24 +100,18 @@ shaderSource()
 	FragmentShader fragmentShader;
 	fragmentShader.buildInstructionList();
 	Coral::ShaderLanguage::CompilerSPV compiler;
-	compiler.addShaderModule(Coral::ShaderStage::VERTEX, vertexShader)
-		    .addShaderModule(Coral::ShaderStage::FRAGMENT, fragmentShader)
-		    .addUniformBlockOverride(0, "Uniforms", uniformBlockDefinition())
-		    .addInputAttributeBindingLocation(POSITION_LOCATION, POSITION)
-		    .addInputAttributeBindingLocation(NORMAL_LOCATION, NORMAL)
-		    .addInputAttributeBindingLocation(TEXCOORD0_LOCATION, TEXCOORD0)
-		    .addOutputAttributeBindingLocation(12, "WorldNormal");
-
-	auto result = compiler.compile2();
+	auto result = compiler.Compile(vertexShader, fragmentShader);
 	if (result)
 	{
+		auto glslResult = compiler.GetCompiledShaderSourceGLSL();
+
 		std::cout << "-------------------- Vertex shader --------------------" << std::endl;
-		std::cout << result->glslResult.vertexShader << std::endl;
+		std::cout << glslResult.vertexShader << std::endl;
 
 		std::cout << "------------------- Fragment shader -------------------" << std::endl;
-		std::cout << result->glslResult.fragmentShader << std::endl;
+		std::cout << glslResult.fragmentShader << std::endl;
 
-		return { std::move(result->spvResult) };
+		return { std::move(result.value()) };
 	}
 	else
 	{

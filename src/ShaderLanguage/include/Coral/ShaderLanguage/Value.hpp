@@ -1,5 +1,5 @@
-#ifndef CORAL_SHADERLANGUAGE_VARIABLE_HPP
-#define CORAL_SHADERLANGUAGE_VARIABLE_HPP
+#ifndef CORAL_SHADERLANGUAGE_VALUE_HPP
+#define CORAL_SHADERLANGUAGE_VALUE_HPP
 
 #include <memory>
 
@@ -32,11 +32,13 @@ enum class ValueType
 	FLOAT4X4,
 	/// 2D texture sampler
 	SAMPLER2D,
+
+	VOID
 };
 
 class Expression;
 
-/// Base struct for all variables of shader graph expressions
+/// Base struct for all values of shader graph expressions
 /**
  * Objects that derive from this type act as stack-allocated wrappers arround a shader graph operation and define the
  * output type of said operation. Objects of this type are widely used as inputs to functions that build up new shader
@@ -46,23 +48,28 @@ class Expression;
  * and function calls to build the shader graph. The creation and storage of the actual ShaderGraph is abstracted away
  * by this level of indirection.
  */
-struct Variable
+struct Value
 {
 public:
 
-	Variable(std::shared_ptr<Expression> source);
+	// Get the wrapped ShaderGraph node
+	std::shared_ptr<Expression> source() const &;
 
 	// Get the wrapped ShaderGraph node
-	std::shared_ptr<Expression> source() const;
+	std::shared_ptr<Expression> source() &&;
 
 	/// Get the type id of the value
 	ValueType typeId() const;
 
-protected:
+	Value(std::shared_ptr<Expression> source);
+
+	void setSource(std::shared_ptr<Expression> ex);
+
+private:
 
 	std::shared_ptr<Expression> mSource;
 };
 
 } // namespace ShaderLanguage 
 
-#endif // !CORAL_SHADERLANGUAGE_VARIABLE_HPP
+#endif // !CORAL_SHADERLANGUAGE_VALUE_HPP

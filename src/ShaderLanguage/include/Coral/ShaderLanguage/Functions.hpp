@@ -4,39 +4,77 @@
 
 #include <Coral/ShaderLanguage/Matrix.hpp>
 
+#include <concepts>
 
 namespace Coral::ShaderLanguage
 {
 
-inline float3 normalize(const float3& v)
+
+template<typename T, size_t S>
+inline Vector<T, S> normalize(const Vector<T, S>& v)
 {
-	return {  ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT3, "normalize", v.source()) };
+	return { pushExpression<NativeFunctionExpression>(Vector<T, S>::toValueType(),
+		                                              "normalize", 
+		                                              v.source()) };
 }
 
 
-inline Float dot(const float3& v1, const float3& v2)
+template<typename T, size_t S>
+inline Vector<T, S> normalize(Vector<T, S>&& v)
 {
-	return { ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT, "dot", v1.source(), v2.source()) };
+	return { pushExpression<NativeFunctionExpression>(Vector<T, S>::toValueType(),
+													  "normalize",
+													  std::forward<Vector<T, S>&&>(v).source()) };
 }
 
 
-inline float3 cross(const float3& v1, const float3& v2)
+template<typename Vec1, typename Vec2>
+inline Scalar<float> dot(Vec1&& v1, Vec2&& v2)
+	requires IsVector<Vec1, float, 2> && IsVector<Vec2, float, 2> ||
+             IsVector<Vec1, float, 3> && IsVector<Vec2, float, 3> ||
+	         IsVector<Vec1, float, 4> && IsVector<Vec2, float, 4>
 {
-	return { ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT3, "cross", v1.source(), v2.source()) };
+	return { pushExpression<NativeFunctionExpression>(ValueType::FLOAT,
+													  "dot",
+													  std::forward<Vec1&&>(v1).source(),
+													  std::forward<Vec2&&>(v2).source()) };
 }
 
 
-template<size_t S>
-inline Float length(const Vector<float, S>& v)
+template<typename Vec1, typename Vec2>
+inline Vector<float, 3> cross(Vec1&& v1, Vec2&& v2)
+	requires IsVector<Vec1, float, 3> && IsVector<Vec2, float, 3>
+
 {
-	return { ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT, "length", v.source()) };
+	return { pushExpression<NativeFunctionExpression>(Vector<float, 3>::toValueType(),
+		                                              "cross", 
+		                                              std::forward<Vec1&&>(v1).source(), 
+		                                              std::forward<Vec2&&>(v2).source()) };
 }
 
 
-template<size_t S>
-inline Float distance(const Vector<float, S>& p0, const Vector<float, S>& p1)
+template<typename Vec>
+inline Scalar<float> length(Vec&& v)
+	requires IsVector<Vec, float, 2> ||
+	         IsVector<Vec, float, 3> ||
+	         IsVector<Vec, float, 4>
 {
-	return { ShaderModule::current()->addExpression<NativeFunctionExpression>(ValueType::FLOAT, "distance", p0.source(), p1.source()) };
+	return { pushExpression<NativeFunctionExpression>(Scalar<float>::toValueType(),
+		                                              "length", 
+		                                              std::forward<Vec&&>(v).source()) };
+}
+
+
+template<typename Vec1, typename Vec2>
+inline Scalar<float> distance(Vec1&& p1, Vec2&& p2)
+	requires IsVector<Vec1, float, 2> && IsVector<Vec2, float, 2> ||
+             IsVector<Vec1, float, 3> && IsVector<Vec2, float, 3> ||
+             IsVector<Vec1, float, 4> && IsVector<Vec2, float, 4>
+{
+	return { pushExpression<NativeFunctionExpression>(Scalar<float>::toValueType(),
+		                                              "distance", 
+													  std::forward<Vec1&&>(p1).source(),
+													  std::forward<Vec2&&>(p2).source()) };
 }
 
 } // namespace ShaderLanguage 

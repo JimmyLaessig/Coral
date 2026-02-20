@@ -11,11 +11,12 @@ Expression::Expression(ValueType resultType, const std::vector<ExpressionPtr>& i
 	: mOutputValueType(resultType)
 	, mInputs(inputs)
 {
+
 }
 
 
 ValueType
-Expression::resultValueType() const
+Expression::valueTypeId() const
 { 
 	return mOutputValueType;
 }

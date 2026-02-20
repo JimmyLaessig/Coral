@@ -1,9 +1,7 @@
 #ifndef CORAL_SHADERLANGUAGE_EXPRESSION_HPP
 #define CORAL_SHADERLANGUAGE_EXPRESSION_HPP
 
-#include <Coral/System.hpp>
-
-#include <Coral/ShaderLanguage/Variable.hpp>
+#include <Coral/ShaderLanguage/Value.hpp>
 
 #include <memory>
 #include <ranges>
@@ -29,8 +27,10 @@ enum class ExpressionType
 	INPUT_ATTRIBUTE,
 	// The expression is an `OutputtAttributeExpression`
 	OUTPUT_ATTRIBUTE,
-	// The expression is a `ParameterExpression`
-	PARAMETER,
+	// The expression is a `UniformBufferExpression`
+	UNIFORM_BUFFER,
+	// The expression is a `SturctMemberExpression`
+	STRUCT_MEMBER,
 	// The expression is a `NativeFunctionExpression`
 	NATIVE_FUNCTION,
 	// The expression is a `ConstructorExpression`
@@ -49,17 +49,7 @@ enum class ExpressionType
 class Expression;
 using ExpressionPtr = std::shared_ptr<Expression>;
 
-//class ExpressionTree : public std::enable_shared_from_this<ExpressionTree>
-//{
-//public: 
-//	ExpressionTree();
-//
-//	const std::vector<std::shared_ptr<Expression>> expressions() const;
-//
-//private:
-//
-//	std::vector<std::shared_ptr<Expression>> mExpressions;
-//};
+
 
 /// Base class for a shader graph expression
 class Expression
@@ -73,15 +63,42 @@ public:
 	// Get the unique type id of the expression
 	virtual ExpressionType expressionType() const = 0;
 
-	// Get the value type of the output of this expression
-	ValueType resultValueType() const;
+	// Get the type of the output value of this expression
+	ValueType valueTypeId() const;
 
 	// Get the list of inputs this expression
 	std::vector<const Expression*> inputs() const;
 
-	bool inlined() const
+	/// Flag indicating if the expression should be inlined or requires an explicit variable assignment
+	virtual bool inlineIfPossible() const
 	{
 		return mInline;
+	}
+
+	/// Mark the expression to be inlined if possible
+	void setInlineIfPossible()
+	{
+		mInline = true;
+	}
+
+	template<typename T>
+	T* cast()
+	{
+		if (expressionType() == T::ClassType())
+		{
+			return static_cast<T*>(this);
+		}
+		return nullptr;
+	}
+
+	template<typename T>
+	const T* cast() const
+	{
+		if (expressionType() == T::ClassType())
+		{
+			return static_cast<const T*>(this);
+		}
+		return nullptr;
 	}
 
 private:
@@ -92,7 +109,6 @@ private:
 
 	std::vector<ExpressionPtr> mInputs;
 };
-
 
 /// Class defining a constant scalar value expression
 template<typename Scalar>
@@ -143,6 +159,35 @@ private:
 };
 
 
+template<std::size_t N>
+struct StringLiteral
+{
+	char value[N];
+
+	constexpr StringLiteral(const char(&str)[N])
+	{
+		std::copy_n(str, N, value);
+	}
+};
+
+namespace DefaultAttributes
+{
+	/// Set the position of a vertex in homogenous space. Every vertex shader must write out a parameter with this output.
+	/*
+	 * \Note: The position output value must be a 4-component float vector.
+	 * \Note: The POSITION semantic is only available in vertex shaders.
+	 */
+	constexpr const StringLiteral POSITION = "SV_POSITION";
+
+	/// Shader output that is used to override the z buffer value in the fragment shader.
+	/*
+	 * \Note: The depth output value must be a single float.
+	 * \Note: the DEPTH semantic is only in fragment shaders.
+	 */
+	constexpr const StringLiteral DEPTH = "SV_DEPTH";
+} // namespace DefaultAttributes
+
+
 /// Class defining a shader input attrribute
 class InputAttributeExpression : public Expression
 {
@@ -159,6 +204,8 @@ public:
 	ExpressionType expressionType() const override { return ClassType(); }
 
 	const std::string& attribute() const { return mName; }
+
+	bool inlineIfPossible() const override { return true; }
 
 private:
 
@@ -183,29 +230,75 @@ public:
 
 	const std::string& attribute() const { return mAttribute; }
 
+	bool inlineIfPossible() const override { return true; }
 private:
 
 	std::string mAttribute{};
 };
 
 
-/// Class defining a shader parameter value (also known as uniform)
-class ParameterExpression : public Expression
+class UniformBufferExpression : public Expression
 {
 public:
 
-	// Create a new shader input attribute
-	ParameterExpression(ValueType outputType, std::string_view name)
-		: Expression(outputType, {})
+	UniformBufferExpression(std::string_view name)
+		: Expression(ValueType::VOID, {})
+	{}
+
+	const std::string& name() const { return mName; }
+
+	static ExpressionType ClassType() { return ExpressionType::UNIFORM_BUFFER; }
+
+	ExpressionType expressionType() const override { return ClassType(); }
+
+	bool inlineIfPossible() const override { return true; }
+
+private:
+
+	std::string mName;
+};
+
+
+class MemberExpression : public Expression
+{
+	MemberExpression(const ValueType& type, std::string_view name, std::shared_ptr<UniformBufferExpression> parent)
+		: Expression(type, { parent })
 		, mName(name)
 	{
 	}
 
 	const std::string& name() const { return mName; }
 
-	static ExpressionType ClassType() { return ExpressionType::PARAMETER; }
+	static ExpressionType ClassType() { return ExpressionType::UNIFORM_BUFFER; }
 
 	ExpressionType expressionType() const override { return ClassType(); }
+
+	bool inlineIfPossible() const override { return true; }
+
+private:
+
+	std::string mName;
+};
+
+/// Class defining a shader parameter value (also known as uniform)
+class StructMemberExpression : public Expression
+{
+public:
+
+	// Create a new shader input attribute
+	StructMemberExpression(ValueType outputType, std::string_view name, std::shared_ptr<UniformBufferExpression> buffer)
+		: Expression(outputType, { buffer })
+		, mName(name)
+	{
+	}
+
+	const std::string& name() const { return mName; }
+
+	static ExpressionType ClassType() { return ExpressionType::STRUCT_MEMBER; }
+
+	ExpressionType expressionType() const override { return ClassType(); }
+
+	bool inlineIfPossible() const override { return true; }
 
 private:
 
@@ -355,7 +448,7 @@ class ConditionalExpression : public Expression
 {
 public:
 	ConditionalExpression(ExpressionPtr condition, ExpressionPtr ifBranch, ExpressionPtr elseBranch)
-		: Expression(ifBranch->resultValueType(), { condition, ifBranch, elseBranch })
+		: Expression(ifBranch->valueTypeId(), { condition, ifBranch, elseBranch })
 	{
 	}
 

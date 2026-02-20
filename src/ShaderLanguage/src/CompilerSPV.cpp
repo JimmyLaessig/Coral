@@ -9,46 +9,6 @@
 using namespace Coral::ShaderLanguage;
 
 
-Compiler&
-CompilerSPV::addShaderModule(Coral::ShaderStage stage, const ShaderModule& shaderModule)
-{
-	mCompilerGLSL.addShaderModule(stage, shaderModule);
-	return *this;
-}
-
-
-Compiler&
-CompilerSPV::addUniformBlockOverride(uint32_t binding, std::string_view name, const UniformBlockDefinition& uniformBlock)
-{
-	mCompilerGLSL.addUniformBlockOverride(binding, name, uniformBlock);
-	return *this;
-}
-
-
-Compiler&
-CompilerSPV::addInputAttributeBindingLocation(uint32_t location, std::string_view name)
-{
-	mCompilerGLSL.addInputAttributeBindingLocation(location, name);
-	return *this;
-}
-
-
-Compiler&
-CompilerSPV::addOutputAttributeBindingLocation(uint32_t location, std::string_view name)
-{
-	mCompilerGLSL.addOutputAttributeBindingLocation(location, name);
-	return *this;
-}
-
-
-Compiler&
-CompilerSPV::setDefaultUniformBlockName(std::string_view name)
-{
-	mCompilerGLSL.setDefaultUniformBlockName(name);
-	return *this;
-}
-
-
 void
 printShaderCode(const std::string& code)
 {
@@ -64,23 +24,25 @@ printShaderCode(const std::string& code)
 
 
 std::expected<Compiler::Result, Compiler::Error>
-CompilerSPV::compile()
+CompilerSPV::Compile(const ShaderModule& vertexShader, const ShaderModule& fragmentShader)
 {
-	return compile2().transform([](const SPVResult& res) { return res.spvResult; });
+	return mCompilerGLSL.Compile(vertexShader, fragmentShader).and_then([this](const Compiler::Result& result) { return CompileSPV(result); });
 }
 
 
-std::expected<CompilerSPV::SPVResult, Compiler::Error>
-CompilerSPV::compile2()
+Compiler::Result
+CompilerSPV::GetCompiledShaderSourceGLSL() const
+{
+	return mShaderSourceGLSL;
+}
+
+
+std::expected<Compiler::Result, Compiler::Error>
+CompilerSPV::CompileSPV(const Compiler::Result& result)
 { 
-	auto glslResult = mCompilerGLSL.compile();
+	mShaderSourceGLSL = result;
 
-	if (!glslResult)
-	{
-		return std::unexpected(glslResult.error());
-	}
-
-	auto spvResult = glslResult.value();
+	auto spvResult = result;
 
 	auto shaderDeleter = [](glslang_shader_t* shader) { glslang_shader_delete(shader); };
 	using ShaderPtr = std::unique_ptr<glslang_shader_t, decltype(shaderDeleter)>;
@@ -153,5 +115,5 @@ CompilerSPV::compile2()
 		glslang_program_SPIRV_get(program.get(), reinterpret_cast<unsigned int*>(source->data()));
 	}
 
-	return SPVResult{ std::move(*glslResult), spvResult };
+	return spvResult;
 }

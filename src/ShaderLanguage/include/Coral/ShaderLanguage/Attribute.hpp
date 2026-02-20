@@ -2,92 +2,157 @@
 #define CORAL_SHADERLANGUAGE_ATTRIBUTE_HPP
 
 #include <Coral/ShaderLanguage/Expression.hpp>
-#include <Coral/ShaderLanguage/Variable.hpp>
+#include <Coral/ShaderLanguage/Value.hpp>
 #include <concepts>
 
 namespace Coral::ShaderLanguage
 {
+class ShaderModule;
 
-template<std::size_t N>
-struct StringLiteral
+
+class NonCopyable
 {
-	char value[N];
-
-	constexpr StringLiteral(const char(&str)[N])
-	{
-		std::copy_n(str, N, value);
-	}
+public:
+	virtual ~NonCopyable() = default;
+	NonCopyable() = default;
+	NonCopyable(const NonCopyable&) = delete;
+	NonCopyable& operator=(const NonCopyable&) = delete;
 };
 
-namespace DefaultAttributes
+class NonMoveable
 {
-	/// Set the position of a vertex in homogenous space. Every vertex shader must write out a parameter with this output.
-	/*
-	 * \Note: The position output value must be a 4-component float vector.
-	 * \Note: The POSITION semantic is only available in vertex shaders.
-	 */
-	constexpr const auto POSITION = StringLiteral("POSITION");
-
-	/// Shader output that is used to override the z buffer value in the fragment shader.
-	/*
-	 * \Note: The depth output value must be a single float.
-	 * \Note: the DEPTH semantic is only in fragment shaders.
-	 */
-	constexpr const auto DEPTH    = StringLiteral("DEPTH");
-} // namespace DefaultAttributes
-
-
-template<typename T, StringLiteral Name>
-struct InAttribute final : public T
-{
-	InAttribute()
-		: T(ShaderModule::current()->addExpression<InputAttributeExpression>(T::toShaderTypeId(), Name.value))
-	{
-		
-	}
-
-	InAttribute(const InAttribute&) = delete;
-	InAttribute(InAttribute&&)      = delete;
+public:
+	virtual ~NonMoveable() = default;
+	NonMoveable() = default;
+	NonMoveable(NonMoveable&&) = delete;
+	NonMoveable& operator=(NonMoveable&&) = delete;
 };
 
 
-template<typename T, StringLiteral Name>
-struct OutAttribute final : public T
+class Container : private NonCopyable, private NonMoveable
 {
-	OutAttribute()
-		: T(ShaderModule::current()->addExpression<OutputAttributeExpression>(T::toShaderTypeId(), Name.value))
+public:
+
+	static Container* Current()
+	{
+		return !sContainerStack.empty() ? sContainerStack.back() : nullptr;
+	}
+
+protected:
+
+	uint8_t BeginScope()
+	{
+		sContainerStack.push_back(this);
+		std::println("BeginScope");
+		return 0;
+	}
+
+	uint8_t EndScope()
+	{
+		assert(sContainerStack.back() == this);
+		sContainerStack.pop_back();
+		std::println("EndScope");
+		return 0;
+	}
+
+private:
+
+	static thread_local std::vector<Container*> sContainerStack;
+};
+
+
+thread_local std::vector<Container*> Container::sContainerStack;
+
+
+enum Location : uint8_t {};
+
+enum Qualifier
+{
+	IN,
+	OUT,
+};
+
+
+template<typename T, Location L>
+class UniformBuffer : private Container
+{
+public:
+
+	UniformBuffer(std::string_view name)
+		: mName(name)
 	{
 	}
 
-	OutAttribute(const OutAttribute&) = delete;
-	OutAttribute(OutAttribute&&) = delete;
-
-	OutAttribute& operator=(const T& other)
+	const T* operator->() const
 	{
-		ShaderModule::current()->addExpression<OperatorExpression>(T::toShaderTypeId(), T::source(), Operator::ASSIGNMENT, other.source());
+		return &mValue;
+	}
+
+	const T& operator*() const
+	{
+		return mValue;
+	}
+
+	operator T() const
+	{
+		return mValue;
+	}
+
+private:
+
+	std::string mName;
+	uint8_t mBegin{ BeginScope() };
+	T mValue{};
+	uint8_t mEnd{ EndScope() };
+};
+
+
+template<typename T, Location L, Qualifier Q, StringLiteral Name>
+class Attribute : private Container
+{
+public:
+
+	Attribute() requires (Q == Qualifier::IN)
+		: mValue(pushExpression<InputAttributeExpression>(T::toValueType(), Name.value))
+	{
+	}
+
+	Attribute() requires (Q == Qualifier::OUT)
+		: mValue(pushExpression<OutputAttributeExpression>(T::toValueType(), Name.value))
+	{
+	}
+
+	const T* operator->() const requires (Q == Qualifier::IN)
+	{
+		return &mValue;
+	}
+
+	const T& operator*() const  requires (Q == Qualifier::IN)
+	{
+		return mValue;
+	}
+
+	operator T() const  requires (Q == Qualifier::IN)
+	{
+		return mValue;
+	}
+
+	Attribute& operator=(const T& t) requires (Q == Qualifier::OUT)
+	{
+		// TODO fix this
+		//mValue = T(pushExpression<OperatorExpression>(mValue.toValueType(), mValue.source(), Operator::ASSIGNMENT, other.source());
 		return *this;
 	}
 
-	OutAttribute& operator=(T&& other)
+	Attribute& operator=(T&& t) requires (Q == Qualifier::OUT)
 	{
-		ShaderModule::current()->addExpression<OperatorExpression>(T::toShaderTypeId(), T::source(), Operator::ASSIGNMENT, other.source());
+		// TODO fix this
+		//mValue = T(pushExpression<OperatorExpression>(mValue.toValueType(), mValuesource(), Operator::ASSIGNMENT, std::forward<T&&>(other).source());
 		return *this;
 	}
-};
 
-
-template<typename T, StringLiteral Name>
-struct Parameter final : public T
-{
-	Parameter()
-		: T(ShaderModule::current()->addExpression<ParameterExpression>(T::toShaderTypeId(), Name.value))
-	{
-	}
-
-	Parameter(const Parameter&) = delete;
-	Parameter(Parameter&&) = delete;
-	Parameter& operator=(const Parameter&) = delete;
-	Parameter& operator=(Parameter&&) = delete;
+private:
+	T mValue{};
 };
 
 } // namespace ShaderLanguage 
