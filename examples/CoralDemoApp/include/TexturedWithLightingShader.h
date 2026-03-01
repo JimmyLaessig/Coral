@@ -1,4 +1,4 @@
-#include <Coral/Coral.h>
+
 #include <Coral/UniformBlockBuilder.hpp>
 #include <Coral/ShaderLanguage.hpp>
 
@@ -17,107 +17,136 @@ constexpr const auto NORMAL    = "Normal";
 constexpr const auto TEXCOORD0 = "Texcoord0";
 constexpr const auto COLOR     = "Color";
 
-class VertexShader : public csl::ShaderModule
+struct VertexInput
 {
-public:
-	VertexShader() = default;
-
-	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::IN, "Position"> inPosition;
-	csl::Attribute<csl::float3, csl::Location{ 1 }, csl::Qualifier::IN, "Normal"> inNormal;
-	csl::Attribute<csl::float2, csl::Location{ 2 }, csl::Qualifier::IN, "Texcoord0"> inTexcoord0;
-
-	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::OUT, csl::DefaultAttributes::POSITION> outPosition;
-	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::OUT, "OutNormal"> outWorldNormal;
-	csl::Attribute<csl::float2, csl::Location{ 1 }, csl::Qualifier::OUT, "OutTexcoord0"> outTexcoord0;
-
-	struct Uniforms
-	{
-		csl::Float4x4 modelViewProjectionMatrix;
-		csl::Float3x3 normalMatrix;
-	};
-
-	csl::UniformBuffer<Uniforms, csl::Location{ 0 }> uniforms;
-
-	void main() override
-	{
-		outPosition    = (uniforms->modelViewProjectionMatrix * csl::float4(*inPosition, 1.f)).xyz();
-		outWorldNormal = uniforms->normalMatrix * *inNormal;
-		outTexcoord0   = inTexcoord0;
-	}
-
-}; // class VertexShader
+	csl::Attribute<csl::float3, "Position", csl::Location{ 0 }, csl::Qualifier::IN> position;
+	csl::Attribute<csl::float3, "Normal", csl::Location{ 1 }, csl::Qualifier::IN> normal;
+	csl::Attribute<csl::float2, "Texcoord0", csl::Location{ 2 }, csl::Qualifier::IN> texcoord0;
+};
 
 
-class FragmentShader : public csl::ShaderModule
+struct VertexOutput
 {
-public:
-	FragmentShader() = default;
-
-	using csl::ShaderModule::ShaderModule;
-
-	csl::Attribute<csl::float3, csl::Location{ 0 }, csl::Qualifier::IN, "Normal"> inWorldNormal;
-	csl::Attribute<csl::float2, csl::Location{ 1 }, csl::Qualifier::IN, "Texcoord0" > inTexcoord0;
-
-	csl::Attribute<csl::float4, csl::Location{ 0 }, csl::Qualifier::OUT, "Color">  outColor;
-
-	csl::Sampler2D colorTexture;
-
-	struct Uniforms
-	{
-		csl::float3 lightColor;
-		csl::float3 lightDirection;
-	};
-
-	csl::UniformBuffer<Uniforms, csl::Location{ 1 }> uniforms;
-
-	void main() override
-	{
-		auto worldNormal = csl::normalize(*inWorldNormal);
-		auto n_dot_l     = csl::dot(normalize(uniforms->lightDirection), worldNormal);
-		auto color       = colorTexture.sample(*inTexcoord0).xyz();
-		outColor         = csl::float4(color * uniforms->lightColor * n_dot_l * 0.5f, 1.f);
-	}
-
-}; // class FragmentShader
-
-//inline Coral::UniformBlockDefinition
-//uniformBlockDefinition()
-//{
-//	return Coral::UniformBlockDefinition({
-//		{ Coral::UniformFormat::MAT44F, "modelViewProjectionMatrix",  1 },
-//		{ Coral::UniformFormat::MAT33F, "normalMatrix",               1 },
-//		{ Coral::UniformFormat::VEC3F,  "lightColor",                 1 },
-//		{ Coral::UniformFormat::VEC3F,  "lightDirection",             1 },
-//	});
-//}
+	csl::Attribute<csl::float4, csl::SV_POSITION> position;
+	csl::Attribute<csl::float3, "Normal", csl::Location{ 0 }, csl::Qualifier::OUT> worldNormal;
+	csl::Attribute<csl::float2, "Texcoord0", csl::Location{ 1 }, csl::Qualifier::OUT> texcoord0;
+};
 
 
-inline std::optional<Coral::ShaderLanguage::Compiler::Result>
+struct Uniforms
+{
+	csl::Float4x4 modelViewProjectionMatrix;
+	csl::Float3x3 normalMatrix;
+	csl::float3 lightColor;
+	csl::float3 lightDirection;
+};
+
+
+void DefineType(Uniforms& uniforms, csl::UniformBufferBase& uniformBuffer)
+{
+	uniformBuffer.RegisterMember<"modelViewProjectionMatrix">(uniforms.modelViewProjectionMatrix);
+	uniformBuffer.RegisterMember<"normalMatrix">(uniforms.normalMatrix);
+	uniformBuffer.RegisterMember<"lightColor">(uniforms.lightColor);
+	uniformBuffer.RegisterMember<"lightDirection">(uniforms.lightDirection);
+}
+
+
+struct FragmentInput
+{
+	csl::Attribute<csl::float3, csl::StringLiteral{ "worldNormal" }, csl::Location{ 0 }, csl::Qualifier::IN> worldNormal;
+	csl::Attribute<csl::float2, "texcoord0", csl::Location{ 1 }, csl::Qualifier::IN > texcoord0;
+};
+
+
+struct FragmentOutput
+{
+	csl::Attribute<csl::float4, "color", csl::Location{ 0 }, csl::Qualifier::OUT> color;
+};
+
+
+VertexOutput vertexShaderMain(const VertexInput& input, 
+	                          const csl::UniformBuffer<Uniforms, "Uniforms", csl::Location{ 0 }>& uniforms)
+{
+	VertexOutput output;
+
+	output.position    = uniforms->modelViewProjectionMatrix * csl::float4(*input.position, 1.f);
+	output.worldNormal = csl::normalize(uniforms->normalMatrix * (*input.normal));
+	output.texcoord0   = input.texcoord0;
+
+	return output;
+}
+
+
+FragmentOutput fragmentShaderMain(const FragmentInput& input, 
+	                              const csl::UniformBuffer<Uniforms, "Uniforms", csl::Location{ 0 }>& uniforms,
+	const csl::Sampler2D < "colorTexture", csl::Location{ 1 } > & colorTexture)
+{
+	FragmentOutput output;
+
+	auto worldNormal = csl::normalize(*input.worldNormal);
+	auto lightDir    = uniforms->lightDirection;
+	auto n_dot_l     = csl::dot(lightDir, worldNormal);
+
+	auto color   = colorTexture.sample(*input.texcoord0).xyz();
+	output.color = csl::float4(color * uniforms->lightColor * n_dot_l, 1.f);
+	return output;
+}
+
+
+struct ShaderSource
+{
+	std::string vertexShader;
+	std::string fragmentShader;
+};
+
+
+inline std::optional<ShaderSource>
 shaderSource()
 {
-	VertexShader vertexShader;
-	vertexShader.buildInstructionList();
-	FragmentShader fragmentShader;
-	fragmentShader.buildInstructionList();
-	Coral::ShaderLanguage::CompilerSPV compiler;
-	auto result = compiler.Compile(vertexShader, fragmentShader);
-	if (result)
+	ShaderSource shaderSource;
+
 	{
-		auto glslResult = compiler.GetCompiledShaderSourceGLSL();
+		csl::ShaderGraph shaderGraph;
+		shaderGraph.SetShaderFunction(&vertexShaderMain);
+		Coral::ShaderLanguage::CompilerSPV compiler;
+		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::VERTEX);
 
 		std::cout << "-------------------- Vertex shader --------------------" << std::endl;
-		std::cout << glslResult.vertexShader << std::endl;
+		std::cout << compiler.GetShaderSourceGLSL().shaderCode << std::endl;
 
-		std::cout << "------------------- Fragment shader -------------------" << std::endl;
-		std::cout << glslResult.fragmentShader << std::endl;
-
-		return { std::move(result.value()) };
+		if (!result)
+		{
+			std::cerr << result.error().message << std::endl;
+			return {};
+		}
+		else
+		{
+			shaderSource.vertexShader = std::move(result->shaderCode);
+		}
 	}
-	else
+
 	{
-		std::cerr << result.error().message << std::endl;
-		return std::nullopt;
+		csl::ShaderGraph shaderGraph;
+		shaderGraph.SetShaderFunction(&fragmentShaderMain);
+		Coral::ShaderLanguage::CompilerSPV compiler;
+		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::FRAGMENT);
+
+		std::cout << "-------------------- Fragment shader --------------------" << std::endl;
+		std::cout << compiler.GetShaderSourceGLSL().shaderCode << std::endl;
+
+		if (!result)
+		{
+			std::cerr << result.error().message << std::endl;
+			return {};
+		}
+		else
+		{
+			shaderSource.fragmentShader = std::move(result->shaderCode);
+
+		}
 	}
+
+	return { std::move(shaderSource) };
 }
 
 } // TexturedWithLightingShader

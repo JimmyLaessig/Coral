@@ -1,11 +1,7 @@
-include(FetchContent)
-
-FetchContent_Declare(
-  imgui
-  GIT_REPOSITORY https://github.com/ocornut/imgui.git
+CPMAddPackage(
+  NAME imgui
   GIT_TAG v1.91.9b-docking
+  GITHUB_REPOSITORY ocornut/imgui
 )
-
-FETCHContent_MakeAvailable(imgui)
 
 set(imgui_SOURCE_DIR "${imgui_SOURCE_DIR}" CACHE STRING "Path to imgui source directory" FORCE)

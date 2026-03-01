@@ -13,7 +13,7 @@ class CompilerGLSL : public Compiler
 {
 public:
 
-	std::expected<Result, Error> Compile(const ShaderModule& vertexShader, const ShaderModule& fragmentShader) override;
+	std::expected<Result, Error> Compile(const ShaderGraph& shader, ShaderStage stage) override;
 
 private:
 
@@ -31,7 +31,7 @@ private:
 
 	std::string format(const UniformBufferExpression& expr);
 
-	std::string format(const StructMemberExpression& expr);
+	std::string format(const UniformExpression& expr);
 
 	std::string format(const NativeFunctionExpression& expr);
 
@@ -41,7 +41,9 @@ private:
 
 	std::string format(const SwizzleExpression& expr);
 
-	std::string format(const ConditionalExpression& expr);
+	//std::string format(const ConditionalExpression& expr);
+
+	std::string format(const SamplerExpression& expr);
 
 	std::string format(const Expression* expr);
 
@@ -49,42 +51,21 @@ private:
 
 	std::string formatFunctionArgumentList(const std::vector<const Expression*>& expressions);
 
-	bool createAttributeBindings();
+	std::string buildInputAttributeDefinitionsString();
 
-	std::string buildInputAttributeDefinitionsString(const ShaderModule& shader);
+	std::string buildOutputAttributeDefinitionsString();
 
-	std::string buildOutputAttributeDefinitionsString(const ShaderModule& shader);
+	std::string buildMainFunctionString();
 
-	std::string buildMainFunctionString(const ShaderModule& shader);
+	std::string buildUniformBlocksString();
 
-	std::string buildUniformBlocksString(const ShaderModule& shader);
+	std::string buildSamplerString();
 
-	std::optional<uint32_t> findUniformBinding(std::string_view parameterName);
+	std::vector<const Expression*> mInstructionsList;
 
-	void createUniformBlockDefinitions();
-
-
-
-	struct ShaderStageAttributeBindings
-	{	
-		std::unordered_map<std::string, uint32_t> inputAttributes;
-		std::unordered_map<std::string, uint32_t> outputAttributes;
-	};
-
-	const ShaderModule* mVertexShader{ nullptr };
-	const ShaderModule* mFragmentShader{ nullptr };
-
-	//std::map<uint32_t, CoDescriptorBindingInfo> mDescriptorBindings;
-
-	std::unordered_map<std::string, uint32_t> mInputAttributeBindingOverrides;
-
-	std::unordered_map<std::string, uint32_t> mOutputAttributeBindingOverrides;
-
-	std::unordered_map<const ShaderModule*, ShaderStageAttributeBindings> mShaderStageAttributeBindingsLookUp;
+	const ShaderGraph* mShader{ nullptr };
 
 	std::unordered_map<const Expression*, std::string> mNameLookUp;
-
-	std::string mDefaultUniformBlockName{ "Uniforms" };
 
 	uint32_t mDefaultDescriptorSet{ 0 };
 

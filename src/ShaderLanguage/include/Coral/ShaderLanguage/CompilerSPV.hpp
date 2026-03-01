@@ -11,23 +11,17 @@ class CompilerSPV : public Compiler
 {
 public:
 
-	/*Compiler& addUniformBlockOverride(uint32_t binding, std::string_view name, const CoUniformBlockDefinition& override) override;
+	std::expected<Result, Error> Compile(const ShaderGraph& shaderModule, ShaderStage stage) override;
 
-	Compiler& addInputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& addOutputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& setDefaultUniformBlockName(std::string_view name) override;*/
-
-	std::expected<Result, Error> Compile(const ShaderModule& vertexShader, const ShaderModule& fragmentShader) override;
-
-	Result GetCompiledShaderSourceGLSL() const;
+	Result GetShaderSourceGLSL() const;
 
 private:
 
-	std::expected<Result, Error> CompileSPV(const Result& shaderSourceGLSL);
+	std::expected<Result, Error> CompileSPV(const Result& shaderSourceGLSL, ShaderStage stage);
 
 	CompilerGLSL mCompilerGLSL;
+
+	const ShaderGraph* mShaderModule{ nullptr };
 
 	Result mShaderSourceGLSL;
 };

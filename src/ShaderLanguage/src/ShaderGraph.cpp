@@ -1,4 +1,4 @@
-#include <Coral/ShaderLanguage/ShaderModule.hpp>
+#include <Coral/ShaderLanguage/ShaderGraph.hpp>
 
 #include <algorithm>
 #include <cassert>
@@ -9,23 +9,15 @@
 using namespace Coral::ShaderLanguage;
 
 
-void
-ShaderModule::addExpression(std::shared_ptr<Expression> ex)
-{
-	mInstructions.push_back(ex);
-}
-
-
 std::vector<const InputAttributeExpression*>
-ShaderModule::inputs() const
+ShaderGraph::Inputs() const
 {
 	std::vector<const InputAttributeExpression*> result;
 	std::set<const InputAttributeExpression*> visited;
 	for (const auto instruction : mInstructions)
 	{
-		if (instruction->expressionType() == InputAttributeExpression::ClassType())
+		if (auto attr = instruction->Cast<InputAttributeExpression>())
 		{
-			auto attr = static_cast<const InputAttributeExpression*>(instruction.get());
 			if (visited.insert(attr).second)
 			{
 				result.push_back(attr);
@@ -38,15 +30,14 @@ ShaderModule::inputs() const
 
 
 std::vector<const UniformBufferExpression*>
-ShaderModule::parameters() const
+ShaderGraph::UniformBuffers() const
 {
 	std::vector<const UniformBufferExpression*> result;
 	std::set<const UniformBufferExpression*> visited;
 	for (const auto instruction : mInstructions)
 	{
-		if (instruction->expressionType() == UniformBufferExpression::ClassType())
+		if (auto attr = instruction->Cast<UniformBufferExpression>())
 		{
-			auto attr = static_cast<const UniformBufferExpression*>(instruction.get());
 			if (visited.insert(attr).second)
 			{
 				result.push_back(attr);
@@ -59,16 +50,15 @@ ShaderModule::parameters() const
 
 
 std::vector<const OutputAttributeExpression*>
-ShaderModule::outputs() const
+ShaderGraph::Outputs() const
 {
 	std::vector<const OutputAttributeExpression*> result;
 	std::set<const OutputAttributeExpression*> visited;
 
 	for (const auto instruction : mInstructions)
 	{
-		if (instruction->expressionType() == OutputAttributeExpression::ClassType())
+		if (auto attr = instruction->Cast<OutputAttributeExpression>())
 		{
-			auto attr = static_cast<const OutputAttributeExpression*>(instruction.get());
 			if (visited.insert(attr).second)
 			{
 				result.push_back(attr);
@@ -81,9 +71,42 @@ ShaderModule::outputs() const
 
 
 std::vector<const Expression*>
-ShaderModule::expressionList() const
+ShaderGraph::ExpressionList() const
 {
 	return mInstructions 
-		| std::views::transform(&std::shared_ptr<Expression>::get)
+		| std::views::transform([](auto expr) { return expr.get(); })
 		| std::ranges::to<std::vector<const Expression*>>();
+}
+
+
+void
+ShaderGraph::ReplaceExpressionImpl(std::shared_ptr<Expression> oldExpression, 
+	                               std::shared_ptr<Expression> newExpression)
+{
+	assert(oldExpression->GetValueType() == newExpression->GetValueType());
+
+	if (!sCurrentShaderModule)
+	{
+		return;
+	}
+
+	auto& v = sCurrentShaderModule->mInstructions;
+
+	for (auto& expr : v)
+	{
+		if (expr == oldExpression)
+		{
+			expr = newExpression;
+		}
+		else
+		{
+			for (auto& input : expr->mInputs)
+			{
+				if (input == oldExpression)
+				{
+					input = newExpression;
+				}
+			}
+		}
+	}
 }

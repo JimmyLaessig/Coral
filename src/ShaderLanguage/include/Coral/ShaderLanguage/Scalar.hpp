@@ -3,7 +3,7 @@
 
 #include <Coral/ShaderLanguage/Value.hpp>
 
-#include <Coral/ShaderLanguage/ShaderModule.hpp>
+#include <Coral/ShaderLanguage/ShaderGraph.hpp>
 
 #include <concepts>
 
@@ -13,10 +13,32 @@ namespace Coral::ShaderLanguage
 template<typename T>
 struct Scalar;
 
+template<typename S, typename T>
+concept ScalarType = std::same_as<std::remove_cvref_t<S>, Scalar<T>>;
 
-template<typename ScalarType, typename T>
-concept IsScalar = std::derived_from<std::remove_cvref_t<ScalarType>, Scalar<T>>;
+template<typename T>
+struct TypeTraits;
 
+
+template<>
+struct TypeTraits<Scalar<float>>
+{
+	constexpr static ValueType ValueType = ValueType::FLOAT;
+};
+
+
+template<>
+struct TypeTraits<Scalar<int>>
+{
+	constexpr static ValueType ValueType = ValueType::INT;
+};
+
+
+template<>
+struct TypeTraits<Scalar<bool>>
+{
+	constexpr static ValueType ValueType = ValueType::BOOL;
+};
 
 /// Class representing scalar value in the shader graph
 template<typename T>
@@ -24,34 +46,16 @@ struct Scalar : Value
 {
 	using Value::Value;
 
-	static constexpr ValueType toValueType()
-	{
-		if constexpr (std::same_as <T, float>)
-		{
-			return ValueType::FLOAT;
-		}
-		else if constexpr (std::same_as <T, int>)
-		{
-			return ValueType::INT;
-		}
-		else if constexpr (std::same_as <T, bool>)
-		{
-			return ValueType::BOOL;
-		}
-		else
-		{
-			static_assert(false);
-		}
-	}
+	static constexpr ValueType ValueType = TypeTraits<Scalar<T>>::ValueType;
 
 	/// Create a new scalar from a constant
 	Scalar(T v)
-		: Value(pushExpression<ConstantExpression<T>>(v))
+		: Value(ShaderGraph::PushExpression<ConstantExpression<T>>(v))
 	{
 	}
 
 	Scalar(const Scalar& other)
-		: Value(pushExpression<ConstructorExpression>(Scalar<T>::toValueType(), other.source()))
+		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Scalar<T>::ValueType, other.source()))
 	{
 
 	}
@@ -66,7 +70,7 @@ struct Scalar : Value
 	template<typename U> requires (!std::is_same_v<T, U>)
 	explicit operator Scalar<U>() const
 	{
-		return { pushExpression<CastExpression>(Scalar<U>::toValueType(), source()) };
+		return { ShaderGraph::PushExpression<CastExpression>(Scalar<U>::ValueType, source()) };
 	}
 
 	// ----------------------------------------------------------------------------------------------------------------
@@ -76,24 +80,24 @@ struct Scalar : Value
 	/// Assign other to this
 	Scalar<T>& operator=(const Scalar<T>& other)
 	{
-		setSource(pushExpression<OperatorExpression>(Scalar<T>::toValueType(), source(), Operator::ASSIGNMENT, other.source()));
+		setSource(ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType, source(), Operator::ASSIGNMENT, other.source()));
 		return *this;
 	}
 
 	/// Assign other to this
 	Scalar<T>& operator=(Scalar<T>&& other)
 	{
-		setSource(pushExpression<OperatorExpression>(Scalar<T>::toValueType(), source(), Operator::ASSIGNMENT, other.source()));
+		setSource(ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType, source(), Operator::ASSIGNMENT, other.source()));
 		return *this;
 	}
 
 	template<typename LHS, typename RHS>
 	friend Scalar<T> operator*(LHS&& lhs, RHS&& rhs)
-		requires (IsScalar<LHS>        && IsScalar<RHS>) ||
-	             (IsScalar<LHS>        && std::same_as<RHS, T>) ||
-		         (std::same_as<LHS, T> && IsScalar<RHS>)
+		requires (ScalarType<LHS>      && ScalarType<RHS>) ||
+	             (ScalarType<LHS>      && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
 	{
-		return { pushExpression<OperatorExpression>(Scalar<T>::toValueType(),
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
 													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
 													Operator::MULTIPLY,
 													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
@@ -101,11 +105,11 @@ struct Scalar : Value
 
 	template<typename LHS, typename RHS>
 	friend Scalar<T> operator/(LHS&& lhs, RHS&& rhs)
-		requires (IsScalar<LHS>        && IsScalar<RHS>) ||
-	             (IsScalar<LHS>        && std::same_as<RHS, T>) ||
-		         (std::same_as<LHS, T> && IsScalar<RHS>)
+		requires (ScalarType<LHS>        && ScalarType<RHS>) ||
+	             (ScalarType<LHS>        && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
 	{
-		return { pushExpression<OperatorExpression>(Scalar<T>::toValueType(),
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
 													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
 													Operator::DIVIDE,
 													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
@@ -113,11 +117,11 @@ struct Scalar : Value
 
 	template<typename LHS, typename RHS>
 	friend Scalar<T> operator+(LHS&& lhs, RHS&& rhs)
-		requires (IsScalar<LHS>        && IsScalar<RHS>) ||
-	             (IsScalar<LHS>        && std::same_as<RHS, T>) ||
-		         (std::same_as<LHS, T> && IsScalar<RHS>)
+		requires (ScalarType<LHS>      && ScalarType<RHS>) ||
+	             (ScalarType<LHS>      && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
 	{
-		return { pushExpression<OperatorExpression>(Scalar<T>::toValueType(),
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
 													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
 													Operator::ADD,
 													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
@@ -125,35 +129,18 @@ struct Scalar : Value
 
 	template<typename LHS, typename RHS>
 	friend Scalar<T> operator-(LHS&& lhs, RHS&& rhs)
-		requires (IsScalar<LHS>        && IsScalar<RHS>) ||
-	             (IsScalar<LHS>        && std::same_as<RHS, T>) ||
-		         (std::same_as<LHS, T> && IsScalar<RHS>)
+		requires (ScalarType<LHS>      && ScalarType<RHS>) ||
+	             (ScalarType<LHS>      && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
 	{
 
-		return { pushExpression<OperatorExpression>(Scalar<T>::toValueType(),
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
 													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
 													Operator::SUBTRACT,
 													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
 	}
 
 };
-
-
-//template <typename L, typename R>
-//Scalar<bool> operator==(L&& lhs, R&& rhs)
-//	requires (IsScalar<L> && IsScalar<R>)
-//{
-//	using T1 = std::decay_t<L> ::value_type;
-//	using T2 = std::decay_t<R> ::value_type;
-//
-//	static_assert(std::same_as<T1, T2>);
-//
-//	return { pushExpression<OperatorExpression>(Scalar<bool>::toValueType(),
-//												Scalar<T1>(std::forward<L&&>(lhs)).source(),
-//												Operator::EQUAL,
-//												Scalar<T2>(std::forward<R&&>(rhs)).source()) };
-//}
-
 
 
 using Float = Scalar<float>;

@@ -7,9 +7,9 @@
 #include <Coral/ShaderLanguage/Functions.hpp>
 #include <Coral/ShaderLanguage/Sampler.hpp>
 #include <Coral/ShaderLanguage/Attribute.hpp>
-#include <Coral/ShaderLanguage/Parameter.hpp>
+#include <Coral/ShaderLanguage/UniformBuffer.hpp>
 #include <Coral/ShaderLanguage/ControlFlow.hpp>
-#include <Coral/ShaderLanguage/ShaderModule.hpp>
+#include <Coral/ShaderLanguage/ShaderGraph.hpp>
 #include <Coral/ShaderLanguage/Compiler.hpp>
 #include <Coral/ShaderLanguage/CompilerSPV.hpp>
 #include <Coral/ShaderLanguage/CompilerGLSL.hpp>

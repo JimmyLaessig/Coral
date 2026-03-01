@@ -13,68 +13,68 @@ namespace Coral::ShaderLanguage
 template<typename T, size_t S>
 inline Vector<T, S> normalize(const Vector<T, S>& v)
 {
-	return { pushExpression<NativeFunctionExpression>(Vector<T, S>::toValueType(),
-		                                              "normalize", 
-		                                              v.source()) };
+	return { ShaderGraph::PushExpression<NativeFunctionExpression>(Vector<T, S>::ValueType,
+		                                                           NativeFunction::NORMALIZE, 
+		                                                           v.source()) };
 }
 
 
 template<typename T, size_t S>
 inline Vector<T, S> normalize(Vector<T, S>&& v)
 {
-	return { pushExpression<NativeFunctionExpression>(Vector<T, S>::toValueType(),
-													  "normalize",
-													  std::forward<Vector<T, S>&&>(v).source()) };
+	return { ShaderGraph::PushExpression<NativeFunctionExpression>(Vector<T, S>::ValueType,
+													               NativeFunction::NORMALIZE,
+													               std::forward<Vector<T, S>&&>(v).source()) };
 }
 
 
 template<typename Vec1, typename Vec2>
 inline Scalar<float> dot(Vec1&& v1, Vec2&& v2)
-	requires IsVector<Vec1, float, 2> && IsVector<Vec2, float, 2> ||
-             IsVector<Vec1, float, 3> && IsVector<Vec2, float, 3> ||
-	         IsVector<Vec1, float, 4> && IsVector<Vec2, float, 4>
+	requires VectorType<Vec1, float, 2> && VectorType<Vec2, float, 2> ||
+	         VectorType<Vec1, float, 3> && VectorType<Vec2, float, 3> ||
+	         VectorType<Vec1, float, 4> && VectorType<Vec2, float, 4>
 {
-	return { pushExpression<NativeFunctionExpression>(ValueType::FLOAT,
-													  "dot",
-													  std::forward<Vec1&&>(v1).source(),
-													  std::forward<Vec2&&>(v2).source()) };
+	return { ShaderGraph::PushExpression<NativeFunctionExpression>(ValueType::FLOAT,
+													               NativeFunction::DOT,
+													               std::forward<Vec1&&>(v1).source(),
+													               std::forward<Vec2&&>(v2).source()) };
 }
 
 
 template<typename Vec1, typename Vec2>
 inline Vector<float, 3> cross(Vec1&& v1, Vec2&& v2)
-	requires IsVector<Vec1, float, 3> && IsVector<Vec2, float, 3>
+	requires VectorType<Vec1, float, 3> && VectorType<Vec2, float, 3>
 
 {
-	return { pushExpression<NativeFunctionExpression>(Vector<float, 3>::toValueType(),
-		                                              "cross", 
-		                                              std::forward<Vec1&&>(v1).source(), 
-		                                              std::forward<Vec2&&>(v2).source()) };
+	return { ShaderGraph::PushExpression<NativeFunctionExpression>(Vector<float, 3>::ValueType,
+													               NativeFunction::CROSS,
+		                                                           std::forward<Vec1&&>(v1).source(), 
+		                                                           std::forward<Vec2&&>(v2).source()) };
 }
 
 
 template<typename Vec>
 inline Scalar<float> length(Vec&& v)
-	requires IsVector<Vec, float, 2> ||
-	         IsVector<Vec, float, 3> ||
-	         IsVector<Vec, float, 4>
+	requires VectorType<Vec, float, 2> ||
+			 VectorType<Vec, float, 3> ||
+			 VectorType<Vec, float, 4>
 {
-	return { pushExpression<NativeFunctionExpression>(Scalar<float>::toValueType(),
-		                                              "length", 
-		                                              std::forward<Vec&&>(v).source()) };
+	return { ShaderGraph::PushExpression<NativeFunctionExpression>(Scalar<float>::ValueType,
+													               NativeFunction::LENGTH,
+		                                                           std::forward<Vec&&>(v).source()) };
 }
 
 
 template<typename Vec1, typename Vec2>
 inline Scalar<float> distance(Vec1&& p1, Vec2&& p2)
-	requires IsVector<Vec1, float, 2> && IsVector<Vec2, float, 2> ||
-             IsVector<Vec1, float, 3> && IsVector<Vec2, float, 3> ||
-             IsVector<Vec1, float, 4> && IsVector<Vec2, float, 4>
+	requires VectorType<Vec1, float, 2> && VectorType<Vec2, float, 2> ||
+	         VectorType<Vec1, float, 3> && VectorType<Vec2, float, 3> ||
+	         VectorType<Vec1, float, 4> && VectorType<Vec2, float, 4>
 {
-	return { pushExpression<NativeFunctionExpression>(Scalar<float>::toValueType(),
-		                                              "distance", 
-													  std::forward<Vec1&&>(p1).source(),
-													  std::forward<Vec2&&>(p2).source()) };
+	return { ShaderGraph::PushExpression<NativeFunctionExpression>(Scalar<float>::ValueType,
+													               NativeFunction::DISTANCE,
+													               std::forward<Vec1&&>(p1).source(),
+													               std::forward<Vec2&&>(p2).source()) };
 }
 
 } // namespace ShaderLanguage 

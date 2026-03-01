@@ -1,31 +1,29 @@
 #include <Coral/ShaderLanguage/Expression.hpp>
 
-#include <Coral/ShaderLanguage/ShaderModule.hpp>
+#include <ranges>
 
-#include <cassert>
-
-using namespace Coral::ShaderLanguage;
 using namespace Coral::ShaderLanguage;
 
 Expression::Expression(ValueType resultType, const std::vector<ExpressionPtr>& inputs)
-	: mOutputValueType(resultType)
+	: mValueType(resultType)
 	, mInputs(inputs)
 {
-
 }
 
 
 ValueType
-Expression::valueTypeId() const
+Expression::GetValueType() const
 { 
-	return mOutputValueType;
+	return mValueType;
 }
 
 
 std::vector<const Expression*>
-Expression::inputs() const
+Expression::Inputs() const
 {
 	return mInputs
-		| std::views::transform([](auto expr) { return expr.get(); })
+		| std::views::transform([](auto expr) { return static_cast <const Expression*>(expr.get()); })
 		| std::ranges::to<std::vector<const Expression*>>();
+
+	return {};
 }

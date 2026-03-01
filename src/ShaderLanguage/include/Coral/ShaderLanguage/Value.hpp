@@ -33,24 +33,30 @@ enum class ValueType
 	/// 2D texture sampler
 	SAMPLER2D,
 
-	VOID
+	STRUCT,
 };
 
+
 class Expression;
+class ShaderGraph;
 
 /// Base struct for all values of shader graph expressions
 /**
- * Objects that derive from this type act as stack-allocated wrappers arround a shader graph operation and define the
- * output type of said operation. Objects of this type are widely used as inputs to functions that build up new shader
- * graph operations. For example, the ´Float´ struct is a proxy for a floating-point value that is created by a shader
- * graph operation. The object itself does not hold the actual value but stores a pointer to the shader graph node from
- * which it was calculated. The user is only required to interact with the stack-allocated ShaderGraphResult objects
- * and function calls to build the shader graph. The creation and storage of the actual ShaderGraph is abstracted away
- * by this level of indirection.
+ * Classes that derive from this type act as stack-allocated wrappers arround a shader graph expression and define the
+ * output type of said operation. Classes of this type are widely used as inputs to functions that build up new shader
+ * graph expressions. For example, the ´float32´ struct is a proxy for a 32-bit floating-point value that is created by
+ * a shader graph expression. The object itself does not hold the actual value but stores a pointer to the shader graph
+ * node from which it was calculated. The user is only required to interact with the stack-allocated Value objects and
+ * function calls to build the shader graph. The creation and storage of the actual ShaderGraph is abstracted away via
+ * this level of indirection.
  */
 struct Value
 {
 public:
+
+	Value();
+
+	Value(std::shared_ptr<Expression> source);
 
 	// Get the wrapped ShaderGraph node
 	std::shared_ptr<Expression> source() const &;
@@ -58,12 +64,10 @@ public:
 	// Get the wrapped ShaderGraph node
 	std::shared_ptr<Expression> source() &&;
 
+	void setSource(std::shared_ptr<Expression> source);
+
 	/// Get the type id of the value
 	ValueType typeId() const;
-
-	Value(std::shared_ptr<Expression> source);
-
-	void setSource(std::shared_ptr<Expression> ex);
 
 private:
 

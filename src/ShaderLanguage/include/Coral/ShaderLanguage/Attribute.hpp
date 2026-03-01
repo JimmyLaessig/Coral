@@ -2,69 +2,17 @@
 #define CORAL_SHADERLANGUAGE_ATTRIBUTE_HPP
 
 #include <Coral/ShaderLanguage/Expression.hpp>
+#include <Coral/ShaderLanguage/ShaderGraph.hpp>
 #include <Coral/ShaderLanguage/Value.hpp>
+
+#include <Coral/ShaderLanguage/Binding.hpp>
 #include <concepts>
+#include <string_view>
+#include <iostream>
+#include <optional>
 
 namespace Coral::ShaderLanguage
 {
-class ShaderModule;
-
-
-class NonCopyable
-{
-public:
-	virtual ~NonCopyable() = default;
-	NonCopyable() = default;
-	NonCopyable(const NonCopyable&) = delete;
-	NonCopyable& operator=(const NonCopyable&) = delete;
-};
-
-class NonMoveable
-{
-public:
-	virtual ~NonMoveable() = default;
-	NonMoveable() = default;
-	NonMoveable(NonMoveable&&) = delete;
-	NonMoveable& operator=(NonMoveable&&) = delete;
-};
-
-
-class Container : private NonCopyable, private NonMoveable
-{
-public:
-
-	static Container* Current()
-	{
-		return !sContainerStack.empty() ? sContainerStack.back() : nullptr;
-	}
-
-protected:
-
-	uint8_t BeginScope()
-	{
-		sContainerStack.push_back(this);
-		std::println("BeginScope");
-		return 0;
-	}
-
-	uint8_t EndScope()
-	{
-		assert(sContainerStack.back() == this);
-		sContainerStack.pop_back();
-		std::println("EndScope");
-		return 0;
-	}
-
-private:
-
-	static thread_local std::vector<Container*> sContainerStack;
-};
-
-
-thread_local std::vector<Container*> Container::sContainerStack;
-
-
-enum Location : uint8_t {};
 
 enum Qualifier
 {
@@ -73,86 +21,188 @@ enum Qualifier
 };
 
 
-template<typename T, Location L>
-class UniformBuffer : private Container
+template <size_t N>
+using Semantic = StringLiteral<N>;
+
+constexpr Semantic SV_POSITION = "SV_POSITION";
+
+constexpr Semantic SV_DEPTH = "SV_DEPTH";
+
+
+template<Semantic S>
+constexpr bool IsDefaultSemantic()
 {
-public:
-
-	UniformBuffer(std::string_view name)
-		: mName(name)
-	{
-	}
-
-	const T* operator->() const
-	{
-		return &mValue;
-	}
-
-	const T& operator*() const
-	{
-		return mValue;
-	}
-
-	operator T() const
-	{
-		return mValue;
-	}
-
-private:
-
-	std::string mName;
-	uint8_t mBegin{ BeginScope() };
-	T mValue{};
-	uint8_t mEnd{ EndScope() };
-};
+	return false;
+}
 
 
-template<typename T, Location L, Qualifier Q, StringLiteral Name>
-class Attribute : private Container
+template<>
+constexpr bool IsDefaultSemantic<SV_POSITION>()
+{
+	return true;
+}
+
+
+template<>
+constexpr bool IsDefaultSemantic<SV_DEPTH>()
+{
+	return true;
+}
+
+
+template<Semantic S>
+constexpr DefaultSemantics Convert()
+{
+	static_assert(false);
+}
+
+
+template<>
+constexpr DefaultSemantics Convert<SV_POSITION>()
+{
+	return DefaultSemantics::SV_POSITION;
+}
+
+
+template<>
+constexpr DefaultSemantics Convert<SV_DEPTH>()
+{
+	return DefaultSemantics::SV_DEPTH;
+}
+
+/// Class defining a shader input or output attribute
+/*
+ * \param T the type of the attribute (must be derived from csl::Value)
+ * \param S Semantic of the attribute.
+ * \param L Location of the attribute ( Must be -1 if S is one of the default semantics)
+ * \param Q Qualifier defining whether this is a shader input or output attribute (Must be OUT if S is one of the default semantics)
+ *
+ */
+template<typename T, Semantic S, Location L = Location(-1), Qualifier Q = Qualifier::OUT>
+class Attribute
 {
 public:
 
 	Attribute() requires (Q == Qualifier::IN)
-		: mValue(pushExpression<InputAttributeExpression>(T::toValueType(), Name.value))
+		: mValue(T(ShaderGraph::PushExpression<InputAttributeExpression>(T::ValueType, static_cast<uint32_t>(L), S)))
 	{
 	}
+
 
 	Attribute() requires (Q == Qualifier::OUT)
-		: mValue(pushExpression<OutputAttributeExpression>(T::toValueType(), Name.value))
 	{
 	}
 
-	const T* operator->() const requires (Q == Qualifier::IN)
+
+	~Attribute() requires (Q == Qualifier::OUT)
 	{
-		return &mValue;
+		if (!mValue)
+		{
+			mValue.emplace(MakeDefaultOutputAttributeExpression());
+		}
 	}
+
+
+	~Attribute() requires (Q == Qualifier::IN)
+	{
+	}
+
+
+	const T* operator->() const  requires (Q == Qualifier::IN)
+	{
+		return &mValue.value();
+	}
+
 
 	const T& operator*() const  requires (Q == Qualifier::IN)
 	{
-		return mValue;
+		return *mValue;
 	}
 
-	operator T() const  requires (Q == Qualifier::IN)
+
+	operator T() const requires (Q == Qualifier::IN)
 	{
-		return mValue;
+		return *mValue;
 	}
 
-	Attribute& operator=(const T& t) requires (Q == Qualifier::OUT)
+
+	const T& Value() const  requires (Q == Qualifier::IN)
 	{
-		// TODO fix this
-		//mValue = T(pushExpression<OperatorExpression>(mValue.toValueType(), mValue.source(), Operator::ASSIGNMENT, other.source());
+		return *mValue;
+	}
+
+	Attribute& operator=(const T& value) requires (Q == Qualifier::OUT)
+	{
+		if (!mValue)
+		{
+			mValue.emplace(MakeOutputAttributeExpression(value));
+		}
+		else
+		{
+			*mValue = value;
+		}
 		return *this;
 	}
 
-	Attribute& operator=(T&& t) requires (Q == Qualifier::OUT)
+
+	Attribute& operator=(T&& value) requires (Q == Qualifier::OUT)
 	{
-		// TODO fix this
-		//mValue = T(pushExpression<OperatorExpression>(mValue.toValueType(), mValuesource(), Operator::ASSIGNMENT, std::forward<T&&>(other).source());
+		if (!mValue)
+		{
+			mValue.emplace(MakeOutputAttributeExpression(std::move(value)));
+		}
+		else
+		{
+			*mValue = value;
+		}
+
 		return *this;
 	}
 
 private:
-	T mValue{};
+
+	std::shared_ptr<OutputAttributeExpression>
+	MakeDefaultOutputAttributeExpression() requires (IsDefaultSemantic<S>())
+	{
+		return ShaderGraph::PushExpression<OutputAttributeExpression>(T().source(), Convert<S>());
+	}
+
+
+	std::shared_ptr<OutputAttributeExpression>
+	MakeDefaultOutputAttributeExpression() requires (!IsDefaultSemantic<S>())
+	{
+		return ShaderGraph::PushExpression<OutputAttributeExpression>(T().source(), static_cast<uint32_t>(L), S);
+	}
+
+
+	std::shared_ptr<OutputAttributeExpression>
+	MakeOutputAttributeExpression(const T& value) requires (IsDefaultSemantic<S>())
+	{
+		return ShaderGraph::PushExpression<OutputAttributeExpression>(value.source(), Convert<S>());
+	}
+
+
+	std::shared_ptr<OutputAttributeExpression>
+	MakeOutputAttributeExpression(const T& value) requires (!IsDefaultSemantic<S>())
+	{
+		return ShaderGraph::PushExpression<OutputAttributeExpression>(value.source(), static_cast<uint32_t>(L), S);
+	}
+
+
+	std::shared_ptr<OutputAttributeExpression>
+	MakeOutputAttributeExpression(T&& value) requires (IsDefaultSemantic<S>())
+	{
+		return ShaderGraph::PushExpression<OutputAttributeExpression>(std::move(value).source(), Convert<S>());
+	}
+
+
+	std::shared_ptr<OutputAttributeExpression>
+	MakeOutputAttributeExpression(T&& value) requires (!IsDefaultSemantic<S>())
+	{
+		return ShaderGraph::PushExpression<OutputAttributeExpression>(std::move(value).source(), static_cast<uint32_t>(L), S);
+	}
+
+	std::optional<T> mValue;
 };
 
 } // namespace ShaderLanguage 

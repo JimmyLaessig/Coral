@@ -1,7 +1,7 @@
 #ifndef CORAL_SHADERLANGUAGE_COMPILER_HPP
 #define CORAL_SHADERLANGUAGE_COMPILER_HPP
 
-#include <Coral/ShaderLanguage/ShaderModule.hpp>
+#include <Coral/ShaderLanguage/ShaderGraph.hpp>
 
 #include <expected>
 #include <map>
@@ -10,14 +10,19 @@
 namespace Coral::ShaderLanguage
 {
 
+enum class ShaderStage
+{
+	VERTEX,
+	FRAGMENT
+};
+
 class Compiler
 {
 public:
 
 	struct Result
 	{
-		std::string vertexShader;
-		std::string fragmentShader;
+		std::string shaderCode;
 	};
 
 	struct Error
@@ -26,7 +31,7 @@ public:
 	};
 
 	/// Compile the shader program
-	virtual std::expected<Result, Error> Compile(const ShaderModule& vertexShader, const ShaderModule& fragmentShader) = 0;
+	virtual std::expected<Result, Error> Compile(const ShaderGraph& shaderGraph, ShaderStage stage) = 0;
 };
 
 } // namespace Coral
