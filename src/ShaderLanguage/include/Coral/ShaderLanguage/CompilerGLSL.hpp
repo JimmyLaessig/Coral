@@ -13,90 +13,59 @@ class CompilerGLSL : public Compiler
 {
 public:
 
-	Compiler& addShaderModule(Coral::ShaderStage stage, const ShaderModule& shader) override;
-
-	Compiler& addUniformBlockOverride(uint32_t binding, std::string_view name, const UniformBlockDefinition& override) override;
-
-	Compiler& addInputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& addOutputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& setDefaultUniformBlockName(std::string_view name) override;
-
-	std::expected<Result, Error> compile() override;
+	std::expected<Result, Error> Compile(const ShaderGraph& shader, ShaderStage stage) override;
 
 private:
 
-	std::string format(const ShaderGraph::ConstantExpression<float>& expr);
+	std::string format(const ConstantExpression<float>& expr);
 
-	std::string format(const ShaderGraph::ConstantExpression<int>& expr);
+	std::string format(const ConstantExpression<int>& expr);
 
-	std::string format(const ShaderGraph::ConstantExpression<bool>& expr);
+	std::string format(const ConstantExpression<bool>& expr);
 
-	std::string format(const ShaderGraph::InputAttributeExpression& expr);
+	std::string format(const InputAttributeExpression& expr);
 
-	std::string format(const ShaderGraph::OutputAttributeExpression& expr);
+	std::string format(const OutputAttributeExpression& expr);
 
-	std::string format(const ShaderGraph::OperatorExpression& expr);
+	std::string format(const OperatorExpression& expr);
 
-	std::string format(const ShaderGraph::ParameterExpression& expr);
+	std::string format(const UniformBufferExpression& expr);
 
-	std::string format(const ShaderGraph::NativeFunctionExpression& expr);
+	std::string format(const UniformExpression& expr);
 
-	std::string format(const ShaderGraph::ConstructorExpression& expr);
+	std::string format(const NativeFunctionExpression& expr);
 
-	std::string format(const ShaderGraph::CastExpression& expr);
+	std::string format(const ConstructorExpression& expr);
 
-	std::string format(const ShaderGraph::SwizzleExpression& expr);
+	std::string format(const CastExpression& expr);
 
-	std::string format(const ShaderGraph::ConditionalExpression& expr);
+	std::string format(const SwizzleExpression& expr);
 
-	std::string format(const ShaderGraph::Expression* expr);
+	//std::string format(const ConditionalExpression& expr);
 
-	std::string resolve(const ShaderGraph::Expression& expr);
+	std::string format(const SamplerExpression& expr);
 
-	std::optional<uint32_t> findUniformBinding(std::string_view parameterName);
+	std::string format(const Expression* expr);
 
-	bool shouldHaveVariableAssignment(const ShaderGraph::Expression& epxr);
+	std::string resolve(const Expression& expr);
 
-	std::string buildVariableAssignments(const ShaderGraph::Expression& expr);
+	std::string formatFunctionArgumentList(const std::vector<const Expression*>& expressions);
 
-	std::string formatFunctionArgumentList(const std::vector<const ShaderGraph::Expression*>& expressions);
+	std::string buildInputAttributeDefinitionsString();
 
-	void buildVariableNames(const ShaderModule& shader);
+	std::string buildOutputAttributeDefinitionsString();
 
-	std::string buildInputAttributeDefinitionsString(const ShaderModule& shader);
+	std::string buildMainFunctionString();
 
-	std::string buildOutputAttributeDefinitionsString(const ShaderModule& shader);
+	std::string buildUniformBlocksString();
 
-	std::string buildMainFunctionString(const ShaderModule& shader);
+	std::string buildSamplerString();
 
-	std::string buildUniformBlocksString(const ShaderModule& shader);
+	std::vector<const Expression*> mInstructionsList;
 
-	void createUniformBlockDefinitions();
+	const ShaderGraph* mShader{ nullptr };
 
-	bool createAttributeBindings();
-
-	struct ShaderStageAttributeBindings
-	{	
-		std::unordered_map<std::string, uint32_t> inputAttributes;
-		std::unordered_map<std::string, uint32_t> outputAttributes;
-	};
-
-	const ShaderModule* mVertexShader{ nullptr };
-	const ShaderModule* mFragmentShader{ nullptr };
-
-	std::map<uint32_t, Coral::DescriptorBindingInfo> mDescriptorBindings;
-
-	std::unordered_map<std::string, uint32_t> mInputAttributeBindingOverrides;
-
-	std::unordered_map<std::string, uint32_t> mOutputAttributeBindingOverrides;
-
-	std::unordered_map<const ShaderModule*, ShaderStageAttributeBindings> mShaderStageAttributeBindingsLookUp;
-
-	std::unordered_map<const ShaderGraph::Expression*, std::string> mNameLookUp;
-
-	std::string mDefaultUniformBlockName{ "Uniforms" };
+	std::unordered_map<const Expression*, std::string> mNameLookUp;
 
 	uint32_t mDefaultDescriptorSet{ 0 };
 

@@ -1,11 +1,8 @@
-include(FetchContent)
-
-FetchContent_Declare(
-  stb
-  GIT_REPOSITORY https://github.com/nothings/stb.git
+CPMAddPackage(
+  NAME stb
+  GITHUB_REPOSITORY nothings/stb
+  GIT_TAG f1c79c02822848a9bed4315b12c8c8f3761e1296
 )
-
-FetchContent_MakeAvailable(stb)
 
 add_library(stb INTERFACE)
 

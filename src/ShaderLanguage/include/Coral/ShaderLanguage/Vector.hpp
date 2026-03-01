@@ -6,208 +6,290 @@
 namespace Coral::ShaderLanguage
 {
 
-template<typename T1, typename T2>
-ShaderGraph::ExpressionPtr makeScalarExpression(T2 arg)
+template<typename T, size_t S> requires (S > 1)
+struct Vector;
+
+template<typename V, typename T, size_t S>
+concept VectorType = std::same_as<std::remove_cvref_t<V>, Vector<T, S>>;
+
+template<>
+struct TypeTraits<Vector<float, 2>>
 {
-	if constexpr (std::is_same_v<T2, T1>)
-	{
-		return Scalar<T1>(arg).source();
-	}
-	else if constexpr (std::is_same_v<T2, Scalar<T1>>)
-	{
-		return arg.source();
-	}
-	else
-	{
-		static_assert(false, "Invalid scalar value");
-	}
-}
+	constexpr static ValueType ValueType = ValueType::FLOAT2;
+};
+
+template<>
+struct TypeTraits<Vector<float, 3>>
+{
+	constexpr static ValueType ValueType = ValueType::FLOAT3;
+};
+
+template<>
+struct TypeTraits<Vector<float, 4>>
+{
+	constexpr static ValueType ValueType = ValueType::FLOAT4;
+};
+
+template<>
+struct TypeTraits<Vector<int, 2>>
+{
+	constexpr static ValueType ValueType = ValueType::BOOL;
+};
+
+template<>
+struct TypeTraits<Vector<int, 3>>
+{
+	constexpr static ValueType ValueType = ValueType::BOOL;
+};
+
+template<>
+struct TypeTraits<Vector<int, 4>>
+{
+	constexpr static ValueType ValueType = ValueType::BOOL;
+};
 
 
 /// Class representing a vector in the shader graph
 template<typename T, size_t S> requires (S > 1)
 struct Vector : public Value
 {
-
 public:
+
 	using Value::Value;
 
-	static constexpr ShaderGraph::ValueType toShaderTypeId();
+	static constexpr ValueType ValueType = TypeTraits<Vector<T, S>>::ValueType;
+
+	Vector() requires (S == 1)
+		: Vector(T(0))
+	{
+	}
+
+	Vector() requires (S == 2)
+		: Vector(T(0), T(0))
+	{
+	}
+
+	Vector() requires (S == 3)
+		: Vector(T(0), T(0), T(0))
+	{
+	}
+
+	Vector() requires (S == 4)
+		: Vector(T(0), T(0), T(0), T(0))
+	{
+	}
 
 	/// Create a new Vector from scalars
 	template<typename ...Ts> requires (sizeof...(Ts) == S)
-		Vector(Ts... args)
-		: Value(std::make_shared<ShaderGraph::ConstructorExpression>(Vector<T, S>::toShaderTypeId(), makeScalarExpression<T>(std::forward<Ts>(args))...))
+	Vector(Ts&&... args)
+		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Vector<T, S>::ValueType, Scalar<T>(args).source()...))
 	{
 	}
 
 	/// Create a new Vector from a smaller vector with the scalar values appended at the end
 	template<size_t S2, typename ...Ts> requires (sizeof...(Ts) + S2 == S)
-		Vector(const Vector<T, S2>& v, Ts... args)
-		: Value(std::make_shared<ShaderGraph::ConstructorExpression>(Vector<T, S>::toShaderTypeId(), v.source(), makeScalarExpression<T>(std::forward<Ts>(args))...))
+	Vector(const Vector<T, S2>& v, Ts... args)
+		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Vector<T, S>::ValueType, v.source(), Scalar<T>(args).source()...))
 	{
+	}
+
+	Vector(const Vector& other)
+		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Vector<T, S>::ValueType, other.source()))
+	{
+	}
+
+	Vector(Vector&& other)
+		: Value(other.source())
+	{
+	}
+
+	Vector<T, S>& operator=(const Vector<T, S>& other)
+	{
+		setSource(ShaderGraph::PushExpression<OperatorExpression>(Vector<T, S>::ValueType, source(), Operator::ASSIGNMENT, other.source()));
+		return *this;
+	}
+
+	Vector<T, S>& operator=(Vector<T, S>&& other)
+	{
+		setSource(ShaderGraph::PushExpression<OperatorExpression>(Vector<T, S>::ValueType, source(), Operator::ASSIGNMENT, other.source()));
+		return *this;
 	}
 
 	/// Get the x component of the vector
 	Scalar<T> x() const
 	{
-		return { std::make_shared<ShaderGraph::SwizzleExpression>(Scalar<T>::toShaderTypeId(), ShaderGraph::Swizzle::X, source()) };
+		return { std::make_shared<SwizzleExpression>(Scalar<T>::ValueType, Swizzle::X, source()) };
 	}
 
 	/// Get the y component of the vector
 	Scalar<T> y() const
 	{
-		return { std::make_shared<ShaderGraph::SwizzleExpression>(Scalar<T>::toShaderTypeId(), ShaderGraph::Swizzle::Y, source()) };
+		return { std::make_shared<SwizzleExpression>(Scalar<T>::ValueType, Swizzle::Y, source()) };
 	}
 
 	/// Get the z component of the vector
 	Scalar<T> z() const requires(S >= 3)
 	{
-		return { std::make_shared<ShaderGraph::SwizzleExpression>(Scalar<T>::toShaderTypeId(), ShaderGraph::Swizzle::Z, source()) };
+		return { std::make_shared<SwizzleExpression>(Scalar<T>::ValueType, Swizzle::Z, source()) };
 	}
 
 	/// Get the w component of the vector
 	Scalar<T> w() const requires(S >= 4)
 	{
-		return { std::make_shared<ShaderGraph::SwizzleExpression>(Scalar<T>::toShaderTypeId(), ShaderGraph::Swizzle::W, source()) };
+		return { std::make_shared<SwizzleExpression>(Scalar<T>::ValueType, Swizzle::W, source()) };
 	}
 
 	/// Get the xy components of the vector
 	Vector<T, 2> xy() const
 	{
-		return { std::make_shared<ShaderGraph::SwizzleExpression>(Vector<T, 2>::toShaderTypeId(), ShaderGraph::Swizzle::XY, source()) };
+		return { std::make_shared<SwizzleExpression>(Vector<T, 2>::ValueType, Swizzle::XY, source()) };
 	}
 
 	/// Get the xyz components of the vector
 	Vector<T, 3> xyz() const requires(S >= 3)
 	{
-		return { std::make_shared<ShaderGraph::SwizzleExpression>(Vector<T, 3>::toShaderTypeId(), ShaderGraph::Swizzle::XYZ, source()) };
+		return { std::make_shared<SwizzleExpression>(Vector<T, 3>::ValueType, Swizzle::XYZ, source()) };
+	}
+
+	/// Vector multiplication operator
+	/**
+	 * The following multiplications are supported:
+	 * vector * vector
+	 * vector * scalar
+	 * scalar * vector
+	 * vector * T
+	 *      T * vector
+	 */
+	template<typename LHS, typename RHS>
+	friend Vector<T, S> operator*(LHS&& lhs, RHS&& rhs)
+		requires (VectorType<LHS, T, S> && VectorType<RHS, T, S>)  ||
+				 (VectorType<LHS, T, S> && ScalarType<RHS, T>)     ||
+				 (VectorType<LHS, T, S> && std::same_as<RHS, T>) ||
+				 (ScalarType<LHS, T>    && VectorType<RHS, T, S>)  ||
+				 (std::same_as<LHS, T>  && VectorType<RHS, T, S>)
+	{
+		if constexpr (std::same_as<LHS, T>)
+		{
+			return Scalar<T>(lhs) * std::forward<RHS&&>(rhs);
+		}
+
+		else if constexpr (std::same_as<RHS, T>)
+		{
+			return std::forward<LHS&&>(lhs) * Scalar<T>(rhs);
+		}
+
+		else
+		{
+			return { ShaderGraph::PushExpression<OperatorExpression>(Vector<T, S>::ValueType,
+														std::forward<LHS&&>(lhs).source(),
+														Operator::MULTIPLY,
+														std::forward<RHS&&>(rhs).source()) };
+		}
+	}
+
+	/// Vector division operator
+	/**
+	* The following divisions are supported:
+	* vector / vector
+	* vector / scalar
+	* scalar / vector
+	* vector / T
+	*      T / vector
+	*/
+	template<typename LHS, typename RHS>
+	friend Vector<T, S> operator/(LHS&& lhs, RHS&& rhs)
+		requires (VectorType<LHS, T, S> && VectorType<RHS, T, S>) ||
+				 (VectorType<LHS, T, S> && ScalarType<RHS, T>)    ||
+				 (VectorType<LHS, T, S> && std::same_as<RHS, T>)  ||
+				 (ScalarType<LHS, T>    && VectorType<RHS, T, S>) ||
+				 (std::same_as<LHS, T>  && VectorType<RHS, T, S>)
+	{
+		if constexpr (std::same_as<LHS, T>)
+		{
+			return Scalar<T>(lhs) / std::forward<RHS&&>(rhs);
+		}
+		else if constexpr (std::same_as<RHS, T>)
+		{
+			return std::forward<LHS&&>(lhs) / Scalar<T>(rhs);
+		}
+		else
+		{
+			return { ShaderGraph::PushExpression<OperatorExpression>(Vector<T, S>::ValueType,
+														std::forward<LHS&&>(lhs).source(),
+														Operator::DIVIDE,
+														std::forward<RHS&&>(rhs).source()) };
+		}
+	}
+
+	/// Vector addition operator
+	/**
+	* The following additions are supported:
+	* vector + vector
+	* vector + scalar
+	* scalar + vector
+	* vector + T
+	*      T + vector
+	*/
+	template<typename LHS, typename RHS>
+	friend Vector<T, S> operator+(LHS&& lhs, RHS&& rhs)
+		requires (VectorType<LHS, T, S> && VectorType<RHS, T, S>) ||
+				 (VectorType<LHS, T, S> && ScalarType<RHS, T>)    ||
+				 (VectorType<LHS, T, S> && std::same_as<RHS, T>)  ||
+				 (ScalarType<LHS, T>    && VectorType<RHS, T, S>) ||
+				 (std::same_as<LHS, T>  && VectorType<RHS, T, S>)
+	{
+		if constexpr (std::same_as<LHS, T>)
+		{
+			return Scalar<T>(lhs) + std::forward<RHS&&>(rhs);
+		}
+		else if constexpr (std::same_as<RHS, T>)
+		{
+			return std::forward<LHS&&>(lhs) + Scalar<T>(rhs);
+		}
+		else
+		{
+			return { ShaderGraph::PushExpression<OperatorExpression>(Vector<T, S>::ValueType,
+														std::forward<LHS&&>(lhs).source(),
+														Operator::ADD,
+														std::forward<RHS&&>(rhs).source()) };
+		}
+	}
+
+	/// Vector subtraction operator
+	/**
+	* The following additions are supported:
+	* vector - vector
+	* vector - scalar
+	* scalar - vector
+	* vector - T
+	*      T - vector
+	*/
+	template<typename LHS, typename RHS>
+	friend Vector<T, S> operator-(LHS&& lhs, RHS&& rhs)
+		requires (VectorType<LHS, T, S> && VectorType<RHS, T, S>) ||
+				 (VectorType<LHS, T, S> && ScalarType<RHS, T>)    ||
+				 (VectorType<LHS, T, S> && std::same_as<RHS, T>)  ||
+				 (ScalarType<LHS, T>    && VectorType<RHS, T, S>) ||
+				 (std::same_as<LHS, T>  && VectorType<RHS, T, S>)
+	{
+		if constexpr (std::same_as<LHS, T>)
+		{
+			return Scalar<T>(lhs) - std::forward<RHS&&>(rhs);
+		}
+		else if constexpr (std::same_as<RHS, T>)
+		{
+			return std::forward<LHS&&>(lhs) - Scalar<T>(rhs);
+		}
+		else
+		{
+			return { ShaderGraph::PushExpression<OperatorExpression>(Vector<T, S>::ValueType,
+														std::forward<LHS&&>(lhs).source(),
+														Operator::SUBTRACT,
+														std::forward<RHS&&>(rhs).source()) };
+		}
 	}
 };
 
-
-template<> constexpr ValueType Vector<float, 2>::toShaderTypeId() { return ValueType::FLOAT2; }
-template<> constexpr ValueType Vector<float, 3>::toShaderTypeId() { return ValueType::FLOAT3; }
-template<> constexpr ValueType Vector<float, 4>::toShaderTypeId() { return ValueType::FLOAT4; }
-
-template<> constexpr ValueType Vector<int, 2>::toShaderTypeId() { return ValueType::INT2; }
-template<> constexpr ValueType Vector<int, 3>::toShaderTypeId() { return ValueType::INT3; }
-template<> constexpr ValueType Vector<int, 4>::toShaderTypeId() { return ValueType::INT4; }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator*(Vector<T, S> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::MULTIPLY, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator/(Vector<T, S> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::DIVIDE, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator+(Vector<T, S> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::ADD, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator-(Vector<T, S> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::SUBTRACT, rhs.source()) };
-}
-
-template<typename T, size_t S>
-inline Vector<T, S> operator*(Vector<T, S> lhs, T rhs) { return lhs * Scalar(rhs); }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator/(Vector<T, S> lhs, T rhs) { return lhs / Scalar(rhs); }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator+(Vector<T, S> lhs, T rhs) { return lhs + Scalar(rhs); }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator-(Vector<T, S> lhs, T rhs) { return lhs - Scalar(rhs); }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator*(Scalar<T> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::MULTIPLY, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator/(Scalar<T> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::DIVIDE, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator+(Scalar<T> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::ADD, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator-(Scalar<T> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::SUBTRACT, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator*(T lhs, Vector<T, S> rhs) { return Scalar(lhs) * rhs; }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator/(T lhs, Vector<T, S> rhs) { return Scalar(lhs) / rhs; }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator+(T lhs, Vector<T, S> rhs) { return Scalar(lhs) + rhs; }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator-(T lhs, Vector<T, S> rhs) { return Scalar(lhs) - rhs; }
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator*(Vector<T, S> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::MULTIPLY, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator/(Vector<T, S> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::DIVIDE, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator+(Vector<T, S> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::ADD, rhs.source()) };
-}
-
-
-template<typename T, size_t S>
-inline Vector<T, S> operator-(Vector<T, S> lhs, Vector<T, S> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Vector<T, S>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::SUBTRACT, rhs.source()) };
-}
 
 using float2 = Vector<float, 2>;
 using float3 = Vector<float, 3>;

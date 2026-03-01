@@ -11,28 +11,19 @@ class CompilerSPV : public Compiler
 {
 public:
 
-	struct SPVResult
-	{
-		Result glslResult;
-		Result spvResult;
-	};
+	std::expected<Result, Error> Compile(const ShaderGraph& shaderModule, ShaderStage stage) override;
 
-	Compiler& addShaderModule(Coral::ShaderStage stage, const ShaderModule& shaderModulw) override;
+	Result GetShaderSourceGLSL() const;
 
-	Compiler& addUniformBlockOverride(uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& override) override;
-
-	Compiler& addInputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& addOutputAttributeBindingLocation(uint32_t location, std::string_view name) override;
-
-	Compiler& setDefaultUniformBlockName(std::string_view name) override;
-
-	std::expected<Result, Error> compile() override;
-
-	std::expected<SPVResult, Error> compile2();
 private:
 
+	std::expected<Result, Error> CompileSPV(const Result& shaderSourceGLSL, ShaderStage stage);
+
 	CompilerGLSL mCompilerGLSL;
+
+	const ShaderGraph* mShaderModule{ nullptr };
+
+	Result mShaderSourceGLSL;
 };
 
 } // namespace Coral

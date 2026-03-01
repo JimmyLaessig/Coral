@@ -293,11 +293,14 @@ int main()
 	auto farPlane		  = 1000.f;
 	auto projectionMatrix = glm::perspective(fov, static_cast<float>(WIDTH) / HEIGHT, nearPlane, farPlane);
 
-	Coral::UniformBlockBuilder uniformBlock(TexturedWithLightingShader::uniformBlockDefinition());
+	auto bindings = vertexShader->descriptorLayout();
+
+	auto block = std::get<Coral::UniformBlockDefinition>(bindings.front().definition);
+	Coral::UniformBlockBuilder uniformBlock(block);
 	uniformBlock.setVec3F("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
 	uniformBlock.setVec3F("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
 	uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-	uniformBlock.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+	uniformBlock.setMat33F("normalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
 
 	auto uniformBuffer = createUniformBuffer(*context, uniformBlock);
 
@@ -398,7 +401,7 @@ int main()
 		}
 
 		ImGui::End();
-		
+
 		rotation += (rotationPerSecond * 360.f) * deltaT;
 
 		modelMatrix = glm::rotate(glm::mat4(1), glm::radians(rotation), glm::vec3(0, 1, 0));
@@ -410,7 +413,6 @@ int main()
 
 		uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
 		uniformBlock.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-
 		updateUniformBuffer(*uniformBuffer, uniformBlock);
 
 		Coral::CommandBufferCreateConfig commandBufferConfig{};
@@ -448,8 +450,6 @@ int main()
 		ImGui_ImplCoral_RenderDrawData(ImGui::GetDrawData(), commandBuffer.get());
 
 		commandBuffer->cmdEndRenderPass();
-
-		//commandBuffer->cmdBlitImage(texture.get(), info.image);
 		commandBuffer->end();
 
 		auto renderFinishedSemaphorePtr = renderFinishedSemaphore.get();

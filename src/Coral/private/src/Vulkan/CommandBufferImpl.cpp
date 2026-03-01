@@ -676,7 +676,7 @@ CommandBufferImpl::cmdBlitImage(Coral::Image* source, Coral::Image* dest)
     auto dstImpl = static_cast<Coral::Vulkan::ImageImpl*>(dest);
 
     // Transition the image layout of the source and destination image to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL and 
-    // K_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL.
+    // VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL.
 
     ImageImpl::cmdTransitionImageLayout(mCommandBuffer,
                                         *srcImpl,

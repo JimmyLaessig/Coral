@@ -1,22 +1,19 @@
 #include <Coral/ShaderLanguage/CompilerGLSL.hpp>
 
-#include "Visitor.hpp"
-
-#include <algorithm>
+#include <Coral/ShaderLanguage/Visitor.hpp>
 #include <cassert>
 #include <cmath>
 #include <format>
 #include <iostream>
 #include <map>
 #include <ranges>
+#include <set>
 #include <sstream>
 #include <string_view>
-#include <unordered_set>
 #include <utility>
 
 
 using namespace Coral::ShaderLanguage;
-using namespace Coral::ShaderLanguage::ShaderGraph;
 
 namespace
 {
@@ -67,56 +64,12 @@ toString(ValueType typeId)
 }
 
 
-constexpr Coral::UniformFormat
-convert(ValueType typeId)
-{
-	switch (typeId)
-	{
-		case ValueType::BOOL:      return Coral::UniformFormat::BOOL;
-		case ValueType::INT:       return Coral::UniformFormat::INT32;
-		case ValueType::INT2:      return Coral::UniformFormat::VEC2I;
-		case ValueType::INT3:      return Coral::UniformFormat::VEC3I;
-		case ValueType::INT4:      return Coral::UniformFormat::VEC4I;
-		case ValueType::FLOAT:     return Coral::UniformFormat::FLOAT;
-		case ValueType::FLOAT2:    return Coral::UniformFormat::VEC2F;
-		case ValueType::FLOAT3:    return Coral::UniformFormat::VEC3F;
-		case ValueType::FLOAT4:    return Coral::UniformFormat::VEC4F;
-		case ValueType::FLOAT3X3:  return Coral::UniformFormat::MAT33F;
-		case ValueType::FLOAT4X4:  return Coral::UniformFormat::MAT44F;
-		case ValueType::SAMPLER2D: assert(false); return Coral::UniformFormat::INT32;
-	}
-
-	std::unreachable();
-}
-
- 
-constexpr std::string_view
-toString(Coral::UniformFormat type)
-{
-	switch (type)
-	{
-		case Coral::UniformFormat::BOOL:   return "bool";
-		case Coral::UniformFormat::INT32:  return "int";
-		case Coral::UniformFormat::FLOAT:  return "float";
-		case Coral::UniformFormat::VEC2F:  return "vec2";
-		case Coral::UniformFormat::VEC3F:  return "vec3";
-		case Coral::UniformFormat::VEC4F:  return "vec4";
-		case Coral::UniformFormat::VEC2I:  return "ivec2";
-		case Coral::UniformFormat::VEC3I:  return "ivec3";
-		case Coral::UniformFormat::VEC4I:  return "ivec4";
-		case Coral::UniformFormat::MAT33F: return "mat3";
-		case Coral::UniformFormat::MAT44F: return "mat4";
-	}
-
-	std::unreachable();
-}
-
-
 constexpr std::string_view
 toString(Operator op)
 {
 	switch (op)
 	{
+	    case Operator::ASSIGNMENT:       return "=";
 		case Operator::MULTIPLY:         return "*";
 		case Operator::DIVIDE:           return "/";
 		case Operator::ADD:	             return "+";
@@ -129,6 +82,23 @@ toString(Operator op)
 		case Operator::LESS_OR_EQUAL:    return "<=";
 	}
 
+	std::unreachable();
+}
+
+
+constexpr std::string_view
+toString(NativeFunction func)
+{
+	switch (func)
+	{
+		case NativeFunction::NORMALIZE:    return "normalize";
+		case NativeFunction::DOT:          return "dot";
+		case NativeFunction::CROSS:        return "cross";
+		case NativeFunction::LENGTH:       return "length";
+		case NativeFunction::DISTANCE:     return "distance";
+		case NativeFunction::SAMPLE:       return "texture";
+		case NativeFunction::TEXTURE_SIZE: return "textureSize";
+	}
 	std::unreachable();
 }
 
@@ -149,38 +119,28 @@ toString(Swizzle swizzle)
 }
 
 
-constexpr std::string_view
-toString(DefaultAttribute attribute)
-{
-	switch (attribute)
-	{
-		case DefaultAttribute::POSITION: return "gl_Position";
-		case DefaultAttribute::DEPTH:    return "gl_FragDepth";
-	}
-	std::unreachable();
-}
-
-
 constexpr auto TAB = "    ";
 
 
 template<typename Visitor>
-auto visit(const ShaderGraph::Expression& expr, Visitor visitor)
+auto visit(const Expression& expr, Visitor visitor)
 {
-	switch (expr.typeId())
+	switch (expr.Type())
 	{
-		case Expression::TypeId::CONSTANT_FLOAT:   return visitor(static_cast<const ConstantExpression<float>&>(expr));
-		case Expression::TypeId::CONSTANT_INT:     return visitor(static_cast<const ConstantExpression<int>&>(expr));
-		case Expression::TypeId::CONSTANT_BOOL:    return visitor(static_cast<const ConstantExpression<bool>&>(expr));
-		case Expression::TypeId::INPUT_ATTRIBUTE:  return visitor(static_cast<const InputAttributeExpression&>(expr));
-		case Expression::TypeId::OUTPUT_ATTRIBUTE: return visitor(static_cast<const OutputAttributeExpression&>(expr));
-		case Expression::TypeId::PARAMETER:        return visitor(static_cast<const ParameterExpression&>(expr));
-		case Expression::TypeId::NATIVE_FUNCTION:  return visitor(static_cast<const NativeFunctionExpression&>(expr));
-		case Expression::TypeId::CONSTRUCTOR:      return visitor(static_cast<const ConstructorExpression&>(expr));
-		case Expression::TypeId::CAST:             return visitor(static_cast<const CastExpression&>(expr));
-		case Expression::TypeId::SWIZZLE:          return visitor(static_cast<const SwizzleExpression&>(expr));
-		case Expression::TypeId::CONDITIONAL:      return visitor(static_cast<const ConditionalExpression&>(expr));
-		case Expression::TypeId::OPERATOR:         return visitor(static_cast<const OperatorExpression&>(expr));
+		case ExpressionType::CONSTANT_FLOAT:   return visitor(static_cast<const ConstantExpression<float>&>(expr));
+		case ExpressionType::CONSTANT_INT:     return visitor(static_cast<const ConstantExpression<int>&>(expr));
+		case ExpressionType::CONSTANT_BOOL:    return visitor(static_cast<const ConstantExpression<bool>&>(expr));
+		case ExpressionType::INPUT_ATTRIBUTE:  return visitor(static_cast<const InputAttributeExpression&>(expr));
+		case ExpressionType::OUTPUT_ATTRIBUTE: return visitor(static_cast<const OutputAttributeExpression&>(expr));
+		case ExpressionType::UNIFORM_BUFFER:   return visitor(static_cast<const UniformBufferExpression&>(expr));
+		case ExpressionType::UNIFORM:          return visitor(static_cast<const UniformExpression&>(expr));
+		case ExpressionType::NATIVE_FUNCTION:  return visitor(static_cast<const NativeFunctionExpression&>(expr));
+		case ExpressionType::CONSTRUCTOR:      return visitor(static_cast<const ConstructorExpression&>(expr));
+		case ExpressionType::CAST:             return visitor(static_cast<const CastExpression&>(expr));
+		case ExpressionType::SWIZZLE:          return visitor(static_cast<const SwizzleExpression&>(expr));
+		//case ExpressionType::CONDITIONAL:      return visitor(static_cast<const ConditionalExpression&>(expr));
+		case ExpressionType::OPERATOR:         return visitor(static_cast<const OperatorExpression&>(expr));
+		case ExpressionType::SAMPLER:          return visitor(static_cast<const SamplerExpression&>(expr));
 	}
 
 	std::unreachable();
@@ -215,7 +175,7 @@ CompilerGLSL::format(const ConstantExpression<bool>& expr)
 std::string
 CompilerGLSL::format(const InputAttributeExpression& expr)
 {
-	return expr.attribute();
+	return expr.name();
 }
 
 
@@ -223,14 +183,31 @@ std::string
 CompilerGLSL::format(const OutputAttributeExpression& expr)
 {
 	return std::visit(Visitor{
-		[](DefaultAttribute a) { return std::string(toString(a)); },
-		[](const std::string& attribute) { return std::format("out_{}", attribute); },
-		}, expr.attribute());
+		[](DefaultSemantics semantic) -> std::string
+		{
+			switch (semantic)
+			{
+				case DefaultSemantics::SV_POSITION: return "gl_Position";
+				case DefaultSemantics::SV_DEPTH:    return "gl_FragDepth";
+				default: assert(false); return "";
+			}
+		},
+		[](const AttributeBinding& binding)
+		{
+			return std::format("out_{}", binding.name);
+		} }, expr.BindingInfo());
 }
 
 
 std::string
-CompilerGLSL::format(const ParameterExpression& expr)
+CompilerGLSL::format(const UniformBufferExpression& expr)
+{
+	return expr.name();
+}
+
+
+std::string
+CompilerGLSL::format(const UniformExpression& expr)
 {
 	return expr.name();
 }
@@ -239,12 +216,23 @@ CompilerGLSL::format(const ParameterExpression& expr)
 std::string
 CompilerGLSL::format(const OperatorExpression& expr)
 {
-	auto inputs = expr.inputs();
-
-	return std::format("({} {} {})",
-					   resolve(*inputs[0]),
-					   toString(expr.getOperator()),
-		               resolve(*inputs[1]));
+	auto inputs = expr.Inputs();
+	if (expr.getOperator() == Operator::ASSIGNMENT)
+	{
+		auto lhs = resolve(*inputs[0]);
+		mNameLookUp[&expr] = lhs;
+		return std::format("{} {} {}",
+			               lhs,
+			               toString(expr.getOperator()),
+			               resolve(*inputs[1]));
+	}
+	else
+	{
+		return std::format("({} {} {})",
+			               resolve(*inputs[0]),
+			               toString(expr.getOperator()),
+			               resolve(*inputs[1]));
+	}
 }
 
 
@@ -252,26 +240,27 @@ std::string
 CompilerGLSL::format(const NativeFunctionExpression& expr)
 {
 	return std::format("{}({})",
-					   expr.functionName(),
-					   formatFunctionArgumentList(expr.inputs()));
+		               toString(expr.Function()),
+					   formatFunctionArgumentList(expr.Inputs()));
 }
 
 
 std::string
 CompilerGLSL::format(const ConstructorExpression& expr)
 {
+
 	return std::format("{}({})",
-					   toString(expr.outputValueType()),
-					   formatFunctionArgumentList(expr.inputs()));
+					   toString(expr.GetValueType()),
+					   formatFunctionArgumentList(expr.Inputs()));
 }
 
 
 std::string
 CompilerGLSL::format(const CastExpression& expr)
 {
-	auto inputs = expr.inputs();
+	auto inputs = expr.Inputs();
 	return std::format("({}){}",
-					   toString(expr.outputValueType()),
+					   toString(expr.GetValueType()),
 					   resolve(*inputs.front()));
 }
 
@@ -279,21 +268,28 @@ CompilerGLSL::format(const CastExpression& expr)
 std::string
 CompilerGLSL::format(const SwizzleExpression& expr)
 {
-	auto inputs = expr.inputs();
+	auto inputs = expr.Inputs();
 	return std::format("{}.{}", 
 		               resolve(*inputs.front()),
 	                   toString(expr.swizzle()));
 }
 
 
+//std::string
+//CompilerGLSL::format(const ConditionalExpression& expr)
+//{
+//	auto inputs = expr.inputs();
+//	return std::format("({} ? {} : {})",
+//					   resolve(*inputs[0]),
+//					   resolve(*inputs[1]),
+//					   resolve(*inputs[2]));
+//}
+
+
 std::string
-CompilerGLSL::format(const ConditionalExpression& expr)
+CompilerGLSL::format(const SamplerExpression& expr)
 {
-	auto inputs = expr.inputs();
-	return std::format("({} ? {} : {})",
-					   resolve(*inputs[0]),
-					   resolve(*inputs[1]),
-					   resolve(*inputs[2]));
+	return expr.name();
 }
 
 
@@ -305,7 +301,7 @@ CompilerGLSL::format(const Expression* expr)
 
 
 std::string
-CompilerGLSL::resolve(const ShaderGraph::Expression& expr)
+CompilerGLSL::resolve(const Expression& expr)
 {
 	auto iter = mNameLookUp.find(&expr);
 	if (iter != mNameLookUp.end())
@@ -314,73 +310,6 @@ CompilerGLSL::resolve(const ShaderGraph::Expression& expr)
 	}
 
 	return format(&expr);
-}
-
-
-std::optional<uint32_t>
-CompilerGLSL::findUniformBinding(std::string_view parameterName)
-{
-	for (const auto& [binding, descriptor] : mDescriptorBindings)
-	{
-		auto res = std::visit(Visitor
-		{
-			[&](const Coral::CombinedTextureSamplerDefinition&) { return descriptor.name == parameterName; },
-			[&](const Coral::SamplerDefinition&)			    { return descriptor.name == parameterName; },
-			[&](const Coral::TextureDefinition&)			    { return descriptor.name == parameterName; },
-			[&](const Coral::UniformBlockDefinition& definition)
-			{ 
-				auto iter = std::ranges::find_if(definition.members, [&](const auto& member)
-													{ return member.name == parameterName; });
-				return iter != definition.members.end();
-			},
-		}, descriptor.definition);
-
-		if (res)
-		{
-			return binding;
-		}
-	}
-
-	return {};
-}
-
-
-bool
-CompilerGLSL::shouldHaveVariableAssignment(const ShaderGraph::Expression& expr)
-{
-	auto successorCount = expr.shared_from_this().use_count() - 1;
-
-	return visit(expr, Visitor
-	{
-		[&](const auto& e) { return successorCount > 1; },
-		[](const InputAttributeExpression&)  { return false; },
-		[](const OutputAttributeExpression&) { return true;  }, 
-		[](const ParameterExpression&)       { return false; },
-		[](const NativeFunctionExpression&)  { return true; },
-	});
-
-}
-
-
-std::string
-CompilerGLSL::buildVariableAssignments(const ShaderGraph::Expression& expr)
-{
-	return visit(expr, Visitor{
-		[&](const auto& ex)
-		{ 
-			return std::format("{} {} = {};\n",
-					           toString(expr.outputValueType()),
-					           mNameLookUp[&expr],
-					           format(&expr));
-		},
-
-		[&](const OutputAttributeExpression& ex)
-		{
-			return std::format("{} = {};\n",
-							   mNameLookUp[&expr],
-							   resolve(*ex.inputs().front()));
-		},
-	});
 }
 
 
@@ -404,265 +333,80 @@ CompilerGLSL::formatFunctionArgumentList(const std::vector<const Expression*>& a
 
 
 std::string
-buildUniformBlockString(uint32_t set, uint32_t binding, const std::string& name, const Coral::UniformBlockDefinition& definition)
+CompilerGLSL::buildUniformBlocksString()
 {
 	std::stringstream ss;
 
-	ss << std::format("layout (std140, set = {}, binding = {}) uniform {}\n", set, binding, name);
-	ss << "{" << std::endl;
+	std::unordered_map<const UniformBufferExpression*, std::vector<const UniformExpression*>> expressionsSorted;
 
-	for (const auto& [type, name, count, size, paddedSize] : definition.members)
+	for (const auto& expression : mInstructionsList)
 	{
-		ss << TAB << toString(type) << " " << name << ";" << std::endl;
-	}
-
-	ss << "};" << std::endl;
-
-	return ss.str();
-}
-
-
-std::string
-buildUniformCombinedTextureSamplerString(uint32_t set, uint32_t binding, const std::string& name, 
-										 const Coral::CombinedTextureSamplerDefinition& definition)
-{
-	return std::format("layout (set = {}, binding = {}) uniform sampler2D {};\n", set, binding, name);
-}
-
-
-void
-CompilerGLSL::createUniformBlockDefinitions()
-{
-	std::vector<const ShaderGraph::ParameterExpression*> parameters;
-	std::unordered_set<const ShaderGraph::ParameterExpression*> inserted;
-	for (auto shaderModule : { mVertexShader, mFragmentShader })
-	{
-		if (!shaderModule)
+		if (auto uniform = expression->Cast<UniformExpression>())
 		{
-			continue;
-		}
-
-		for (auto p : shaderModule->parameters())
-		{
-			if (inserted.insert(p).second)
+			for (auto input : uniform->Inputs())
 			{
-				parameters.push_back(p);
-			}
-		}
-	}
-
-	Coral::UniformBlockDefinition defaultUniformBlock{};
-	
-	auto samplers = parameters | std::views::filter([](auto p) { return p->outputValueType() == ShaderGraph::ValueType::SAMPLER2D; });
-	auto uniforms = parameters | std::views::filter([](auto p) { return p->outputValueType() != ShaderGraph::ValueType::SAMPLER2D; });
-
-	// Find all parameters that are not contained in a UniformBlock override
-	for (auto parameter : uniforms)
-	{
-		if (!findUniformBinding(parameter->name()))
-		{
-			defaultUniformBlock.members.push_back(Coral::MemberDefinition{ convert(parameter->outputValueType()), 
-																		   parameter->name(), 
-																		   1 });
-		}
-	}
-
-	// Add the default uniform block (if required) at the first unused binding
-	if (!defaultUniformBlock.members.empty())
-	{
-		uint32_t binding{ 0 };
-		for (; mDescriptorBindings.find(binding) != mDescriptorBindings.end(); ++binding) {}
-
-		auto& descriptor	  = mDescriptorBindings[binding];
-		descriptor.binding	  = binding;
-		descriptor.definition = defaultUniformBlock;
-		descriptor.name		  = mDefaultUniformBlockName;
-	}
-
-	// Add sampler parameters separately
-	for (auto parameter : samplers)
-	{
-		uint32_t binding{ 0 };
-		for (; mDescriptorBindings.find(binding) != mDescriptorBindings.end(); ++binding) {}
-
-		auto& descriptor	  = mDescriptorBindings[binding];
-		descriptor.binding	  = binding;
-		descriptor.definition = Coral::CombinedTextureSamplerDefinition{};
-		descriptor.name		  = parameter->name();
-		binding++;
-	}
-}
-
-
-bool
-CompilerGLSL::createAttributeBindings()
-{
-	auto getAttributeLocation = [this](const std::string& name, const std::unordered_map<std::string, uint32_t>& attributeLookUp) mutable
-	{
-		auto iter = attributeLookUp.find(name);
-		if (iter != attributeLookUp.end())
-		{
-			return iter->second;
-		}
-
-		uint32_t i = 0;
-		while (true)
-		{
-			if (std::ranges::find_if(attributeLookUp, [=](const auto& pair) { return pair.second == i; }) == attributeLookUp.end())
-			{
-				return i;
-			}
-			i++;
-		}
-
-		return i;
-	};
-
-	auto shaderModules = std::array{ mVertexShader, mFragmentShader }
-		| std::views::filter([&](auto shaderModule) { return shaderModule != nullptr; })
-		| std::ranges::to<std::vector<const ShaderModule*>>();
-
-	for (auto [i, shaderModule] : std::views::enumerate(shaderModules))
-	{
-		auto& bindings = mShaderStageAttributeBindingsLookUp[shaderModule];
-		// Create the input location for the attribute bindings:
-		// The input locations for the vertex shader are determined by `mInputAttributeBindingOverrides` if present.
-		// Otherwise, default locations are created.
-		// For the other shader stages we have to use the location of the same-named attribute of the previous shader
-		// stage.
-		if (i == 0)
-		{
-			bindings.inputAttributes = mInputAttributeBindingOverrides;
-
-			for (const auto& attribute: shaderModule->inputs())
-			{
-				auto location = getAttributeLocation(attribute->attribute(), bindings.inputAttributes);
-				bindings.inputAttributes[attribute->attribute()] = location;
-			}
-		}
-		// Use the output locations of the previous shader stage for the input locations of the current stage
-		else
-		{
-			auto prevShaderModule = shaderModules[i - 1];
-			auto& prevBindings    = mShaderStageAttributeBindingsLookUp[prevShaderModule];
-			for (auto attribute : shaderModule->inputs())
-			{
-				auto location = prevBindings.outputAttributes.find(attribute->attribute());
-
-				if (location == prevBindings.outputAttributes.end())
+				if (auto uniformBuffer = input->Cast<UniformBufferExpression>())
 				{
-					return false;
+					expressionsSorted[uniformBuffer].push_back(uniform);
 				}
-
-				bindings.inputAttributes[attribute->attribute()] = location->second;
 			}
-		}
-
-		if (i == shaderModules.size() - 1)
-		{
-			bindings.outputAttributes = mOutputAttributeBindingOverrides;
-		}
-		// Create the output locations
-		for (auto attribute : shaderModule->outputs())
-		{
-			std::visit(Visitor{
-				[&](const std::string& attribute)
-				{
-					auto location = getAttributeLocation(attribute, bindings.outputAttributes);
-					bindings.outputAttributes[attribute] = location;
-				},
-				[](auto) {}
-				}, attribute->attribute());
 		}
 	}
 
-	return true;
-}
-
-
-std::string
-CompilerGLSL::buildUniformBlocksString(const ShaderModule& shaderModule)
-{
-	std::stringstream ss;
-
-	auto parameters = shaderModule.parameters();
-
-	for (const auto& [binding, descriptor] : mDescriptorBindings)
+	for (const auto& [buffer, members] : expressionsSorted)
 	{
-		bool useBlock = std::ranges::any_of(parameters, [&](auto parameter)
-		{
-			return findUniformBinding(parameter->name()) == binding;
-		});
+		ss << std::format("layout (std140, set = {}, binding = {}) uniform {}\n", 0, buffer->location(), buffer->name());
+		ss << "{\n";
 
-		if (!useBlock)
+		for (const auto& member : members)
 		{
-			continue;
+			ss << TAB << toString(member->GetValueType()) << " " << member->name() << ";\n";
 		}
 
-		std::visit(Visitor
-		{
-			[&](const Coral::UniformBlockDefinition& uniformBlock)
-			{
-				ss << buildUniformBlockString(0, descriptor.binding, descriptor.name, uniformBlock) << std::endl;
-			},
-			[&](auto)
-			{
-			},
-			[&](const Coral::CombinedTextureSamplerDefinition& sampler)
-			{
-				ss << buildUniformCombinedTextureSamplerString(0, descriptor.binding, descriptor.name, sampler) << std::endl;
-			}
-		}, descriptor.definition);
-		
+		ss << "};\n";
+		ss << "\n";
 	}
 
 	return ss.str();
 }
 
 
-void
-CompilerGLSL::buildVariableNames(const ShaderModule& shader)
+std::string
+CompilerGLSL::buildSamplerString()
 {
-	for (auto expr : shader.buildExpressionList())
+	std::stringstream ss;
+
+	std::set<const SamplerExpression*> samplers;
+
+	for (const auto& expression : mInstructionsList)
 	{
-		if (!shouldHaveVariableAssignment(*expr))
+		if (auto sampler = expression->Cast<SamplerExpression>())
 		{
-			continue;
+			samplers.insert(sampler);
 		}
-
-		auto name = visit(*expr, Visitor{
-			[&](const OutputAttributeExpression& attr)
-			{
-				return std::visit(Visitor{
-						[](DefaultAttribute attribute) { return std::string(toString(attribute)); },
-						[](const std::string& attribute) { return std::format("out_{}", attribute); },
-					}, attr.attribute());
-			},
-			[&](const InputAttributeExpression& attr)
-			{
-				return attr.attribute();
-			},
-			[&](const auto& e)
-			{
-				return std::format("{}_{}", getTypeShortName(expr->outputValueType()), mNameLookUp.size());
-			}
-		});
-
-		mNameLookUp.try_emplace(expr, name);
 	}
+
+	for (auto sampler : samplers)
+	{
+		ss << std::format("layout(binding = {}) uniform sampler2D {};\n", sampler->location(), sampler->name());
+	}
+
+	ss << "\n";
+
+	return ss.str();
 }
 
 
 std::string
-CompilerGLSL::buildInputAttributeDefinitionsString(const ShaderModule& shader)
+CompilerGLSL::buildInputAttributeDefinitionsString()
 {
 	std::map<uint32_t, std::string> attributesSorted;
-	for (const auto& attr : shader.inputs())
+	for (const auto& attr : mShader->Inputs())
 	{
-		auto location = mShaderStageAttributeBindingsLookUp[&shader].inputAttributes[attr->attribute()];
+		auto location = attr->location();
 		attributesSorted[location] = std::format("layout (location = {}) in {} {};\n",
 			                                     location,
-			                                     toString(attr->outputValueType()), format(*attr));
+			                                     toString(attr->GetValueType()), format(*attr));
 	}
 
 	std::stringstream ss;
@@ -671,24 +415,29 @@ CompilerGLSL::buildInputAttributeDefinitionsString(const ShaderModule& shader)
 		ss << attr;
 	}
 
+	ss << "\n";
 	return ss.str();
 }
 
 
 std::string
-CompilerGLSL::buildOutputAttributeDefinitionsString(const ShaderModule& shader)
+CompilerGLSL::buildOutputAttributeDefinitionsString()
 {
 	std::map<uint32_t, std::string> attributesSorted;
-	for (const auto& attr : shader.outputs())
+	for (const auto& attr : mShader->Outputs())
 	{
-		if (auto attribute = std::get_if<std::string>(&attr->attribute()))
-		{
-			auto location = mShaderStageAttributeBindingsLookUp[&shader].outputAttributes[*attribute];
-			attributesSorted[location] = std::format("layout (location = {}) out {} {};\n",
-				                                     location,
-				                                     toString(attr->outputValueType()), 
-				                                     format(*attr));
-		}
+		std::visit(Visitor{
+			[](DefaultSemantics)
+			{
+			}, 
+			[&](const AttributeBinding& binding)
+			{
+				attributesSorted[binding.location] = std::format("layout (location = {}) out {} {};\n",
+					                                             binding.location,
+													             toString(attr->GetValueType()),
+													             format(*attr));
+			}
+		}, attr->BindingInfo());
 	}
 
 	std::stringstream ss;
@@ -702,32 +451,54 @@ CompilerGLSL::buildOutputAttributeDefinitionsString(const ShaderModule& shader)
 
 
 std::string
-CompilerGLSL::buildMainFunctionString(const ShaderModule& shader)
+CompilerGLSL::buildMainFunctionString()
 {
-	auto expressionList = shader.buildExpressionList();
-
-	std::unordered_set<const Expression*> visited;
-
 	std::stringstream ss;
 
 	ss << "void main()" << std::endl;
 	ss << "{" << std::endl;
 
-	for (const auto& expr : expressionList)
+	for (const auto expr : mInstructionsList)
 	{
-		if (visited.contains(expr))
+		if (expr->Cast<InputAttributeExpression>()  || 
+			expr->Cast<OutputAttributeExpression>() || 
+			expr->Cast<UniformBufferExpression>()   || 
+			expr->Cast<UniformExpression>()         ||
+			expr->Cast<SamplerExpression>())
 		{
 			continue;
 		}
 
-		if (!shouldHaveVariableAssignment(*expr))
+		if (auto op = expr->Cast<OperatorExpression>())
 		{
+			if (op->getOperator() == Operator::ASSIGNMENT)
+			{
+				ss << TAB << format(expr) << ";\n";
+			}
+
 			continue;
 		}
 
-		ss << TAB << buildVariableAssignments(*expr);
+		if (!expr->InlineIfPossible())
+		{
+			mNameLookUp[expr] = std::format("{}{}", getTypeShortName(expr->GetValueType()), mVarCounter++);
+			ss << TAB << std::format("{} {} = {};\n", toString(expr->GetValueType()), mNameLookUp[expr], format(expr));
+			continue;
+		}
+	}
 
-		visited.insert(expr);
+	auto outputs = mShader->Outputs();
+	for (const auto& output : outputs)
+	{
+		auto input = output->Inputs().front();
+		if (input->InlineIfPossible())
+		{
+			ss << TAB << std::format("{} = {};\n", format(output), format(input));
+		}
+		else
+		{
+			ss << TAB << std::format("{} = {};\n", format(output), mNameLookUp[input]);
+		}
 	}
 
 	ss << "}";
@@ -736,93 +507,30 @@ CompilerGLSL::buildMainFunctionString(const ShaderModule& shader)
 }
 
 
-Compiler&
-CompilerGLSL::addShaderModule(Coral::ShaderStage stage, const ShaderModule& shaderModule)
-{
-	switch (stage)
-	{
-		case ShaderStage::VERTEX:	mVertexShader = &shaderModule; break;
-		case ShaderStage::FRAGMENT: mFragmentShader = &shaderModule; break;
-	}
-	
-	return *this;
-}
-
-
-Compiler&
-CompilerGLSL::addUniformBlockOverride(uint32_t binding, std::string_view name, const Coral::UniformBlockDefinition& uniformBlock)
-{
-	auto& descriptor      = mDescriptorBindings[binding];
-	descriptor.binding    = binding;
-	descriptor.byteSize   = 0;
-	descriptor.name		  = name;
-	descriptor.definition = uniformBlock;
-
-	return *this;
-}
-
-
-Compiler&
-CompilerGLSL::addInputAttributeBindingLocation(uint32_t location, std::string_view name)
-{
-	mInputAttributeBindingOverrides[std::string(name)] = location;
-	return *this;
-}
-
-
-Compiler&
-CompilerGLSL::addOutputAttributeBindingLocation(uint32_t location, std::string_view name)
-{
-	mOutputAttributeBindingOverrides[std::string(name)] = location;
-	return *this;
-}
-
-
-Compiler&
-CompilerGLSL::setDefaultUniformBlockName(std::string_view name)
-{
-	mDefaultUniformBlockName = name;
-	return *this;
-}
-
-
 std::expected<Compiler::Result, Compiler::Error>
-CompilerGLSL::compile()
+CompilerGLSL::Compile(const ShaderGraph& shaderModule, ShaderStage stage)
 {
-	if (!mVertexShader || ! mFragmentShader)
-	{
-		return std::unexpected(Compiler::Error{ "Missing shader definition" });
-	}
-
-	createUniformBlockDefinitions();
-
-	if (!createAttributeBindings())
-	{
-		return std::unexpected(Compiler::Error{ "Shader attribute missmatch" });
-	}
+	mShader = &shaderModule;
+	
+	mInstructionsList = mShader->ExpressionList();
 
 	Result result;
 
-	for (auto [shaderModule, source] : { std::pair{ mVertexShader, &result.vertexShader},
-									     std::pair{ mFragmentShader, &result.fragmentShader } })
-	{
-		buildVariableNames(*shaderModule);
-		auto inputAttributes  = buildInputAttributeDefinitionsString(*shaderModule);
-		auto outputAttributes = buildOutputAttributeDefinitionsString(*shaderModule);
-		auto uniforms	      = buildUniformBlocksString(*shaderModule);
-		auto mainFunc	      = buildMainFunctionString(*shaderModule);
+	auto inputAttributes  = buildInputAttributeDefinitionsString();
+	auto outputAttributes = buildOutputAttributeDefinitionsString();
+	auto uniforms	      = buildUniformBlocksString();
+	auto samplers         = buildSamplerString();
+	auto mainFunc	      = buildMainFunctionString();
 
-		std::stringstream ss;
-		ss << "#version 420" << std::endl;
-		ss << inputAttributes << std::endl;
-		ss << outputAttributes << std::endl;
-		ss << uniforms << std::endl;
-		ss << mainFunc << std::endl;
+	std::stringstream ss;
+	ss << "#version 420" << std::endl;
+	ss << inputAttributes << std::endl;
+	ss << outputAttributes << std::endl;
+	ss << uniforms << std::endl;
+	ss << samplers << std::endl;
+	ss << mainFunc << std::endl;
 
-		*source = ss.str();
-
-		std::cout << *source << std::endl;
-	}
+	result.shaderCode = ss.str();
 
 	return { std::move(result) };
 }

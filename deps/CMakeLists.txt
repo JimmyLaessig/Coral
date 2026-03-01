@@ -1,17 +1,23 @@
-include(vulkan-headers.cmake)
-include(spirv-reflect.cmake)
-include(vk-bootstrap.cmake)
-include(vma.cmake)
-include(volk.cmake)
+file(
+   DOWNLOAD
+   https://github.com/cpm-cmake/CPM.cmake/releases/download/v0.42.1/get_cpm.cmake
+   ${CMAKE_BINARY_DIR}/cmake/get_cpm.cmake
+   EXPECTED_HASH SHA256=799143bb9c1fbd14dc9a513eaff03ee1a709c6ee16f32456b50443d66dd7affa
+)
 
-include(cli11.cmake)
-include(glslang.cmake)
+include(${CMAKE_BINARY_DIR}/cmake/get_cpm.cmake)
 
 include(catch2.cmake)
 include(glfw.cmake)
 include(glm.cmake)
-include(stb.cmake)
+include(glslang.cmake)
 include(imgui.cmake)
+include(spirv-reflect.cmake)
+include(stb.cmake)
+include(vk-bootstrap.cmake)
+include(vma.cmake)
+include(volk.cmake)
+include(vulkan-headers.cmake)
 
 # Put all third-party dependencies into a separate folders to cleanup the IDE project explorer.
 

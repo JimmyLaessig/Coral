@@ -1,52 +1,44 @@
 #ifndef CORAL_SHADERLANGUAGE_SCALAR_HPP
 #define CORAL_SHADERLANGUAGE_SCALAR_HPP
 
+#include <Coral/ShaderLanguage/Value.hpp>
+
 #include <Coral/ShaderLanguage/ShaderGraph.hpp>
 
 #include <concepts>
 
 namespace Coral::ShaderLanguage
 {
+/// Class representing scalar value in the shader graph
+template<typename T>
+struct Scalar;
 
-using ValueType = ShaderGraph::ValueType;
+template<typename S, typename T>
+concept ScalarType = std::same_as<std::remove_cvref_t<S>, Scalar<T>>;
+
+template<typename T>
+struct TypeTraits;
 
 
-/// Base struct for all return values of shader graph expressions
-/**
- * Objects that derive from this type act as stack-allocated wrappers arround a shader graph operation and define the
- * output type of said operation. Objects of this type are widely used as inputs to functions that build up new shader
- * graph operations. For example, the ´Float´ struct is a proxy for a floating-point value that is created by a shader
- * graph operation. The object itself does not hold the actual value but stores a pointer to the shader graph node from
- * which it was calculated. The user is only required to interact with the stack-allocated ShaderGraphResult objects
- * and function calls to build the shader graph. The creation and storage of the actual ShaderGraph is abstracted away
- * by this level of indirection.
- */
-struct Value
+template<>
+struct TypeTraits<Scalar<float>>
 {
-public:
-
-	Value(ShaderGraph::ExpressionPtr source)
-		: mSource(source)
-	{
-	}
-
-	// Get the wrapped ShaderGraph node
-	ShaderGraph::ExpressionPtr source() const
-	{
-		return mSource;
-	}
-
-	/// Get the type id of the value
-	ValueType typeId() const
-	{
-		return mSource->outputValueType();
-	}
-
-private:
-
-	ShaderGraph::ExpressionPtr mSource;
+	constexpr static ValueType ValueType = ValueType::FLOAT;
 };
 
+
+template<>
+struct TypeTraits<Scalar<int>>
+{
+	constexpr static ValueType ValueType = ValueType::INT;
+};
+
+
+template<>
+struct TypeTraits<Scalar<bool>>
+{
+	constexpr static ValueType ValueType = ValueType::BOOL;
+};
 
 /// Class representing scalar value in the shader graph
 template<typename T>
@@ -54,173 +46,101 @@ struct Scalar : Value
 {
 	using Value::Value;
 
-	static constexpr ValueType toShaderTypeId();
+	static constexpr ValueType ValueType = TypeTraits<Scalar<T>>::ValueType;
 
 	/// Create a new scalar from a constant
 	Scalar(T v)
-		: Value(std::make_shared<ShaderGraph::ConstantExpression<T>>(v))
+		: Value(ShaderGraph::PushExpression<ConstantExpression<T>>(v))
 	{
 	}
 
+	Scalar(const Scalar& other)
+		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Scalar<T>::ValueType, other.source()))
+	{
+
+	}
+
+	Scalar(Scalar&& other)
+		: Value(other.source())
+	{
+
+	}
+
+	/// Cast Scalar<U> to Scalar<T>
 	template<typename U> requires (!std::is_same_v<T, U>)
-		explicit operator Scalar<U>() const
+	explicit operator Scalar<U>() const
 	{
-		return { std::make_shared<ShaderGraph::CastExpression>(Scalar<U>::toShaderTypeId(), source()) };
+		return { ShaderGraph::PushExpression<CastExpression>(Scalar<U>::ValueType, source()) };
 	}
+
+	// ----------------------------------------------------------------------------------------------------------------
+    //                                           Scalar assignment operators                                          
+    // ----------------------------------------------------------------------------------------------------------------
+
+	/// Assign other to this
+	Scalar<T>& operator=(const Scalar<T>& other)
+	{
+		setSource(ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType, source(), Operator::ASSIGNMENT, other.source()));
+		return *this;
+	}
+
+	/// Assign other to this
+	Scalar<T>& operator=(Scalar<T>&& other)
+	{
+		setSource(ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType, source(), Operator::ASSIGNMENT, other.source()));
+		return *this;
+	}
+
+	template<typename LHS, typename RHS>
+	friend Scalar<T> operator*(LHS&& lhs, RHS&& rhs)
+		requires (ScalarType<LHS>      && ScalarType<RHS>) ||
+	             (ScalarType<LHS>      && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
+	{
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
+													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
+													Operator::MULTIPLY,
+													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
+	}
+
+	template<typename LHS, typename RHS>
+	friend Scalar<T> operator/(LHS&& lhs, RHS&& rhs)
+		requires (ScalarType<LHS>        && ScalarType<RHS>) ||
+	             (ScalarType<LHS>        && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
+	{
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
+													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
+													Operator::DIVIDE,
+													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
+	}
+
+	template<typename LHS, typename RHS>
+	friend Scalar<T> operator+(LHS&& lhs, RHS&& rhs)
+		requires (ScalarType<LHS>      && ScalarType<RHS>) ||
+	             (ScalarType<LHS>      && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
+	{
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
+													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
+													Operator::ADD,
+													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
+	}
+
+	template<typename LHS, typename RHS>
+	friend Scalar<T> operator-(LHS&& lhs, RHS&& rhs)
+		requires (ScalarType<LHS>      && ScalarType<RHS>) ||
+	             (ScalarType<LHS>      && std::same_as<RHS, T>) ||
+		         (std::same_as<LHS, T> && ScalarType<RHS>)
+	{
+
+		return { ShaderGraph::PushExpression<OperatorExpression>(Scalar<T>::ValueType,
+													Scalar<T>(std::forward<LHS&&>(lhs)).source(),
+													Operator::SUBTRACT,
+													Scalar<T>(std::forward<RHS&&>(rhs)).source()) };
+	}
+
 };
-
-
-template<> constexpr ValueType Scalar<float>::toShaderTypeId() { return ValueType::FLOAT; }
-template<> constexpr ValueType Scalar<int>::toShaderTypeId() { return ValueType::INT; }
-template<> constexpr ValueType Scalar<bool>::toShaderTypeId() { return ValueType::BOOL; }
-
-template<typename T>
-inline Scalar<T> operator*(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Scalar<T>::toShaderTypeId(),  lhs.source(), ShaderGraph::Operator::MULTIPLY, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<T> operator/(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Scalar<T>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::DIVIDE, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<T> operator+(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Scalar<T>::toShaderTypeId(), lhs.source(), ShaderGraph::Operator::ADD, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<T> operator-(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(Scalar<T>::toShaderTypeId(),  lhs.source(), ShaderGraph::Operator::SUBTRACT,rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<bool> operator==(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(ValueType::BOOL, lhs.source(), ShaderGraph::Operator::EQUAL, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<bool> operator!=(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(ValueType::BOOL, lhs.source(), ShaderGraph::Operator::NOT_EQUAL, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<bool> operator>(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(ValueType::BOOL, lhs.source(), ShaderGraph::Operator::GREATER, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<bool> operator<(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(ValueType::BOOL, lhs.source(), ShaderGraph::Operator::LESS, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<bool> operator>=(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(ValueType::BOOL, lhs.source(), ShaderGraph::Operator::GREATER_OR_EQUAL, rhs.source()) };
-}
-
-
-template<typename T>
-inline Scalar<bool> operator<=(Scalar<T> lhs, Scalar<T> rhs)
-{
-	return { std::make_shared<ShaderGraph::OperatorExpression>(ValueType::BOOL,  lhs.source(), ShaderGraph::Operator::LESS_OR_EQUAL, rhs.source()) };
-}
-
-template<typename T>
-inline Scalar<bool> operator*(Scalar<T> lhs, T rhs) { return lhs * Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<T> operator/(Scalar<T> lhs, T rhs) { return lhs / Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<T> operator+(Scalar<T> lhs, T rhs) { return lhs + Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<T> operator-(Scalar<T> lhs, T rhs) { return lhs - Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<T> operator*(T lhs, Scalar<T> rhs) { return Scalar(lhs) * rhs; }
-
-
-template<typename T>
-inline Scalar<T> operator/(T lhs, Scalar<T> rhs) { return Scalar(lhs) / rhs; }
-
-
-template<typename T>
-inline Scalar<T> operator+(T lhs, Scalar<T> rhs) { return Scalar(lhs) + rhs; }
-
-
-template<typename T>
-inline Scalar<T> operator-(T lhs, Scalar<T> rhs) { return Scalar(lhs) - rhs; }
-
-
-template<typename T>
-inline Scalar<bool> operator==(Scalar<T> lhs, T rhs) { return lhs == Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<bool> operator!=(Scalar<T> lhs, T rhs) { return lhs != Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<bool> operator>(Scalar<T> lhs, T rhs) { return lhs > Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<bool> operator<(Scalar<T> lhs, T rhs) { return lhs < Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<bool> operator>=(Scalar<T> lhs, T rhs) { return lhs >= Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<bool> operator<=(Scalar<T> lhs, T rhs) { return lhs <= Scalar(rhs); }
-
-
-template<typename T>
-inline Scalar<bool> operator==(T lhs, Scalar<T> rhs) { return Scalar(lhs) == rhs; }
-
-
-template<typename T>
-inline Scalar<bool> operator!=(T lhs, Scalar<T> rhs) { return Scalar(lhs) != rhs; }
-
-
-template<typename T>
-inline Scalar<bool> operator>(T lhs, Scalar<T> rhs) { return Scalar(lhs) > rhs; }
-
-
-template<typename T>
-inline Scalar<bool> operator<(T lhs, Scalar<T> rhs) { return Scalar(lhs) < rhs; }
-
-
-template<typename T>
-inline Scalar<bool> operator>=(T lhs, Scalar<T> rhs) { return Scalar(lhs) >= rhs; }
-
-
-template<typename T>
-inline Scalar<bool> operator<=(T lhs, Scalar<T> rhs) { return Scalar(lhs) <= rhs; }
 
 
 using Float = Scalar<float>;

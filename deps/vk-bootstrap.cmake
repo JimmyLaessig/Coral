@@ -1,12 +1,8 @@
-include(FetchContent)
-
-FetchContent_Declare(
-  vk-bootstrap
-  GIT_REPOSITORY https://github.com/charles-lunarg/vk-bootstrap.git
-  GIT_TAG v1.4.311
-)
-
 set(VK_BOOTSTRAP_TEST OFF CACHE BOOL "" FORCE)
 set(VK_BOOTSTRAP_INSTALL OFF CACHE BOOL "" FORCE)
 
-FetchContent_MakeAvailable(vk-bootstrap)
+CPMAddPackage(
+  NAME vk-bootstrap
+  GIT_TAG v1.4.311
+  GITHUB_REPOSITORY charles-lunarg/vk-bootstrap
+)
