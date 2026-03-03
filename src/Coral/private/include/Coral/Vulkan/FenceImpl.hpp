@@ -20,7 +20,7 @@ public:
 
 	virtual ~FenceImpl();
 
-	std::optional<Coral::FenceCreationError> init();
+	std::optional<Coral::Fence::CreateError> init();
 
 	bool wait() override;
 

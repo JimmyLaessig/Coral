@@ -1,7 +1,6 @@
 #ifndef CORAL_SHADERLANGUAGE_ATTRIBUTE_HPP
 #define CORAL_SHADERLANGUAGE_ATTRIBUTE_HPP
 
-#include <Coral/ShaderLanguage/Expression.hpp>
 #include <Coral/ShaderLanguage/ShaderGraph.hpp>
 #include <Coral/ShaderLanguage/Value.hpp>
 
@@ -84,7 +83,7 @@ class Attribute
 public:
 
 	Attribute() requires (Q == Qualifier::IN)
-		: mValue(T(ShaderGraph::PushExpression<InputAttributeExpression>(T::ValueType, static_cast<uint32_t>(L), S)))
+		: mValue(T(Node::create(InputAttributeExpression(T::ValueType, static_cast<uint32_t>(L), S))))
 	{
 	}
 
@@ -131,6 +130,7 @@ public:
 		return *mValue;
 	}
 
+
 	Attribute& operator=(const T& value) requires (Q == Qualifier::OUT)
 	{
 		if (!mValue)
@@ -161,45 +161,47 @@ public:
 
 private:
 
-	std::shared_ptr<OutputAttributeExpression>
+	std::shared_ptr<Node>
 	MakeDefaultOutputAttributeExpression() requires (IsDefaultSemantic<S>())
 	{
-		return ShaderGraph::PushExpression<OutputAttributeExpression>(T().source(), Convert<S>());
+		T defaultValue;
+		return Node::create(OutputAttributeExpression(T::ValueType, Convert<S>()), std::move(defaultValue).node());
 	}
 
 
-	std::shared_ptr<OutputAttributeExpression>
+	std::shared_ptr<Node>
 	MakeDefaultOutputAttributeExpression() requires (!IsDefaultSemantic<S>())
 	{
-		return ShaderGraph::PushExpression<OutputAttributeExpression>(T().source(), static_cast<uint32_t>(L), S);
+		T defaultValue;
+		return Node::create(OutputAttributeExpression(T::ValueType, static_cast<uint32_t>(L), S), std::move(defaultValue).node());
 	}
 
 
-	std::shared_ptr<OutputAttributeExpression>
+	std::shared_ptr<Node>
 	MakeOutputAttributeExpression(const T& value) requires (IsDefaultSemantic<S>())
 	{
-		return ShaderGraph::PushExpression<OutputAttributeExpression>(value.source(), Convert<S>());
+		return Node::create(OutputAttributeExpression(T::ValueType, Convert<S>()), value.node());
 	}
 
 
-	std::shared_ptr<OutputAttributeExpression>
+	std::shared_ptr<Node>
 	MakeOutputAttributeExpression(const T& value) requires (!IsDefaultSemantic<S>())
 	{
-		return ShaderGraph::PushExpression<OutputAttributeExpression>(value.source(), static_cast<uint32_t>(L), S);
+		return Node::create(OutputAttributeExpression(T::ValueType, static_cast<uint32_t>(L), S), value.node());
 	}
 
 
-	std::shared_ptr<OutputAttributeExpression>
+	std::shared_ptr<Node>
 	MakeOutputAttributeExpression(T&& value) requires (IsDefaultSemantic<S>())
 	{
-		return ShaderGraph::PushExpression<OutputAttributeExpression>(std::move(value).source(), Convert<S>());
+		return Node::create(OutputAttributeExpression(T::ValueType, Convert<S>()), std::move(value).node());
 	}
 
 
-	std::shared_ptr<OutputAttributeExpression>
+	std::shared_ptr<Node>
 	MakeOutputAttributeExpression(T&& value) requires (!IsDefaultSemantic<S>())
 	{
-		return ShaderGraph::PushExpression<OutputAttributeExpression>(std::move(value).source(), static_cast<uint32_t>(L), S);
+		return Node::create(OutputAttributeExpression(T::ValueType, static_cast<uint32_t>(L), S), std::move(value).node());
 	}
 
 	std::optional<T> mValue;

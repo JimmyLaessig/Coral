@@ -4,7 +4,7 @@
 #include <Coral/ShaderLanguage/Vector.hpp>
 #include <Coral/ShaderLanguage/Attribute.hpp>
 
-#include <Coral/ShaderLanguage/Expression.hpp>
+#include <Coral/ShaderLanguage/Node.hpp>
 
 namespace Coral::ShaderLanguage
 {
@@ -13,7 +13,7 @@ template<Semantic S, Location L>
 struct Sampler2D : Value
 {
 	Sampler2D()
-		: Value(ShaderGraph::PushExpression<SamplerExpression>(static_cast<uint32_t>(L), S))
+		: Value(Node::create(SamplerExpression(static_cast<uint32_t>(L), S)))
 	{
 	}
 
@@ -23,20 +23,18 @@ struct Sampler2D : Value
 		requires VectorType<Vec, float, 2>
 	float4 sample(Vec&& uv) const
 	{
-		return float4(ShaderGraph::PushExpression<NativeFunctionExpression>(ValueType::FLOAT4,
-			                                                                NativeFunction::SAMPLE, 
-			                                                                source(), 
-			                                                                std::forward<Vec&&>(uv).source()));
+		return float4(Node::create(NativeFunctionExpression(ValueType::FLOAT4, NativeFunction::SAMPLE),
+			                       node(), 
+			                       std::forward<Vec&&>(uv).node()));
 	}
 
 	template<typename S>
 		requires ScalarType<S, int>
 	int2 size(S&& lod) const
 	{
-		return { ShaderGraph::PushExpression<NativeFunctionExpression>(ValueType::FLOAT3,
-			                                                           NativeFunction::TEXTURE_SIZE, 
-			                                                           source(), 
-			                                                           std::forward<S&&>(lod).source()) };
+		return { Node::create(NativeFunctionExpression(ValueType::FLOAT3, NativeFunction::TEXTURE_SIZE),
+			                  node(), 
+			                  std::forward<S&&>(lod).node()) };
 	}
 
 	Sampler2D(const Sampler2D&) = delete;

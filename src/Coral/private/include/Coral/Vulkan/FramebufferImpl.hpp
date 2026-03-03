@@ -8,7 +8,7 @@
 #include <Coral/Vulkan/Vulkan.hpp>
 
 #include <optional>
-#include <vector>
+#include <map>
 
 
 namespace Coral::Vulkan
@@ -22,30 +22,26 @@ public:
 	
 	using Resource::Resource;
 
-	std::optional<FramebufferCreationError> init(const Coral::FramebufferCreateConfig& config);
+	std::optional<Framebuffer::CreateError> init(const Coral::Framebuffer::CreateConfig& config);
 
 	uint32_t width() const override;
 
 	uint32_t height() const override;
 
-	Coral::FramebufferSignature signature() override;
+	Coral::Framebuffer::Layout layout() override;
 
-	Coral::Image* colorAttachment(uint32_t attachment) override;
+	const std::map<uint32_t, ImageImplPtr>& colorAttachments();
 
-	const std::vector<ColorAttachment>& colorAttachments();
-
-	const std::optional<DepthAttachment>& depthAttachment();
+	ImageImplPtr depthAttachment();
 
 private:
 
-	std::vector<ColorAttachment> mColorAttachments;
+	std::map<uint32_t, ImageImplPtr> mColorAttachments;
 
-	std::optional<DepthAttachment> mDepthAttachment;
+	ImageImplPtr mDepthAttachment;
 
-	uint32_t mWidth{ 0 };
-
-	uint32_t mHeight{ 0 };
-
+	uint32_t mWidth;
+	uint32_t mHeight;
 };
 
 } // namespace Coral::Vulkan

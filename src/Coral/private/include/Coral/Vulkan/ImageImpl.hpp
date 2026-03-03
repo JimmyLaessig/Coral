@@ -37,15 +37,15 @@ public:
 
 	virtual ~ImageImpl();
 
-	bool init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, ImageUsageHint usageHint);
+	bool init(VkImage image, CoPixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, CoImageUsageHint usageHint);
 
-	std::optional<Coral::ImageCreationError> init(const Coral::ImageCreateConfig& config);
+	std::optional<Coral::Image::CreateError> init(const Coral::Image::CreateConfig& config);
 
 	uint32_t width() const override;
 
 	uint32_t height() const override;
 
-	Coral::PixelFormat format() const override;
+	CoPixelFormat format() const override;
 
 	uint32_t getMipLevels() const override;
 
@@ -75,7 +75,7 @@ private:
 
 	uint32_t mHeight{ 0 };
 
-	Coral::PixelFormat mFormat{ };
+	CoPixelFormat mFormat{ };
 
 	uint32_t mMipLevelCount{ 1 };
 

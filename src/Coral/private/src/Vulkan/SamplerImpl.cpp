@@ -10,12 +10,12 @@ namespace
 {
 
 VkFilter
-convert(Coral::Filter magFilter)
+convert(CoFilter magFilter)
 {
 	switch (magFilter)
 	{
-		case Coral::Filter::NEAREST:	return VK_FILTER_NEAREST;
-		case Coral::Filter::LINEAR:		return VK_FILTER_LINEAR;
+		case CO_FILTER_NEAREST:	return VK_FILTER_NEAREST;
+		case CO_FILTER_LINEAR:  return VK_FILTER_LINEAR;
 		default:
 			assert(false);
 			return {};
@@ -23,46 +23,16 @@ convert(Coral::Filter magFilter)
 }
 
 
-//GLint
-//convert(Coral::Filter minFilter, Coral::Filter mipmapFilter)
-//{
-//	switch (minFilter)
-//	{
-//		case Coral::Filter::NEAREST:
-//			switch (mipmapFilter)
-//			{
-//				case Coral::Filter::NEAREST:	return GL_NEAREST_MIPMAP_NEAREST;
-//				case Coral::Filter::LINEAR:		return GL_NEAREST_MIPMAP_LINEAR;
-//				default:
-//					assert(false);
-//					return {};
-//			}
-//		case Coral::Filter::LINEAR:
-//			switch (mipmapFilter)
-//			{
-//				case Coral::Filter::NEAREST: return GL_LINEAR_MIPMAP_NEAREST;
-//				case Coral::Filter::LINEAR:  return GL_LINEAR_MIPMAP_LINEAR;
-//				default:
-//					assert(false);
-//					return {};
-//			}
-//		default:
-//			assert(false);
-//			return {};
-//	}
-// }
-
-
 std::tuple<VkSamplerAddressMode, VkBorderColor>
-convert(Coral::WrapMode wrapMode)
+convert(CoWrapMode wrapMode)
 {
 	switch (wrapMode)
 	{
-		case Coral::WrapMode::CLAMP_TO_EDGE:	return { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
-		case Coral::WrapMode::REPEAT:			return { VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
-		case Coral::WrapMode::MIRROR:			return { VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
-		case Coral::WrapMode::ONE:				return { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
-		case Coral::WrapMode::ZERO:				return { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
+		case CO_WRAP_MODE_CLAMP_TO_EDGE: return { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
+		case CO_WRAP_MODE_REPEAT:		 return { VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
+		case CO_WRAP_MODE_MIRROR:		 return { VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
+		case CO_WRAP_MODE_ONE:			 return { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_BORDER_COLOR_FLOAT_OPAQUE_WHITE };
+		case CO_WRAP_MODE_ZERO:			 return { VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER, VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK };
 		default:
 			assert(false);
 			return {};
@@ -81,8 +51,8 @@ SamplerImpl::~SamplerImpl()
 }
 
 
-std::optional<Coral::SamplerCreationError>
-SamplerImpl::init(const Coral::SamplerCreateConfig& config)
+std::optional<Coral::Sampler::CreateError>
+SamplerImpl::init(const Coral::Sampler::CreateConfig& config)
 {
 	mMinFilter		= config.minFilter;
 	mMagFilter		= config.magFilter;
@@ -92,7 +62,7 @@ SamplerImpl::init(const Coral::SamplerCreateConfig& config)
 	VkSamplerCreateInfo createInfo{ VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };
 	createInfo.magFilter	= convert(config.magFilter);
 	createInfo.minFilter	= convert(config.minFilter);
-	createInfo.mipmapMode	= config.mipmapFilter == Coral::Filter::LINEAR ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
+	createInfo.mipmapMode	= config.mipmapFilter == CO_FILTER_LINEAR ? VK_SAMPLER_MIPMAP_MODE_LINEAR : VK_SAMPLER_MIPMAP_MODE_NEAREST;
 
 	auto [addressMode, borderColor] = convert(config.wrapMode);
 
@@ -116,7 +86,7 @@ SamplerImpl::init(const Coral::SamplerCreateConfig& config)
 
 	if (vkCreateSampler(context().getVkDevice(), &createInfo, nullptr, &mSampler) != VK_SUCCESS)
 	{
-		return SamplerCreationError::INTERNAL_ERROR;
+		return Sampler::CreateError::INTERNAL_ERROR;
 	}
 
 	return {};
@@ -130,28 +100,28 @@ SamplerImpl::getVkSampler()
 }
 
 
-Coral::Filter
+CoFilter
 SamplerImpl::magFilter() const
 {
 	return mMagFilter;
 }
 
 
-Coral::Filter
+CoFilter
 SamplerImpl::minFilter() const
 {
 	return mMinFilter;
 }
 
 
-Coral::Filter
+CoFilter
 SamplerImpl::mipMapFilter() const
 {
 	return mMipmapFilter;
 }
 
 
-Coral::WrapMode
+CoWrapMode
 SamplerImpl::wrapMode() const
 {
 	return mWrapMode;

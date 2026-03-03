@@ -24,13 +24,13 @@ class ContextImpl : public Coral::Context
 {
 public:
 
-	static std::shared_ptr<ContextImpl> create(const ContextCreateConfig& config);
+	static std::shared_ptr<ContextImpl> create(const Context::CreateConfig& config);
 
-	bool init(const ContextCreateConfig& config);
+	bool init(const Context::CreateConfig& config);
 
 	virtual ~ContextImpl();
 
-	GraphicsAPI graphicsAPI() const override { return GraphicsAPI::VULKAN; }
+	CoGraphicsAPI graphicsAPI() const override { return CO_GRAPHICS_API_VULKAN; }
 
 	Coral::CommandQueue* getGraphicsQueue() override;
 
@@ -38,23 +38,23 @@ public:
 									
 	Coral::CommandQueue* getTransferQueue() override;
 
-	std::expected<Coral::BufferPtr, Coral::BufferCreationError> createBuffer(const Coral::BufferCreateConfig& config) override;
+	std::expected<Coral::BufferPtr, Coral::Buffer::CreateError> createBuffer(const Coral::Buffer::CreateConfig& config) override;
 
-	std::expected<Coral::FencePtr, Coral::FenceCreationError> createFence()  override;
+	std::expected<Coral::FencePtr, Coral::Fence::CreateError> createFence(const Coral::Fence::CreateConfig& config)  override;
 
-	std::expected<Coral::FramebufferPtr, Coral::FramebufferCreationError> createFramebuffer(const Coral::FramebufferCreateConfig& config) override;
+	std::expected<Coral::FramebufferPtr, Coral::Framebuffer::CreateError> createFramebuffer(const Coral::Framebuffer::CreateConfig& config) override;
 
-	std::expected<Coral::ImagePtr, Coral::ImageCreationError> createImage(const Coral::ImageCreateConfig& config) override;
+	std::expected<Coral::ImagePtr, Coral::Image::CreateError> createImage(const Coral::Image::CreateConfig& config) override;
 
-	std::expected<Coral::PipelineStatePtr, Coral::PipelineStateCreationError> createPipelineState(const Coral::PipelineStateCreateConfig& config) override;
+	std::expected<Coral::PipelineStatePtr, Coral::PipelineState::CreateError> createPipelineState(const Coral::PipelineState::CreateConfig& config) override;
 
-	std::expected<Coral::SamplerPtr, Coral::SamplerCreationError> createSampler(const Coral::SamplerCreateConfig& config) override;
+	std::expected<Coral::SamplerPtr, Coral::Sampler::CreateError> createSampler(const Coral::Sampler::CreateConfig& config) override;
 
-	std::expected<Coral::SemaphorePtr, Coral::SemaphoreCreationError> createSemaphore() override;
+	std::expected<Coral::SemaphorePtr, Coral::Semaphore::CreateError> createSemaphore(const Coral::Semaphore::CreateConfig& config) override;
 
-	std::expected<Coral::ShaderModulePtr, Coral::ShaderModuleCreationError> createShaderModule(const Coral::ShaderModuleCreateConfig& config) override;
+	std::expected<Coral::ShaderModulePtr, Coral::ShaderModule::CreateError> createShaderModule(const Coral::ShaderModule::CreateConfig& config) override;
 	
-	std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError> createSwapchain(const Coral::SwapchainCreateConfig& config) override;
+	std::expected<Coral::SwapchainPtr, Coral::Swapchain::CreateError> createSwapchain(const Coral::Swapchain::CreateConfig& config) override;
 
 	VkInstance getVkInstance() { return mInstance; }
 
@@ -71,7 +71,7 @@ public:
 	 * The staging buffer will have at least the requested buffer size. Staging buffers are returned to the to the pool
 	 * after the using command buffer was executed.
 	 */
-	std::shared_ptr<Coral::Buffer> requestStagingBuffer(size_t bufferSize);
+	BufferImplPtr requestStagingBuffer(size_t bufferSize);
 
 private:
 	

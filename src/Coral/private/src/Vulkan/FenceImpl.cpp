@@ -12,14 +12,14 @@ FenceImpl::~FenceImpl()
 }
 
 
-std::optional<Coral::FenceCreationError>
+std::optional<Coral::Fence::CreateError>
 FenceImpl::init()
 {
 	VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
 
 	if (vkCreateFence(context().getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
 	{
-		return Coral::FenceCreationError::INTERNAL_ERROR;
+		return Coral::Fence::CreateError::INTERNAL_ERROR;
 	}
 
 	return {};

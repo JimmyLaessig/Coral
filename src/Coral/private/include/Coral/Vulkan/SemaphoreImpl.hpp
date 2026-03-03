@@ -19,7 +19,7 @@ public:
 
 	virtual ~SemaphoreImpl();
 
-	std::optional<Coral::SemaphoreCreationError> init();
+	std::optional<Coral::Semaphore::CreateError> init();
 
 	VkSemaphore getVkSemaphore();
 

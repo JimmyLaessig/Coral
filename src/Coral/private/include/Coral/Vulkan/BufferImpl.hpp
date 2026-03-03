@@ -20,11 +20,11 @@ public:
 
 	virtual ~BufferImpl();
 
-	std::optional<Coral::BufferCreationError> init(const BufferCreateConfig& config);
+	std::optional<Coral::Buffer::CreateError> init(const Buffer::CreateConfig& config);
 
 	size_t size() const override;
 
-	BufferType type() const override;
+	CoBufferType type() const override;
 
 	std::byte* map() override;
 
@@ -38,7 +38,7 @@ private:
 
 	VmaAllocation mAllocation{ VK_NULL_HANDLE };
 
-	BufferType mType{ BufferType::STORAGE_BUFFER };
+	CoBufferType mType{ CO_BUFFER_TYPE_STORAGE };
 
 	size_t mSize{ 0 };
 

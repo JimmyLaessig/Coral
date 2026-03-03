@@ -19,27 +19,27 @@ public:
 
 	virtual ~SamplerImpl();
 
-	std::optional<Coral::SamplerCreationError> init(const Coral::SamplerCreateConfig& config);
+	std::optional<Coral::Sampler::CreateError> init(const Coral::Sampler::CreateConfig& config);
 
-	Filter magFilter() const override;
+	CoFilter magFilter() const override;
 
-	Filter minFilter() const override;
+	CoFilter minFilter() const override;
 
-	Filter mipMapFilter() const override;
+	CoFilter mipMapFilter() const override;
 
-	WrapMode wrapMode() const override;
+	CoWrapMode wrapMode() const override;
 
 	VkSampler getVkSampler();
 
 private:
 
-	Coral::Filter mMinFilter{ Coral::Filter::NEAREST };
+	CoFilter mMinFilter{ CO_FILTER_NEAREST };
 
-	Coral::Filter mMagFilter{ Coral::Filter::NEAREST };
+	CoFilter mMagFilter{ CO_FILTER_NEAREST };
 
-	Coral::Filter mMipmapFilter{ Coral::Filter::NEAREST };
+	CoFilter mMipmapFilter{ CO_FILTER_NEAREST };
 
-	Coral::WrapMode mWrapMode{ Coral::WrapMode::REPEAT };
+	CoWrapMode mWrapMode{ CO_WRAP_MODE_REPEAT };
 
 	VkSampler mSampler{ VK_NULL_HANDLE };
 };

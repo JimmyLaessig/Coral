@@ -99,11 +99,17 @@ SwapchainImpl::~SwapchainImpl()
 
 
 bool
-SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
+SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
 {
 	mConfig = config;
 
-	mSwapchainImageData.clear();
+	mImageAcquiredSemaphore.clear();
+	mTransitionToColorAttachment.clear();
+	mImageReadySemaphore.clear();
+	mTransitionToPresent.clear();
+	mImagePresentableSemaphore.clear();
+	mSwapchainImages.clear();
+	mFramebuffers.clear();
 	mSwapchainDepthImage.reset();
 
 	auto surfaceFormat = chooseSwapchainFormat(context().getVkPhysicalDevice(), mSurface, convert(config.format));
@@ -126,7 +132,7 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 
 	VkSwapchainCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
 	createInfo.surface			= mSurface;
-	createInfo.minImageCount	= config.swapchainImageCount;
+	createInfo.minImageCount	= config.minImageCount;
 	createInfo.imageFormat		= mSurfaceFormat.format;
 	createInfo.imageColorSpace	= mSurfaceFormat.colorSpace;
 	createInfo.imageExtent		= mSwapchainExtent;
@@ -162,25 +168,6 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 		return false;
 	}
 
-	// Create image views
-	mSwapchainImageData.resize(mSwapchainImageCount);
-	for (size_t i = 0; i < mSwapchainImageCount; ++i)
-	{
-		auto image = std::make_shared<Coral::Vulkan::ImageImpl>(context());
-
-		// Store the swapchain image
-		if (!image->init(swapchainImages[i],
-			             convert(createInfo.imageFormat),
-			             mSwapchainExtent.width,
-			             mSwapchainExtent.height,
-			             1,
-						 Coral::ImageUsageHint::FRAMEBUFFER_ATTACHMENT))
-		{
-			return false;
-		}
-
-		mSwapchainImageData[i].image = image;
-	}
 
 	// Create the depth buffer
 	if (config.depthFormat)
@@ -192,10 +179,10 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 			return false;
 		}
 
-		Coral::ImageCreateConfig depthImageConfig{};
-		depthImageConfig.format = *config.depthFormat;
-		depthImageConfig.width  = createInfo.imageExtent.width;
-		depthImageConfig.height = createInfo.imageExtent.height;
+		Coral::Image::CreateConfig depthImageConfig{};
+		depthImageConfig.format        = *config.depthFormat;
+		depthImageConfig.extent.width  = createInfo.imageExtent.width;
+		depthImageConfig.extent.height = createInfo.imageExtent.height;
 
 		auto swapchainImage = context().createImage(depthImageConfig);
 		if (!swapchainImage)
@@ -206,60 +193,66 @@ SwapchainImpl::initSwapchain(const Coral::SwapchainCreateConfig& config)
 		mSwapchainDepthImage = swapchainImage.value();
 	}
 
-	// Create the Framebuffer for each swapchain image
+
 	for (size_t i = 0; i < mSwapchainImageCount; ++i)
 	{
-		Coral::FramebufferCreateConfig framebufferConfig{};
-
-		Coral::ColorAttachment colorAttachment{ 0, mSwapchainImageData[i].image.get() };
-
-		framebufferConfig.colorAttachments = { &colorAttachment, 1 };
-
-		if (config.depthFormat)
+		// Create swapchain images
+		auto image = std::make_shared<Coral::Vulkan::ImageImpl>(context());
+		if (!image->init(swapchainImages[i],
+			             convert(createInfo.imageFormat),
+			             mSwapchainExtent.width,
+			             mSwapchainExtent.height,
+			             1,
+						 CO_IMAGE_USAGE_HINT_FRAMEBUFFER_ATTACHMENT))
 		{
-			framebufferConfig.depthAttachment = { mSwapchainDepthImage.get() };
+			return false;
 		}
 
-		auto framebuffer = context().createFramebuffer(framebufferConfig);
+		mSwapchainImages.push_back(image);
 
+		// Create the framebuffer 
+		Coral::ColorAttachment colorAttachment;
+
+		Coral::Framebuffer::CreateConfig framebufferConfig{};
+		framebufferConfig.colorAttachments = { { mSwapchainImages[i], 0 } };
+		framebufferConfig.depthAttachment  = mSwapchainDepthImage;
+
+		auto framebuffer = context().createFramebuffer(framebufferConfig);
 		if (!framebuffer.has_value())
 		{
 			return false;
 		}
 
-		mSwapchainImageData[i].framebuffer = framebuffer.value();
+		mFramebuffers.push_back(framebuffer.value());
+
+		// Create the imageAcquiredSemaphore
+		mImageAcquiredSemaphore.push_back(context().createSemaphore({}).value());
+		// Create the imageReadySemaphore
+		mImageReadySemaphore.push_back(context().createSemaphore({}).value());
+		// Create the mImagePresentableSemaphore
+		mImagePresentableSemaphore.push_back(context().createSemaphore({}).value());
 	}
 
-	if (mSwapchainSyncObjects.empty())
-	{
-		for (size_t i = 0; i < mSwapchainImageCount; ++i)
-		{
-			SwapchainSyncObjects syncs{};
-			syncs.imageReadySemaphore       = context().createSemaphore().value();
-			syncs.imagePresentableSemaphore = context().createSemaphore().value();
-			syncs.imageAcquiredSemaphore    = context().createSemaphore().value();
-
-			mSwapchainSyncObjects.push_back(std::move(syncs));
-		}
-	}
+	mTransitionToColorAttachment.resize(mSwapchainImageCount);
+	mTransitionToPresent.resize(mSwapchainImageCount);
 
 	return true;
 }
 
 
-std::optional<Coral::SwapchainCreationError>
-SwapchainImpl::init(const Coral::SwapchainCreateConfig& config)
+std::optional<Coral::Swapchain::CreateError>
+SwapchainImpl::init(const Coral::Swapchain::CreateConfig& config)
 {
 	mSurface = Coral::Vulkan::createVkSurface(context().getVkInstance(), config.nativeWindowHandle);
 
 	if (mSurface == VK_NULL_HANDLE)
 	{
-		return Coral::SwapchainCreationError::INTERNAL_ERROR;
+		return Coral::Swapchain::CreateError::INTERNAL_ERROR;
 	}
 
 	if (!initSwapchain(config))
 	{
-		return Coral::SwapchainCreationError::INTERNAL_ERROR;
+		return Coral::Swapchain::CreateError::INTERNAL_ERROR;
 	}
 
 	return {};
@@ -288,7 +281,7 @@ SwapchainImpl::nativeWindowHandle()
 
 
 Coral::SwapchainImageInfo
-SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
+SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
 {
 	// Dynamic rendering requires manual image layout transition for presentable swapchain images. Before
 	// rendering, we must transition the image to a supported layout (VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).
@@ -297,37 +290,23 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 
 	auto commandQueue = context().getGraphicsQueue();
 
-	auto& syncObjects = mSwapchainSyncObjects[mCurrentSwapchainIndex];
+	auto imageAcquiredSemaphore     = mImageAcquiredSemaphore[mCurrentSwapchainIndex];
+	auto imageAcquiredSemaphoreImpl = std::static_pointer_cast<SemaphoreImpl>(imageAcquiredSemaphore);
 
-	// We store the command buffer for each swapchain image but recreate a new one each frame (destroyed the old one).
-	// This way, the command buffer's lifetime is guaranteed to exceed the duration of this function and the command
-	// buffer was created from the correct command queue.
-	syncObjects.transitionToColorAttachment = commandQueue->createCommandBuffer({}).value();
-
-	auto imageAcquiredSemaphore = syncObjects.imageAcquiredSemaphore.get();
-	auto commandBuffer          = syncObjects.transitionToColorAttachment.get();
-	auto imageReadySemaphore    = syncObjects.imageReadySemaphore.get();
-
-	auto imageAcquiredSemaphoreImpl = static_cast<SemaphoreImpl*>(imageAcquiredSemaphore);
-	auto imageReadySemaphoreImpl    = static_cast<SemaphoreImpl*>(imageReadySemaphore);
-	auto commandBufferImpl          = static_cast<CommandBufferImpl*>(commandBuffer);
-
-	// Acquire the next swapchain image and signal the `acquireSemaphore` semaphore that the layout can be
-	// transitioned to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
-	auto vkFence = fence ? static_cast<Coral::Vulkan::FenceImpl*>(fence)->getVkFence() : VK_NULL_HANDLE;
-	auto result = vkAcquireNextImageKHR(context().getVkDevice(), 
-										mSwapchain, 
-										UINT32_MAX, 
+	// Acquire the next swapchain image and signal the `imageAcquiredSemaphore` semaphore that the layout can be
+	// transitioned to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL.
+	auto result = vkAcquireNextImageKHR(context().getVkDevice(),
+		                                mSwapchain,
+		                                UINT32_MAX,
 		                                imageAcquiredSemaphoreImpl->getVkSemaphore(),
-										vkFence, 
-										&mCurrentSwapchainIndex);
+		                                VK_NULL_HANDLE,
+		                                &mCurrentSwapchainIndex);
 
 	// If the swapchain is out of date we have to rebuild the swapchain. For that, we wait for the device to be idle,
 	// recreate the swapchain and try image acquisition again
 	if (result == VK_ERROR_OUT_OF_DATE_KHR)
 	{
 		vkDeviceWaitIdle(context().getVkDevice());
-
 		if (!initSwapchain(mConfig))
 		{
 			return {};
@@ -341,15 +320,21 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 		return {};
 	}
 
-	// Update the cached SwapchainImageInfo 
-	mCurrentSwapchainImageInfo                         = {};
-	mCurrentSwapchainImageInfo.imageAvailableSemaphore = imageReadySemaphore;
-	mCurrentSwapchainImageInfo.framebuffer             = mSwapchainImageData[mCurrentSwapchainIndex].framebuffer.get();
+	// Transition the image layout to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+	auto commandBuffer     = commandQueue->createCommandBuffer({}).value();
+	auto commandBufferImpl = std::static_pointer_cast<CommandBufferImpl>(commandBuffer);
+
+	// We store the command buffer for each swapchain image but recreate a new one each frame (destroyed the old one).
+	// This way, the command buffer's lifetime is guaranteed to exceed the duration of this function and the command
+	// buffer was created from the correct command queue.
+	mTransitionToColorAttachment[mCurrentSwapchainIndex] = commandBuffer;
+
+	auto imageReadySemaphore     = mImageReadySemaphore[mCurrentSwapchainIndex];
+	auto imageReadySemaphoreImpl = std::static_pointer_cast<SemaphoreImpl>(imageReadySemaphore);
 
 	commandBuffer->begin();
 
-	auto image = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.framebuffer->colorAttachment(0));
-
+	auto image = std::static_pointer_cast<ImageImpl>(mSwapchainImages[mCurrentSwapchainIndex]);
 	ImageImpl::cmdTransitionImageLayout(commandBufferImpl->getVkCommandBuffer(), 
                                         *image, 
                                         image->getPreferredImageLayout(), 
@@ -366,43 +351,47 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::Fence* fence)
 	// for rendering. This command buffer must await the `imageAcquiredSemaphore` for proper synchronization. Also,
 	// this command buffer signals the public-facing `imageReadySemaphore` of the current swapchain image so user can
 	// properly schedule render commands to only execute once the new swapchain image is ready for rendering.
-	Coral::CommandBufferSubmitInfo info{};
-	info.commandBuffers   = { &commandBuffer, 1 };
-	info.waitSemaphores   = { &imageAcquiredSemaphore, 1 };
-	info.signalSemaphores = { &imageReadySemaphore, 1 };
-	commandQueue->submit(info, nullptr);
 
-	return mCurrentSwapchainImageInfo;
+	Coral::CommandBufferSubmitInfo info{};
+	info.commandBuffers   = { commandBuffer };
+	info.waitSemaphores   = { imageAcquiredSemaphore };
+	info.signalSemaphores = { imageReadySemaphore };
+	commandQueue->submit(info, fence);
+
+	return {
+		mSwapchainImages[mCurrentSwapchainIndex],
+		mFramebuffers[mCurrentSwapchainIndex],
+		mImageReadySemaphore[mCurrentSwapchainIndex],
+	};
 }
 
 
 void
-SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores)
+SwapchainImpl::present(CommandQueueImpl& commandQueue, const std::vector<SemaphorePtr>& waitSemaphores)
 {
+	std::lock_guard lock(mThreadProtection);
 	// Dynamic rendering requires manual image layout transition for presentable swapchain images. Before
 	// rendering, we must transition the image to a supported layout (VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).
 	// Once rendering is done, the image layout must transition to 'VK_IMAGE_LAYOUT_PRESENT_SRC_KHR' before present the
 	// swapchain image. Both layout transitions must be executed manually via memory barriers.
 
-	auto& syncObjects = mSwapchainSyncObjects[mCurrentSwapchainIndex];
+	auto commandBuffer                 = commandQueue.createCommandBuffer({}).value(); 
+	auto commandBufferImpl             = std::static_pointer_cast<CommandBufferImpl>(commandBuffer);
+	auto imagePresentableSemaphore     = mImagePresentableSemaphore[mCurrentSwapchainIndex];
+	auto imagePresentableSemaphoreImpl = std::static_pointer_cast<SemaphoreImpl>(imagePresentableSemaphore);
+	auto swapchainImageImpl            = std::static_pointer_cast<ImageImpl>(mSwapchainImages[mCurrentSwapchainIndex]);
 
 	// We store the command buffer for each swapchain image but recreate a new one each frame (destroyed the old one).
 	// This way, the command buffer's lifetime is guaranteed to exceed the duration of this function and the command
 	// buffer was created from the correct command queue.
-	syncObjects.transitionToPresent = commandQueue.createCommandBuffer({}).value();
-
-	auto commandBuffer             = syncObjects.transitionToPresent.get();
-	auto imagePresentableSemaphore = syncObjects.imagePresentableSemaphore.get();
-	auto swapchainImage            = static_cast<ImageImpl*>(mCurrentSwapchainImageInfo.framebuffer->colorAttachment(0));
-	auto swapchainImageIndex       = mCurrentSwapchainIndex;
-	auto commandBufferImpl         = static_cast<CommandBufferImpl*>(commandBuffer);
+	mTransitionToPresent[mCurrentSwapchainIndex] = commandBuffer;
 
 	// Use a built-in command buffer to perform memory layout transition from VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
 	// to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR prior to presenting the image.
 	commandBuffer->begin();
 
 	ImageImpl::cmdTransitionImageLayout(commandBufferImpl->getVkCommandBuffer(),
-		                                *swapchainImage,
+		                                *swapchainImageImpl,
 		                                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
 		                                /*firstMipLevel*/ 0,
 		                                /*levelCount*/ 1,
@@ -418,19 +407,19 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 	// this command buffer also awaits the suppied `waitSemaphores` to ensure proper synchronization.
 	Coral::CommandBufferSubmitInfo info{};
 	info.waitSemaphores   = waitSemaphores;
-	info.commandBuffers   = { &commandBuffer, 1 };
-	info.signalSemaphores = { &imagePresentableSemaphore, 1 };
+	info.commandBuffers   = { commandBuffer };
+	info.signalSemaphores = { imagePresentableSemaphore };
 
 	commandQueue.submit(info, nullptr);
 
 	// Finally, dispatch the vkQueuePresentKHR call to display the newly rendered image. Note that this call must wait
 	// for the presentSemaphore so that presentation is performed after the memory layout transition is done.
-	VkSemaphore vkSemaphore = static_cast<SemaphoreImpl*>(imagePresentableSemaphore)->getVkSemaphore();
+	VkSemaphore vkSemaphore = imagePresentableSemaphoreImpl->getVkSemaphore();
 
 	VkPresentInfoKHR presentInfo{ VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
 	presentInfo.pWaitSemaphores    = &vkSemaphore;
 	presentInfo.waitSemaphoreCount = 1;
-	presentInfo.pImageIndices      = &swapchainImageIndex;
+	presentInfo.pImageIndices      = &mCurrentSwapchainIndex;
 	presentInfo.pSwapchains        = &mSwapchain;
 	presentInfo.swapchainCount     = 1;
 
@@ -441,13 +430,20 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, std::span<Semaphore*> wai
 Coral::SwapchainImageInfo
 SwapchainImpl::currentSwapchainImage() const
 {
-	return mCurrentSwapchainImageInfo;
+	std::lock_guard lock(mThreadProtection);
+	return
+	{
+		mSwapchainImages[mCurrentSwapchainIndex],
+		mFramebuffers[mCurrentSwapchainIndex],
+		mImageReadySemaphore[mCurrentSwapchainIndex],
+	};
 }
 
 
 uint32_t
 SwapchainImpl::currentSwapchainImageIndex() const
 {
+	std::lock_guard lock(mThreadProtection);
 	return mCurrentSwapchainIndex;
 }
 
@@ -455,19 +451,22 @@ SwapchainImpl::currentSwapchainImageIndex() const
 uint32_t
 SwapchainImpl::swapchainImageCount() const
 {
-	return static_cast<uint32_t>(mSwapchainImageData.size());
+	std::lock_guard lock(mThreadProtection);
+	return static_cast<uint32_t>(mSwapchainImages.size());
 }
 
 
-Coral::SwapchainExtent
+CoExtent
 SwapchainImpl::swapchainExtent() const
 {
-	return { mSwapchainImageData.front().framebuffer->width(), mSwapchainImageData.front().framebuffer->height()};
+	std::lock_guard lock(mThreadProtection);
+	return { mSwapchainImages.front()->width(), mSwapchainImages.front()->height()};
 }
 
 
-Coral::FramebufferSignature
-SwapchainImpl::framebufferSignature() const
+Coral::Framebuffer::Layout
+SwapchainImpl::framebufferLayout() const
 {
-	return mSwapchainImageData.front().framebuffer->signature();
+	std::lock_guard lock(mThreadProtection);
+	return mFramebuffers.front()->layout();
 }

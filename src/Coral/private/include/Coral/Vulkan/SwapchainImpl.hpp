@@ -10,6 +10,8 @@
 #include <array>
 #include <memory>
 
+#include <mutex>
+
 
 namespace Coral::Vulkan
 {
@@ -24,11 +26,11 @@ public:
 
 	virtual ~SwapchainImpl();
 
-	std::optional<Coral::SwapchainCreationError> init(const Coral::SwapchainCreateConfig& config);
+	std::optional<Coral::Swapchain::CreateError> init(const Coral::Swapchain::CreateConfig& config);
 
 	void* nativeWindowHandle() override;
 
-	SwapchainImageInfo acquireNextSwapchainImage(Fence* fence) override;
+	SwapchainImageInfo acquireNextSwapchainImage(FencePtr fence) override;
 
 	SwapchainImageInfo currentSwapchainImage() const override;
 
@@ -36,21 +38,21 @@ public:
 
 	uint32_t swapchainImageCount() const override;
 
-	FramebufferSignature framebufferSignature() const override;
+	Framebuffer::Layout framebufferLayout() const override;
 
-	SwapchainExtent swapchainExtent() const override;
+	CoExtent swapchainExtent() const override;
 
 	VkSurfaceKHR getVkSurface();
 
 	VkSwapchainKHR getVkSwapchain();
 
-	const Coral::SwapchainCreateConfig& config() const { return mConfig; };
+	const Coral::Swapchain::CreateConfig& config() const { return mConfig; };
 
-	void present(CommandQueueImpl& commandQueue, std::span<Semaphore*> waitSemaphores);
+	void present(CommandQueueImpl& commandQueue, const std::vector<SemaphorePtr>& waitSemaphores);
 
 private:
 
-	bool initSwapchain(const Coral::SwapchainCreateConfig& config);
+	bool initSwapchain(const Coral::Swapchain::CreateConfig& config);
 
 	void* mNativeWindowHandle{ nullptr };
 
@@ -66,43 +68,35 @@ private:
 
 	VkExtent2D mSwapchainExtent{ 0, 0 };
 
-	struct SwapchainImageData
-	{
-		Coral::ImagePtr image;
-		Coral::FramebufferPtr framebuffer;
-	};
+	/// Semaphores to be signaled once the swapchain image has been acquired (one for each swapchain image).
+	std::vector<Coral::SemaphorePtr> mImageAcquiredSemaphore;
+	
+	/// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL after acquisition
+	/// (one for each swapchain image).
+	std::vector<Coral::CommandBufferPtr> mTransitionToColorAttachment;
 
-	struct SwapchainSyncObjects
-	{
-		/// Semaphore to be signaled once the tswapchainhe image has been acquired
-		Coral::SemaphorePtr imageAcquiredSemaphore;
-		
-		/// Commandbuffer to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL.
-		Coral::CommandBufferPtr transitionToColorAttachment;
+	/// Semaphores to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
+	/// to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (one for each swapchain image).
+	std::vector<Coral::SemaphorePtr> mImageReadySemaphore;
 
-		/// Semaphore to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
-		/// to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL.
-		Coral::SemaphorePtr imageReadySemaphore;
+	/// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+	std::vector<Coral::CommandBufferPtr> mTransitionToPresent;
 
-		/// Commandbuffer to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
-		Coral::CommandBufferPtr transitionToPresent;
-		
-		/// Semaphore to be signaled once the swapchain image memory layout has transitioned to
-		/// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
-		Coral::SemaphorePtr imagePresentableSemaphore;
-	};
+	/// Semaphores to be signaled once the swapchain image memory layout has transitioned to
+	/// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+	std::vector<Coral::SemaphorePtr> mImagePresentableSemaphore;
 
-	VkSemaphore mSemaphore{ VK_NULL_HANDLE };
+	/// Swapchain framebuffers  (one for each swapchain image).
+	std::vector<Coral::FramebufferPtr> mFramebuffers;
 
-	std::vector<SwapchainImageData> mSwapchainImageData;
-
-	std::vector<SwapchainSyncObjects> mSwapchainSyncObjects;
+	/// The swapchain image
+	std::vector<Coral::ImagePtr> mSwapchainImages;
 
 	Coral::ImagePtr mSwapchainDepthImage;
 
-	Coral::SwapchainCreateConfig mConfig{};
+	Coral::Swapchain::CreateConfig mConfig{};
 
-	Coral::SwapchainImageInfo mCurrentSwapchainImageInfo{};
+	mutable std::mutex mThreadProtection;
 
 }; // class Surface
 

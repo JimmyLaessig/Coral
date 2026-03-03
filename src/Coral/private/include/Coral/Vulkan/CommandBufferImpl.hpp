@@ -24,7 +24,7 @@ public:
 
 	virtual ~CommandBufferImpl();
 
-	bool init(const CommandBufferCreateConfig& config);
+	bool init(const CommandBuffer::CreateConfig& config);
 
 	bool begin() override; 
 
@@ -34,7 +34,7 @@ public:
 
 	bool cmdEndRenderPass() override;
 
-	bool cmdClearImage(Coral::Image* image, const ClearColor& clearColor) override;
+	bool cmdClearImage(Coral::Image* image, const CoClearColor& clearColor) override;
 
 	bool cmdCopyBuffer(const CopyBufferInfo& info) override;
 
@@ -42,13 +42,13 @@ public:
 
 	bool cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, size_t offset, size_t stride) override;
 
-	bool cmdBindIndexBuffer(Coral::Buffer* buffer, IndexFormat format, size_t offset) override;
+	bool cmdBindIndexBuffer(Coral::Buffer* buffer, CoIndexFormat format, size_t offset) override;
 
 	bool cmdBindPipeline(Coral::PipelineState* pipeline) override;
 
 	bool cmdDrawIndexed(const DrawIndexInfo& info) override;
 
-	bool cmdSetViewport(const Coral::ViewportInfo& info) override;
+	bool cmdSetViewport(const CoViewportInfo& info) override;
 
 	bool cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info) override;
 
@@ -57,8 +57,6 @@ public:
 	bool cmdGenerateMipMaps(Coral::Image* image) override;
 
 	void cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding) override;
-
-	void cmdBindDescriptor(Coral::Image* image, Coral::Sampler* sampler, uint32_t binding) override;
 
 	void cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding) override;
 

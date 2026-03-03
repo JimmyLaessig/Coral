@@ -12,7 +12,7 @@ namespace Coral::ShaderLanguage
 //public:
 //	T Else(T value)
 //	{
-//		return T{ ShaderModule::current()->addExpression<ConditionalExpression>(mCondition.source(), mIf.source(), value.source()) };
+//		return T{ ShaderModule::current()->addExpression<ConditionalExpression>(mCondition.node(), mIf.node(), value.node()) };
 //	}
 //
 //	Then(const Then& other) = delete;
@@ -40,7 +40,7 @@ namespace Coral::ShaderLanguage
 //public:
 //
 //	If(Bool condition)
-//		: mCondition(condition.source())
+//		: mCondition(condition.node())
 //	{
 //	}
 //

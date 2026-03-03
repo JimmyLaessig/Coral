@@ -16,8 +16,10 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
-#include <Coral/Coral.hpp>
-#include <Coral/ImGui_Impl_Coral.hpp>
+#include <Coral/Coral.h>
+#include <Coral/ImGui_Impl_Coral.h>
+
+#include <Coral/Util/RAII.hpp>
 
 #include <backends/imgui_impl_glfw.h>
 
@@ -40,7 +42,7 @@ struct Image
 	uint32_t width{ 0 };
 	uint32_t height{ 0 };
 
-	Coral::PixelFormat format{ Coral::PixelFormat::RGBA8_UI };
+	CoPixelFormat format{ CO_PIXEL_FORMAT_RGBA8_UI };
 };
 
 bool loadImage(const char* path, Image& image)
@@ -66,10 +68,10 @@ bool loadImage(const char* path, Image& image)
 	case 1:
 		switch (c)
 		{
-			case 1:	image.format = Coral::PixelFormat::R8_UI;		break;
-			case 2:	image.format = Coral::PixelFormat::RG8_UI;		break;
-			case 3:	image.format = Coral::PixelFormat::RGB8_UI;		break;
-			case 4:	image.format = Coral::PixelFormat::RGBA8_UI;	break;
+			case 1:	image.format = CO_PIXEL_FORMAT_R8_UI;		break;
+			case 2:	image.format = CO_PIXEL_FORMAT_RG8_UI;		break;
+			case 3:	image.format = CO_PIXEL_FORMAT_RGB8_UI;		break;
+			case 4:	image.format = CO_PIXEL_FORMAT_RGBA8_UI;	break;
 			default:
 				return false;
 		}
@@ -77,10 +79,10 @@ bool loadImage(const char* path, Image& image)
 	case 2:
 		switch (c)
 		{
-			case 1:	image.format = Coral::PixelFormat::R16_UI;		break;
-			case 2:	image.format = Coral::PixelFormat::RG16_UI;		break;
-			case 3:	image.format = Coral::PixelFormat::RGB16_UI;	break;
-			case 4:	image.format = Coral::PixelFormat::RGBA16_UI;	break;
+			case 1:	image.format = CO_PIXEL_FORMAT_R16_UI;		break;
+			case 2:	image.format = CO_PIXEL_FORMAT_RG16_UI;		break;
+			case 3:	image.format = CO_PIXEL_FORMAT_RGB16_UI;	break;
+			case 4:	image.format = CO_PIXEL_FORMAT_RGBA16_UI;	break;
 			default:
 				return false;
 		}
@@ -91,79 +93,108 @@ bool loadImage(const char* path, Image& image)
 }
 
 template<typename T>
-Coral::AttributeFormat toAttributeFormat();
+CoAttributeFormat toAttributeFormat();
 
-template<> Coral::AttributeFormat toAttributeFormat<glm::vec3>() { return Coral::AttributeFormat::VEC3F; }
-template<> Coral::AttributeFormat toAttributeFormat<glm::vec2>() { return Coral::AttributeFormat::VEC2F; }
-template<> Coral::AttributeFormat toAttributeFormat<uint32_t>()  { return Coral::AttributeFormat::UINT32; }
-template<> Coral::AttributeFormat toAttributeFormat<uint16_t>()  { return Coral::AttributeFormat::UINT16; }
+template<> CoAttributeFormat toAttributeFormat<glm::vec3>() { return CO_ATTRIBUTE_FORMAT_VEC3F; }
+template<> CoAttributeFormat toAttributeFormat<glm::vec2>() { return CO_ATTRIBUTE_FORMAT_VEC2F; }
+template<> CoAttributeFormat toAttributeFormat<uint32_t>()  { return CO_ATTRIBUTE_FORMAT_UINT32; }
+template<> CoAttributeFormat toAttributeFormat<uint16_t>()  { return CO_ATTRIBUTE_FORMAT_UINT16; }
 
 
 template<typename T, size_t S>
-Coral::BufferPtr
-createBuffer(Coral::Context* context, const std::array<T, S>& elements, Coral::BufferType type)
+std::shared_ptr<CoBuffer_T>
+createBuffer(CoContext context, const std::array<T, S>& elements,CoBufferType type)
 {
-	Coral::BufferCreateConfig bufferConfig{};
+	CoBufferCreateConfig bufferConfig{};
 	bufferConfig.size       = elements.size() * sizeof(T);
 	bufferConfig.type       = type;
 	bufferConfig.cpuVisible = false;
-	auto buffer             = context->createBuffer(bufferConfig).value();
+	
+	Coral::BufferPtr buffer;
+	if (coContextCreateBuffer(context, &bufferConfig, std::out_ptr(buffer)) != CO_SUCCESS)
+	{
+		return nullptr;
+	}
 
-	auto queue = context->getTransferQueue();
+	CoCommandQueue queue{ nullptr };
+	if (coContextGetTransferQueue(context, &queue) != CO_SUCCESS)
+	{
+		return nullptr;
+	}
 
-	Coral::CommandBufferCreateConfig commandBufferConfig{};
-	auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
+	CoCommandBufferCreateConfig commandBufferConfig{};
+	Coral::CommandBufferPtr commandBuffer;
+	if (coCommandQueueCreateCommandBuffer(queue, &commandBufferConfig, std::out_ptr(commandBuffer)) != CO_SUCCESS)
+	{
+		return nullptr;
+	}
 
-	Coral::UpdateBufferDataInfo updateInfo{};
-	updateInfo.buffer = buffer.get();
-	updateInfo.offset = 0;
-	updateInfo.data   = std::as_bytes(std::span(elements));
+	CoUpdateBufferDataInfo updateInfo{};
+	updateInfo.buffer    = buffer.get();
+	updateInfo.offset    = 0;
+	updateInfo.pData     = reinterpret_cast<const CoByte*>(elements.data());
+	updateInfo.dataCount = static_cast<uint32_t>(elements.size() * sizeof(T));
 
-	commandBuffer->begin();
-	commandBuffer->cmdUpdateBufferData(updateInfo);
-	commandBuffer->end();
+	coCommandBufferBegin(commandBuffer.get());
+	coCommandBufferUpdateBufferData(commandBuffer.get(), &updateInfo);
+	coCommandBufferEnd(commandBuffer.get());
 
-	auto commandBufferPtr = commandBuffer.get();
+	CoCommandBufferSubmitInfo submitInfo{};
+	submitInfo.pCommandBuffers    = std::inout_ptr(commandBuffer);
+	submitInfo.commandBufferCount = 1;
 
-	Coral::CommandBufferSubmitInfo submitInfo{};
-	submitInfo.commandBuffers = { &commandBufferPtr , 1 };
+	Coral::FencePtr fence;
+	CoFenceCreateConfig fenceConfig{};
+	if (coContextCreateFence(context, &fenceConfig, std::out_ptr(fence)) != CO_SUCCESS)
+	{
+		return nullptr;
+	}
 
-	auto fence = context->createFence().value();
-	queue->submit(submitInfo, fence.get());
-	fence->wait();
+coCommandQueueSubmit(queue, &submitInfo, fence.get());
+
+coFenceWait(fence.get());
+
+return buffer;
+}
+
+
+using UniformBlockBuilder = Coral::UniformBlockBuilder<glm::vec2, glm::vec3, glm::vec4, glm::ivec2, glm::ivec3, glm::ivec4, glm::mat3, glm::mat4>;
+
+void
+updateUniformBuffer(CoBuffer buffer, const UniformBlockBuilder& block)
+{
+	CoByte* mapped{ nullptr };
+	coBufferMap(buffer, &mapped);
+
+	auto data = block.data();
+	std::memcpy(mapped, data.data(), data.size());
+
+	coBufferUnMap(buffer);
+}
+
+
+Coral::BufferPtr
+createUniformBuffer(CoContext context, const UniformBlockBuilder& block)
+{
+	CoBufferCreateConfig config{};
+	config.cpuVisible = true;
+	config.size       = block.data().size();
+	config.type       = CO_BUFFER_TYPE_UNIFORM;
+
+	Coral::BufferPtr buffer;
+	if (coContextCreateBuffer(context, &config, std::out_ptr(buffer)) != CO_SUCCESS)
+	{
+		return nullptr;
+	}
+
+	updateUniformBuffer(buffer.get(), block);
 
 	return buffer;
 }
 
 
-void
-updateUniformBuffer(Coral::Buffer& buffer, Coral::UniformBlockBuilder& block)
-{
-	auto mapped = buffer.map();
-	auto data = block.data();
-	std::memcpy(mapped, data.data(), data.size());
-
-	buffer.unmap();
-}
-
-
-Coral::BufferPtr
-createUniformBuffer(Coral::Context& context, Coral::UniformBlockBuilder& block)
-{
-	Coral::BufferCreateConfig config{};
-	config.cpuVisible	= true;
-	config.size			= block.data().size();
-	config.type			= Coral::BufferType::UNIFORM_BUFFER;
-	auto buffer         = context.createBuffer(config).value();
-
-	updateUniformBuffer(*buffer, block);
-
-	return std::move(buffer);
-}
-
-
 std::pair<Coral::ImagePtr, Coral::SamplerPtr>
-createTexture(Coral::Context& context, const std::string& path)
+createTexture(CoContext context, const std::string& path)
 {
 	Image img;
 	if (!loadImage(path.c_str(), img))
@@ -171,46 +202,75 @@ createTexture(Coral::Context& context, const std::string& path)
 		return {};
 	}
 
-	Coral::ImageCreateConfig imageConfig{};
-	imageConfig.width	   = img.width;
-	imageConfig.height	   = img.height;
-	imageConfig.format	   = img.format;
-	imageConfig.hasMipMaps = true;
-	imageConfig.usageHint  = Coral::ImageUsageHint::SHADER_READ_ONLY;
-	auto image             = context.createImage(imageConfig).value();
+	CoImageCreateConfig imageConfig{};
+	imageConfig.extent.width  = img.width;
+	imageConfig.extent.height = img.height;
+	imageConfig.format        = img.format;
+	imageConfig.hasMipMaps    = true;
+	imageConfig.usageHint     = CO_IMAGE_USAGE_HINT_SHADER_READ_ONLY;
 
-	auto queue = context.getTransferQueue();
-
-	Coral::CommandBufferCreateConfig commandBufferConfig{};
-	auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
-
-	Coral::UpdateImageDataInfo updateInfo{};
-	updateInfo.image	  = image.get();
-	updateInfo.data		  = { reinterpret_cast<const std::byte*>(img.data.data()), img.data.size() };
-
-	commandBuffer->begin();
-	commandBuffer->cmdUpdateImageData(updateInfo);
-	if (image->getMipLevels() > 1)
+	Coral::ImagePtr image;
+	if (coContextCreateImage(context, &imageConfig, std::out_ptr(image)) != CO_SUCCESS)
 	{
-		commandBuffer->cmdGenerateMipMaps(image.get());
+		return { nullptr, nullptr };
 	}
 
-	commandBuffer->end();
+	CoCommandQueue queue;
+	if (coContextGetTransferQueue(context, &queue) != CO_SUCCESS)
+	{
+		return { nullptr, nullptr };
+	}
 
-	Coral::CommandBuffer* commandBufferPtr = commandBuffer.get();
+	CoCommandBufferCreateConfig commandBufferConfig{};
+	Coral::CommandBufferPtr commandBuffer;
+	if (coCommandQueueCreateCommandBuffer(queue, &commandBufferConfig, std::out_ptr(commandBuffer)) != CO_SUCCESS)
+	{
+		return { nullptr, nullptr };
+	}
 
-	Coral::CommandBufferSubmitInfo submitInfo{};
-	submitInfo.commandBuffers = { &commandBufferPtr , 1 };
+	CoUpdateImageDataInfo updateInfo{};
+	updateInfo.image     = image.get();
+	updateInfo.pData     = reinterpret_cast<const CoByte*>(img.data.data());
+	updateInfo.dataCount = static_cast<uint32_t>(img.data.size());
 
-	auto fence = Coral::FencePtr(context.createFence().value());
-	queue->submit(submitInfo, fence.get());
-	fence->wait();
+	coCommandBufferBegin(commandBuffer.get());
+	coCommandBufferUpdateImageData(commandBuffer.get(), &updateInfo);
 
-	Coral::SamplerCreateConfig samplerConfig{};
-	samplerConfig.wrapMode = Coral::WrapMode::REPEAT;
-	auto sampler           = context.createSampler(samplerConfig).value();
+	if (coImageGetMipLevelCount(image.get()) > 1)
+	{
+		coCommandBufferGenerateMipMaps(commandBuffer.get(), image.get());
+	}
 
-	return std::pair<Coral::ImagePtr, Coral::SamplerPtr>{ std::move(image), std::move(sampler) };
+	coCommandBufferEnd(commandBuffer.get());
+
+
+	CoCommandBufferSubmitInfo submitInfo{};
+	submitInfo.pCommandBuffers = std::inout_ptr(commandBuffer);
+	submitInfo.commandBufferCount = 1;
+
+	CoFenceCreateConfig fenceConfig{};
+	Coral::FencePtr fence;
+	if (coContextCreateFence(context, &fenceConfig, std::out_ptr(fence)) != CO_SUCCESS)
+	{
+		return { nullptr, nullptr };
+	}
+
+	coCommandQueueSubmit(queue, &submitInfo, fence.get());
+	coFenceWait(fence.get());
+	
+	CoSamplerCreateConfig samplerConfig{};
+	samplerConfig.wrapMode     = CO_WRAP_MODE_CLAMP_TO_EDGE;
+	samplerConfig.minFilter    = CO_FILTER_LINEAR;
+	samplerConfig.magFilter    = CO_FILTER_LINEAR;
+	samplerConfig.mipmapFilter = CO_FILTER_LINEAR;
+
+	Coral::SamplerPtr sampler;
+	if (coContextCreateSampler(context, &samplerConfig, std::out_ptr(sampler)) != CO_SUCCESS)
+	{
+		return { nullptr, nullptr };
+	}
+	
+	return { std::move(image), std::move(sampler) };
 }
 
 } // namespace
@@ -232,20 +292,81 @@ int main()
 
 	glfwShowWindow(window);
 
-	Coral::SwapchainCreateConfig swapchainConfig{};
+	CoContextCreateConfig contextConfig{};
+	contextConfig.graphicsAPI      = CO_GRAPHICS_API_VULKAN;
+	contextConfig.pApplicationName = "Coral Demo Application";
+
+	Coral::ContextPtr context;
+	if (coCreateContext(&contextConfig, std::out_ptr(context)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
+
+	auto depthFormat = CO_PIXEL_FORMAT_DEPTH24_STENCIL8;
+
+	CoSwapchainCreateConfig swapchainConfig{};
 	swapchainConfig.nativeWindowHandle  = glfwGetWin32Window(window);
-	swapchainConfig.depthFormat		    = Coral::PixelFormat::DEPTH24_STENCIL8;
-	swapchainConfig.format			    = Coral::PixelFormat::RGBA8_SRGB;
-	swapchainConfig.swapchainImageCount = 2;
+	swapchainConfig.depthFormat         = &depthFormat;
+	swapchainConfig.format              = CO_PIXEL_FORMAT_RGBA8_SRGB;
+	swapchainConfig.minImageCount       = 2;
+	
+	Coral::SwapchainPtr swapchain;
+	if (coContextCreateSwapchain(context.get(), &swapchainConfig, std::out_ptr(swapchain)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
 
-	Coral::ContextCreateConfig contextConfig{};
-	contextConfig.graphicsAPI = Coral::GraphicsAPI::VULKAN;
-	auto context			  = Coral::ContextPtr(Coral::createContext(contextConfig).value());
+	CoFenceCreateConfig fenceConfig{};
+	Coral::FencePtr fence;
+	if (coContextCreateFence(context.get(), &fenceConfig, std::out_ptr(fence)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
 
-	auto swapchain               = Coral::SwapchainPtr(context->createSwapchain(swapchainConfig).value());
-	auto fence                   = Coral::FencePtr(context->createFence().value());
-	auto queue                   = context->getGraphicsQueue();
-	auto renderFinishedSemaphore = Coral::SemaphorePtr(context->createSemaphore().value());
+	CoCommandQueue queue{ nullptr };
+	if (coContextGetGraphicsQueue(context.get(), &queue) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
+
+	CoSemaphoreCreateConfig semaphoreConfig{};
+	Coral::SemaphorePtr renderFinishedSemaphore;
+	if (coContextCreateSemaphore(context.get(), &semaphoreConfig, std::out_ptr(renderFinishedSemaphore)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
+
+	auto shader = TexturedWithLightingShader::shaderSource();
+	if (!shader)
+	{
+		return EXIT_FAILURE;
+	}
+
+	CoShaderModuleCreateConfig vertexShaderConfig{};
+	vertexShaderConfig.pName       = "VertexShader";
+	vertexShaderConfig.stage       = CO_SHADER_STAGE_VERTEX;
+	vertexShaderConfig.pEntryPoint = "main";
+	vertexShaderConfig.pSource     = reinterpret_cast<const CoByte*>(shader->vertexShader.c_str());
+	vertexShaderConfig.sourceCount = static_cast<uint32_t>(shader->vertexShader.size());
+
+	Coral::ShaderModulePtr vertexShader;
+	if (coContextCreateShaderModule(context.get(), &vertexShaderConfig, std::out_ptr(vertexShader)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
+
+	CoShaderModuleCreateConfig fragmentShaderConfig{};
+	fragmentShaderConfig.pName       = "FragmentShader";
+	fragmentShaderConfig.stage       = CO_SHADER_STAGE_FRAGMENT;
+	fragmentShaderConfig.pEntryPoint = "main";
+	fragmentShaderConfig.pSource     = reinterpret_cast<const CoByte*>(shader->fragmentShader.c_str());
+	fragmentShaderConfig.sourceCount = static_cast<uint32_t>(shader->fragmentShader.size());
+	
+	Coral::ShaderModulePtr fragmentShader;
+	if (coContextCreateShaderModule(context.get(), &fragmentShaderConfig, std::out_ptr(fragmentShader)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
 
 	ImGui::CreateContext();
 	ImGuiIO& io = ImGui::GetIO();
@@ -254,36 +375,29 @@ int main()
 	ImGui_ImplGlfw_InitForVulkan(window, true);
 
 	ImGui_ImplCoral_InitInfo initInfo{};
-	initInfo.context                      = context.get();
-	initInfo.framebufferSignature         = swapchain->framebufferSignature();
-	initInfo.swapchainImageCount          = swapchain->swapchainImageCount();
-	ImGui_ImplCoral_Init(&initInfo);
+	initInfo.context             = context.get();
+	initInfo.swapchainImageCount = coSwapchainGetImageCount(swapchain.get());
+	coSwapchainGetFramebufferLayout(swapchain.get(), &initInfo.framebufferSignature);
 
-	ImGui_ImplCoral_CreateFontsTexture();
-
-	auto shader = TexturedWithLightingShader::shaderSource();
-	if (!shader)
+	if (ImGui_ImplCoral_Init(&initInfo) != CO_SUCCESS)
 	{
 		return EXIT_FAILURE;
 	}
 
-	Coral::ShaderModuleCreateConfig vertexShaderConfig{};
-	vertexShaderConfig.name		  = "VertexShader";
-	vertexShaderConfig.stage	  = Coral::ShaderStage::VERTEX;
-	vertexShaderConfig.entryPoint = "main";
-	vertexShaderConfig.source	  = std::as_bytes(std::span{ shader->vertexShader });
-	auto vertexShader = context->createShaderModule(vertexShaderConfig).value();
+	if (ImGui_ImplCoral_CreateFontsTexture(context.get()) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
 
-	auto positionsBinding = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::POSITION_LOCATION; })->binding;
-	auto normalsBinding   = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::NORMAL_LOCATION; })->binding;
-	auto texcoordsBinding = std::ranges::find_if(vertexShader->inputAttributeLayout(), [](const Coral::AttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::TEXCOORD0_LOCATION; })->binding;
+	CoShaderModuleLayout layout{};
+	coShaderModuleGetLayout(vertexShader.get(), &layout);
 
-	Coral::ShaderModuleCreateConfig fragmentShaderConfig{};
-	fragmentShaderConfig.name		= "FragmentShader";
-	fragmentShaderConfig.stage		= Coral::ShaderStage::FRAGMENT;
-	fragmentShaderConfig.entryPoint	= "main";
-	fragmentShaderConfig.source		= std::as_bytes(std::span{ shader->fragmentShader });
-	auto fragmentShader             = context->createShaderModule(fragmentShaderConfig).value();
+	std::span attributes(layout.pInputAttributeBindingInfos, layout.inputAttributeBindingInfoCount);
+
+	auto positionsBinding = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::POSITION_LOCATION; })->binding;
+	auto normalsBinding   = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::NORMAL_LOCATION; })->binding;
+	auto texcoordsBinding = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::TEXCOORD0_LOCATION; })->binding;
+
 
 	glm::mat4 modelMatrix(1.f);
 
@@ -293,35 +407,46 @@ int main()
 	auto farPlane		  = 1000.f;
 	auto projectionMatrix = glm::perspective(fov, static_cast<float>(WIDTH) / HEIGHT, nearPlane, farPlane);
 
-	auto bindings = vertexShader->descriptorLayout();
+	UniformBlockBuilder uniformBlock(layout.pDescriptorBindingInfos[0].block);
+	uniformBlock.set("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
+	uniformBlock.set("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
+	uniformBlock.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+	uniformBlock.set("normalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
 
-	auto block = std::get<Coral::UniformBlockDefinition>(bindings.front().definition);
-	Coral::UniformBlockBuilder uniformBlock(block);
-	uniformBlock.setVec3F("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
-	uniformBlock.setVec3F("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
-	uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-	uniformBlock.setMat33F("normalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
+	auto uniformBuffer = createUniformBuffer(context.get(), uniformBlock);
 
-	auto uniformBuffer = createUniformBuffer(*context, uniformBlock);
+	auto [texture, sampler] = createTexture(context.get(), "resources/uvtest.png");
 
-	auto [texture, sampler] = createTexture(*context, "resources/uvtest.png");
+	auto positions   = ::createBuffer(context.get(), Cube::Positions, CO_BUFFER_TYPE_VERTEX);
+	auto normals	 = ::createBuffer(context.get(), Cube::Normals,   CO_BUFFER_TYPE_VERTEX);
+	auto texcoords 	 = ::createBuffer(context.get(), Cube::Texcoords, CO_BUFFER_TYPE_VERTEX);
+	auto indices	 = ::createBuffer(context.get(), Cube::Indices,   CO_BUFFER_TYPE_INDEX);
+	auto indexFormat = CO_INDEX_FORMAT_UINT16;
 
-	auto positions   = ::createBuffer(context.get(), Cube::Positions, Coral::BufferType::VERTEX_BUFFER);
-	auto normals	 = ::createBuffer(context.get(), Cube::Normals, Coral::BufferType::VERTEX_BUFFER);
-	auto texcoords 	 = ::createBuffer(context.get(), Cube::Texcoords, Coral::BufferType::VERTEX_BUFFER);
-	auto indices	 = ::createBuffer(context.get(), Cube::Indices, Coral::BufferType::INDEX_BUFFER);
-	auto indexFormat = Coral::IndexFormat::UINT16;
+	CoPipelineStateCreateConfig pipelineStateConfig{};
+	pipelineStateConfig.vertexShaderModule	 = vertexShader.get();
+	pipelineStateConfig.fragmentShaderModule = fragmentShader.get();
 
-	context->getTransferQueue()->waitIdle();
-	std::array shaderModules = { vertexShader.get(), fragmentShader.get() };
+	pipelineStateConfig.polygonMode				    = CO_POLYGON_MODE_SOLID;
+	pipelineStateConfig.topology				    = CO_TOPOLOGY_TRIANGLE_LIST;
+	pipelineStateConfig.faceCullingMode.cullMode    = CO_CULL_MODE_BACK;
+	pipelineStateConfig.faceCullingMode.orientation = CO_FRONT_FACE_ORIENTATION_CCW;	
 
-	Coral::PipelineStateCreateConfig pipelineStateConfig{};
-	pipelineStateConfig.shaderModules			= shaderModules;
-	pipelineStateConfig.polygonMode				= Coral::PolygonMode::SOLID;
-	pipelineStateConfig.topology				= Coral::Topology::TRIANGLE_LIST;
-	pipelineStateConfig.faceCullingMode			= Coral::FaceCullingModes::BackFaceCulling;
-	pipelineStateConfig.framebufferSignature	= swapchain->framebufferSignature();
-	auto pipelineState                          = context->createPipelineState(pipelineStateConfig).value();
+	pipelineStateConfig.depthTestMode.writeDepth           = true;
+	pipelineStateConfig.depthTestMode.compareOp            = CO_COMPARE_OP_LESS;
+	pipelineStateConfig.depthTestMode.polygonOffset.factor = 0.f;
+	pipelineStateConfig.depthTestMode.polygonOffset.units  = 0.f;
+
+	pipelineStateConfig.blendMode.blendOp    = CO_BLEND_OP_ADD;
+	pipelineStateConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
+	pipelineStateConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
+	coSwapchainGetFramebufferLayout(swapchain.get(), &pipelineStateConfig.framebufferLayout);
+
+	Coral::PipelineStatePtr pipelineState;
+	if (coContextCreatePipelineState(context.get(), &pipelineStateConfig, std::out_ptr(pipelineState)) != CO_SUCCESS)
+	{
+		return EXIT_FAILURE;
+	}
 
 	auto before = std::chrono::system_clock::now();
 
@@ -345,8 +470,11 @@ int main()
 		{
 			glfwSetWindowShouldClose(window, GLFW_TRUE);
 		}
-
-		auto info = swapchain->acquireNextSwapchainImage(nullptr);
+		CoSwapchainImageInfo info{};
+		if (coSwapchainAcquireNextImage(swapchain.get(), nullptr, &info) != CO_SUCCESS)
+		{
+			return EXIT_FAILURE;
+		}
 
 		int width, height;
 		glfwGetWindowSize(window, &width, &height);
@@ -392,7 +520,7 @@ int main()
 				ImGui::Text("%.2f", displayedFrameTime * 1000);
 
 				ImGui::EndTable();
-				
+			
 				ImGui::Text("Rotation speed");
 				ImGui::PushID("rotationPerSecond");
 				ImGui::SliderFloat("", &rotationPerSecond, -1.f, 1.f);
@@ -411,67 +539,96 @@ int main()
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui::Render();
 
-		uniformBlock.setMat44F("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-		uniformBlock.setMat33F("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-		updateUniformBuffer(*uniformBuffer, uniformBlock);
+		uniformBlock.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+		uniformBlock.set("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+		updateUniformBuffer(uniformBuffer.get(), uniformBlock);
 
-		Coral::CommandBufferCreateConfig commandBufferConfig{};
-		auto commandBuffer = queue->createCommandBuffer(commandBufferConfig).value();
-		commandBuffer->begin();
+		CoCommandBufferCreateConfig commandBufferConfig{};
+	
+		Coral::CommandBufferPtr commandBuffer;
+		if (coCommandQueueCreateCommandBuffer(queue, &commandBufferConfig, std::out_ptr(commandBuffer)) != CO_SUCCESS)
+		{
+			return EXIT_FAILURE;
+		}
 
-		Coral::BeginRenderPassInfo beginRenderPassInfo{};
-		beginRenderPassInfo.framebuffer = info.framebuffer;
-		Coral::ClearColor clearColor	= { 0, Coral::ClearOp::CLEAR, { 1.f, 1.f, 1.f, 1.f } };
-		Coral::ClearDepth clearDepth	= { Coral::ClearOp::CLEAR, 1.f, 0 };
-		beginRenderPassInfo.clearColor	= { &clearColor, 1 };
-		beginRenderPassInfo.clearDepth	= clearDepth;
+		coCommandBufferBegin(commandBuffer.get());
 
-		commandBuffer->cmdBeginRenderPass(beginRenderPassInfo);
+		CoClearColor clearColor{ 0, CO_CLEAR_OP_CLEAR, { 1.f, 1.f, 1.f, 1.f } };
+		CoClearDepthStencil clearDepth{ CO_CLEAR_OP_CLEAR, 1.f, 0 };
 
-		commandBuffer->cmdSetViewport({ 0, 0, static_cast<uint32_t>(width),  static_cast<uint32_t>(height),  0.f,  1.f , Coral::ViewportMode::Y_UP});
+		CoBeginRenderPassInfo beginRenderPassInfo{};
+		beginRenderPassInfo.framebuffer       = info.framebuffer;
+		beginRenderPassInfo.pClearColors	  = &clearColor;
+		beginRenderPassInfo.clearColorsCount  = 1;
+		beginRenderPassInfo.clearDepthStencil = &clearDepth;
 
-		commandBuffer->cmdBindPipeline(pipelineState.get());
+		coCommandBufferBeginRenderPass(commandBuffer.get(), &beginRenderPassInfo);
+	
+		CoViewportInfo viewport
+		{
+			CoRectangle{ 0, 0, static_cast<uint32_t>(width),  static_cast<uint32_t>(height) },
+			0.f,  1.f , CO_VIEWPORT_MODE_Y_UP,
+		};
 
-		commandBuffer->cmdBindDescriptor(uniformBuffer.get(), 0);
-		commandBuffer->cmdBindDescriptor(texture.get(), sampler.get(),  1);
+		coCommandBufferSetViewport(commandBuffer.get(), &viewport);
+		coCommandBufferBindPipeline(commandBuffer.get(), pipelineState.get());
+		coCommandBufferBindUniformBuffer(commandBuffer.get(), uniformBuffer.get(), 0);
+		coCommandBufferBindImage(commandBuffer.get(), texture.get(),  1);
+		coCommandBufferBindSampler(commandBuffer.get(), sampler.get(), 1);
 
-		commandBuffer->cmdBindVertexBuffer(positions.get(), positionsBinding, 0, Coral::sizeInBytes(Coral::AttributeFormat::VEC3F));
-		commandBuffer->cmdBindVertexBuffer(normals.get(),   normalsBinding,   0, Coral::sizeInBytes(Coral::AttributeFormat::VEC3F));
-		commandBuffer->cmdBindVertexBuffer(texcoords.get(), texcoordsBinding, 0, Coral::sizeInBytes(Coral::AttributeFormat::VEC2F));
-		commandBuffer->cmdBindIndexBuffer(indices.get(),    indexFormat,      0);
+		coCommandBufferBindVertexBuffer(commandBuffer.get(), positions.get(), positionsBinding, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
+		coCommandBufferBindVertexBuffer(commandBuffer.get(), normals.get(),   normalsBinding,   0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
+		coCommandBufferBindVertexBuffer(commandBuffer.get(), texcoords.get(), texcoordsBinding, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
 
-		Coral::DrawIndexInfo drawInfo{};
-		drawInfo.firstIndex = 0;
-		drawInfo.indexCount = indices->size() / Coral::sizeInBytes(indexFormat);
-		commandBuffer->cmdDrawIndexed(drawInfo);
+		coCommandBufferBindIndexBuffer(commandBuffer.get(), indices.get(), indexFormat, 0);
 
-		ImGui_ImplCoral_NewFrame();
+		coCommandBufferDrawIndexed(commandBuffer.get(), 0, static_cast<uint32_t>(Cube::Indices.size()));
 
-		ImGui_ImplCoral_RenderDrawData(ImGui::GetDrawData(), commandBuffer.get());
+		ImGui_ImplCoral_NewFrame(context.get());
 
-		commandBuffer->cmdEndRenderPass();
-		commandBuffer->end();
+		ImGui_ImplCoral_RenderDrawData(context.get(), ImGui::GetDrawData(), commandBuffer.get());
+
+		coCommandBufferEndRenderPass(commandBuffer.get());
+		coCommandBufferEnd(commandBuffer.get());
 
 		auto renderFinishedSemaphorePtr = renderFinishedSemaphore.get();
 
-		Coral::CommandBufferSubmitInfo submitInfo{};
-		auto cb                     = commandBuffer.get();
-		submitInfo.commandBuffers   = { &cb, 1 };
-		submitInfo.waitSemaphores   = { &info.imageAvailableSemaphore, 1 };
-		submitInfo.signalSemaphores = { &renderFinishedSemaphorePtr, 1 };
-		queue->submit(submitInfo, nullptr);
+		CoCommandBufferSubmitInfo submitInfo{};
+		auto cb                       = commandBuffer.get();
+		submitInfo.pCommandBuffers    = &cb;
+		submitInfo.commandBufferCount = 1;
+		submitInfo.pWaitSemaphores    = &info.imageAcquiredSemaphore;
+		submitInfo.waitSemaphoreCount = 0;
 
-		Coral::PresentInfo presentInfo{};
-		presentInfo.swapchain      = swapchain.get();
-		presentInfo.waitSemaphores = { &renderFinishedSemaphorePtr, 1 };
-		queue->submit(presentInfo);
+		submitInfo.pSignalSemaphores    = &renderFinishedSemaphorePtr;
+		submitInfo.signalSemaphoreCount = 0;
 
-		queue->waitIdle();
+		if (coCommandQueueSubmit(queue, &submitInfo, nullptr) != CO_SUCCESS)
+		{
+			return EXIT_FAILURE;
+		}
+
+		coCommandQueueWaitIdle(queue);
+
+		CoPresentInfo presentInfo{};
+		presentInfo.swapchain          = swapchain.get();
+		presentInfo.pWaitSemaphores    = &info.imageAcquiredSemaphore;
+		presentInfo.waitSemaphoreCount = 1;
+		
+		if (coCommandQueuePresent(queue, &presentInfo) != CO_SUCCESS)
+		{
+			return EXIT_FAILURE;
+		}
+
+		if (coCommandQueueWaitIdle(queue) != CO_SUCCESS)
+		{
+			return EXIT_FAILURE;
+		}
 	}
 
-	ImGui_ImplCoral_Shutdown();
+	ImGui_ImplCoral_Shutdown(context.get());
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-
+	
 	return EXIT_SUCCESS;
 }

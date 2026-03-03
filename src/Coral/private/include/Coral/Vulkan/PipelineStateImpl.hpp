@@ -24,7 +24,7 @@ public:
 
 	virtual ~PipelineStateImpl();
 
-	std::optional<PipelineStateCreationError> init(const PipelineStateCreateConfig& config);
+	std::optional<PipelineState::CreateError> init(const PipelineState::CreateConfig& config);
 
 	VkPipeline getVkPipeline();
 
@@ -42,15 +42,15 @@ private:
 
 	VkDescriptorSetLayout mDescriptorSetLayout{ VK_NULL_HANDLE };
 
-	FaceCullingMode mFaceCullingMode{ FaceCullingModes::BackFaceCulling };
+	CoFaceCullingMode mFaceCullingMode;
 
-	DepthTestMode mDepthTestMode{ DepthTestModes::Less };
+	CoDepthTestMode mDepthTestMode;
 
-	BlendMode mBlendMode{ BlendModes::Blend };
+	CoBlendMode mBlendMode;
 
-	PolygonMode mPolygonMode{ PolygonMode::SOLID };
+	CoPolygonMode mPolygonMode;
 
-	std::optional<StencilTestMode> mStencilTestMode;
+	std::optional<CoStencilTestMode> mStencilTestMode;
 };
 
 } // namespace Coral::Vulkan

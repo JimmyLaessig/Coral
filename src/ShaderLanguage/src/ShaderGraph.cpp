@@ -1,5 +1,10 @@
 #include <Coral/ShaderLanguage/ShaderGraph.hpp>
 
+#include <Coral/ShaderLanguage/Visitor.hpp>
+
+#include <Coral/ShaderLanguage/Node.hpp>
+
+
 #include <algorithm>
 #include <cassert>
 #include <ranges>
@@ -10,13 +15,13 @@ using namespace Coral::ShaderLanguage;
 
 
 std::vector<const InputAttributeExpression*>
-ShaderGraph::Inputs() const
+ShaderGraph::inputs() const
 {
 	std::vector<const InputAttributeExpression*> result;
 	std::set<const InputAttributeExpression*> visited;
-	for (const auto instruction : mInstructions)
+	for (auto node : mNodes)
 	{
-		if (auto attr = instruction->Cast<InputAttributeExpression>())
+		if (auto attr = std::get_if<InputAttributeExpression>(&node->expression()))
 		{
 			if (visited.insert(attr).second)
 			{
@@ -29,18 +34,18 @@ ShaderGraph::Inputs() const
 }
 
 
-std::vector<const UniformBufferExpression*>
-ShaderGraph::UniformBuffers() const
+std::vector<const UniformExpression*>
+ShaderGraph::uniforms() const
 {
-	std::vector<const UniformBufferExpression*> result;
-	std::set<const UniformBufferExpression*> visited;
-	for (const auto instruction : mInstructions)
+	std::vector<const UniformExpression*> result;
+	std::set<const UniformExpression*> visited;
+	for (auto node : mNodes)
 	{
-		if (auto attr = instruction->Cast<UniformBufferExpression>())
+		if (auto uniform = std::get_if<UniformExpression>(&node->expression()))
 		{
-			if (visited.insert(attr).second)
+			if (visited.insert(uniform).second)
 			{
-				result.push_back(attr);
+				result.push_back(uniform);
 			}
 		}
 	}
@@ -50,14 +55,14 @@ ShaderGraph::UniformBuffers() const
 
 
 std::vector<const OutputAttributeExpression*>
-ShaderGraph::Outputs() const
+ShaderGraph::outputs() const
 {
 	std::vector<const OutputAttributeExpression*> result;
 	std::set<const OutputAttributeExpression*> visited;
 
-	for (const auto instruction : mInstructions)
+	for (auto node : mNodes)
 	{
-		if (auto attr = instruction->Cast<OutputAttributeExpression>())
+		if (auto attr = std::get_if<OutputAttributeExpression>(&node->expression()))
 		{
 			if (visited.insert(attr).second)
 			{
@@ -70,43 +75,17 @@ ShaderGraph::Outputs() const
 }
 
 
-std::vector<const Expression*>
-ShaderGraph::ExpressionList() const
+std::vector<std::shared_ptr<const Node>>
+ShaderGraph::expressions() const
 {
-	return mInstructions 
-		| std::views::transform([](auto expr) { return expr.get(); })
-		| std::ranges::to<std::vector<const Expression*>>();
+	return mNodes
+		| std::views::as_const
+		| std::ranges::to<std::vector<std::shared_ptr<const Node>>>();
 }
 
 
 void
-ShaderGraph::ReplaceExpressionImpl(std::shared_ptr<Expression> oldExpression, 
-	                               std::shared_ptr<Expression> newExpression)
+ShaderGraph::addNode(std::shared_ptr<Node> node)
 {
-	assert(oldExpression->GetValueType() == newExpression->GetValueType());
-
-	if (!sCurrentShaderModule)
-	{
-		return;
-	}
-
-	auto& v = sCurrentShaderModule->mInstructions;
-
-	for (auto& expr : v)
-	{
-		if (expr == oldExpression)
-		{
-			expr = newExpression;
-		}
-		else
-		{
-			for (auto& input : expr->mInputs)
-			{
-				if (input == oldExpression)
-				{
-					input = newExpression;
-				}
-			}
-		}
-	}
+	mNodes.push_back(node);
 }

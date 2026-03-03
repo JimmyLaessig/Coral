@@ -17,18 +17,19 @@ add_executable(${CORAL_DEMO_APP_TARGET_NAME})
 # Add the target source files
 ###############################################################################
 
-set (CORAL_DEMO_APP_INCLUDES 
+set(CORAL_DEMO_APP_INCLUDES 
     ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp 
     ${CORAL_DEMO_APP_INCLUDE_DIR}/TexturedWithLightingShader.h)
 
 set(IMGUI_INCLUDES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
-     ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h
+    ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h
     ${imgui_SOURCE_DIR}/imgui_internal.h
     ${imgui_SOURCE_DIR}/imgui.h)
 
 
-set (CORAL_DEMO_APP_SOURCES ${CORAL_DEMO_APP_SRC_DIR}/main.cpp
+set(CORAL_DEMO_APP_SOURCES 
+    ${CORAL_DEMO_APP_SRC_DIR}/main.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -57,13 +58,14 @@ coral_configure_target(${CORAL_DEMO_APP_TARGET_NAME}
         glfw
         stb
         Coral
-        CoralShaderLanguage)
+        CoralShaderLanguage
+        CoralUtil)
 
 target_sources(${CORAL_DEMO_APP_TARGET_NAME} PRIVATE
-    FILE_SET private_headers
-    TYPE HEADERS
+    FILE_SET  private_headers
+    TYPE      HEADERS
     BASE_DIRS ${imgui_SOURCE_DIR}
-    FILES ${IMGUI_INCLUDES})
+    FILES     ${IMGUI_INCLUDES})
 
 ###############################################################################
 # Copy the resource files
