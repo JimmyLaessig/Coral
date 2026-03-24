@@ -18,12 +18,12 @@ BufferImpl::~BufferImpl()
 }
 
 
-std::optional<Coral::BufferCreationError>
-BufferImpl::init(const Coral::BufferCreateConfig& config)
+std::optional<Coral::Buffer::CreateError>
+BufferImpl::init(const Coral::Buffer::CreateConfig& config)
 {
 	if (config.size == 0)
 	{
-		return Coral::BufferCreationError::INVALID_SIZE;
+		return Coral::Buffer::CreateError::INVALID_SIZE;
 	}
 
 	mType		= config.type;
@@ -54,9 +54,9 @@ BufferImpl::init(const Coral::BufferCreateConfig& config)
 			return {};
 		case VK_ERROR_OUT_OF_DEVICE_MEMORY:
 		case VK_ERROR_OUT_OF_HOST_MEMORY:
-			return Coral::BufferCreationError::OUT_OF_MEMORY;
+			return Coral::Buffer::CreateError::OUT_OF_MEMORY;
 		default:
-			return Coral::BufferCreationError::INTERNAL_ERROR;
+			return Coral::Buffer::CreateError::INTERNAL_ERROR;
 	}
 }
 
@@ -73,7 +73,7 @@ size_t BufferImpl::size() const
 	return mSize;
 }
 
-Coral::BufferType
+CoBufferType
 BufferImpl::type() const
 {
 	return mType;

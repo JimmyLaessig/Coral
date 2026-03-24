@@ -4,8 +4,6 @@
 
 #include <Coral/ShaderLanguage/Vector.hpp>
 
-#include <Coral/ShaderLanguage/Expression.hpp>
-
 namespace Coral::ShaderLanguage
 {
 
@@ -62,29 +60,29 @@ public:
 
 	template<typename ...Ts> requires (sizeof...(Ts) == C * R)
 	Matrix(Ts... args)
-		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Matrix::ValueType, Scalar<T>(args).source()...))
+		: Value(Node::create(ConstructorExpression(Matrix::ValueType), Scalar<T>(args).node()...))
 	{
 	}
 
 	Matrix(const Matrix& other)
-		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Matrix::ValueType, other.source()))
+		: Value(Node::create(ConstructorExpression(Matrix::ValueType), other.node()))
 	{
 	}
 
 	Matrix(Matrix&& other)
-		: Value(ShaderGraph::PushExpression<ConstructorExpression>(Matrix::ValueType, other.source()))
+		: Value(Node::create(ConstructorExpression(Matrix::ValueType), other.node()))
 	{
 	}
 
 	Matrix& operator=(const Matrix& other)
 	{
-		mSource = ShaderGraph::PushExpression<OperatorExpression>(Matrix::ValueType, source(), Operator::ASSIGNMENT, other.source());
+		mNode = Node::create(OperatorExpression(Matrix::ValueType, Operator::ASSIGNMENT), node(), other.node());
 		return *this;
 	}
 
 	Matrix& operator=(Matrix&& other)
 	{
-		mSource = ShaderGraph::PushExpression<OperatorExpression>(Matrix::ValueType, source(), Operator::ASSIGNMENT, other.source());
+		mNode = Node::create(OperatorExpression(Matrix::ValueType, Operator::ASSIGNMENT), node(),other.node());
 		return *this;
 	}
 
@@ -94,10 +92,9 @@ public:
 		requires (MatrixType<LHS, T, C, R> && VectorType<RHS, T, C>) ||
 				 (VectorType<LHS, T, C>    && MatrixType<RHS, T, C, R>)
 	{
-		return { ShaderGraph::PushExpression<OperatorExpression>(Vector<T, C>::ValueType,
-													std::forward<LHS&&>(lhs).source(),
-													Operator::MULTIPLY,
-													std::forward<RHS&&>(rhs).source()) };
+		return { Node::create(OperatorExpression(Vector<T, C>::ValueType, Operator::MULTIPLY),
+							  std::forward<LHS&&>(lhs).node(),
+							  std::forward<RHS&&>(rhs).node()) };
 	}
 
 	/// Matrix * Matrix operator
@@ -105,10 +102,9 @@ public:
 	friend Matrix<T, C, R> operator*(LHS&& lhs, RHS&& rhs)
 		requires (MatrixType<LHS, T, C, R> && MatrixType<RHS, T, C, R>)
 	{
-		return { ShaderGraph::PushExpression<OperatorExpression>(Vector<T, C>::ValueType,
-													std::forward<LHS&&>(lhs).source(),
-													Operator::MULTIPLY,
-													std::forward<RHS&&>(rhs).source()) };
+		return { Node::create(OperatorExpression(Vector<T, C>::ValueType, Operator::MULTIPLY),
+							  std::forward<LHS&&>(lhs).node(),
+							  std::forward<RHS&&>(rhs).node()) };
 	}
 };
 

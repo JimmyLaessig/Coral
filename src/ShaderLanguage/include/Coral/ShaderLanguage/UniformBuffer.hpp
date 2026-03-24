@@ -4,7 +4,7 @@
 #include <Coral/ShaderLanguage/Binding.hpp>
 #include <Coral/ShaderLanguage/Expressions.hpp>
 #include <Coral/ShaderLanguage/ShaderGraph.hpp>
-
+#include <Coral/ShaderLanguage/Node.hpp>
 
 namespace Coral::ShaderLanguage
 {
@@ -13,23 +13,22 @@ class UniformBufferBase
 {
 public:
 
-	template<StringLiteral Name>
-	void RegisterMember(Value& member)
+	template<StringLiteral Name, typename T>
+	void RegisterMember(T& member)
 	{
-		auto expression = ShaderGraph::ReplaceExpression<UniformExpression>(member.source(), member.typeId(), Name, mBufferExpression);
-		member.setSource(expression);
+		member.node()->setExpression(UniformExpression(T::ValueType, Name, mBufferInfo));
 	}
 
 protected:
-	
+
 	UniformBufferBase(uint32_t location, std::string_view name)
-		: mBufferExpression(ShaderGraph::PushExpression<UniformBufferExpression>(location, name))
+		: mBufferInfo(std::make_shared<UniformBufferInfo>(location, name))
 	{
 	}
 
 private:
 
-	std::shared_ptr<UniformBufferExpression> mBufferExpression;
+	std::shared_ptr<UniformBufferInfo> mBufferInfo;
 };
 
 

@@ -25,9 +25,9 @@ public:
 
 	virtual ~CommandQueueImpl();
 
-	std::expected<Coral::CommandBufferPtr, Coral::CommandBufferCreationError> createCommandBuffer(const Coral::CommandBufferCreateConfig& config) override;
+	std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError> createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config) override;
 
-	bool submit(const Coral::CommandBufferSubmitInfo& info, Fence* fence) override;
+	bool submit(const Coral::CommandBufferSubmitInfo& info, FencePtr fence) override;
 
 	bool submit(const Coral::PresentInfo& info) override;
 

@@ -6,22 +6,17 @@
 using namespace Coral;
 
 
-BufferPool::BufferPool(Coral::Context& context, Coral::BufferType bufferType, bool cpuVisible)
+BufferPool::BufferPool(Context& context, CoBufferType bufferType, bool cpuVisible)
+	: mContext(context)
+	, mBufferType(bufferType)
+	, mCpuVisible(mCpuVisible)
 {
-	mContext = &context;
-	mBufferType = bufferType;
-	mCpuVisible = cpuVisible;
 }
 
 
-Coral::BufferPtr
+std::shared_ptr<Buffer>
 BufferPool::requestBuffer(size_t bufferSize)
 {
-	if (!mContext)
-	{
-		return nullptr;
-	}
-
 	std::lock_guard lock(mBufferPoolProtection);
 
 	// Find the smallest staging buffer that fits the buffer size
@@ -37,16 +32,14 @@ BufferPool::requestBuffer(size_t bufferSize)
 	// If no staging buffer was found, create one that fits the buffer size
 	if (buffer == mBufferPool.end())
 	{
-		Coral::BufferCreateConfig bufferConfig{};
+		CoBufferCreateConfig bufferConfig{};
 		bufferConfig.cpuVisible = mCpuVisible;
 		bufferConfig.type       = mBufferType;
 		bufferConfig.size       = bufferSize;
 
-		auto buf = mContext->createBuffer(bufferConfig).value_or(nullptr);
-
-		if (buf)
+		if (auto buf = mContext.createBuffer(bufferConfig))
 		{
-			buffer = mBufferPool.emplace(bufferConfig.size, buf);
+			buffer = mBufferPool.emplace(bufferConfig.size, buf.value());
 		}
 	}
 

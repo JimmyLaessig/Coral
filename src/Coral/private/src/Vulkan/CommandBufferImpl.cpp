@@ -19,13 +19,13 @@ namespace
 {
 
 std::optional<VkIndexType>
-convert(Coral::AttributeFormat format)
+convert(CoAttributeFormat format)
 {
     switch (format)
     {
-        case Coral::AttributeFormat::UINT32:
+        case CO_ATTRIBUTE_FORMAT_UINT32:
             return VK_INDEX_TYPE_UINT32;
-        case Coral::AttributeFormat::UINT16:
+        case CO_ATTRIBUTE_FORMAT_UINT16:
             return VK_INDEX_TYPE_UINT16;
         default:
             return {};
@@ -34,13 +34,13 @@ convert(Coral::AttributeFormat format)
 
 
 VkAttachmentLoadOp
-convert(Coral::ClearOp clearOp)
+convert(CoClearOp clearOp)
 {
     switch (clearOp)
     {
-    case Coral::ClearOp::DONT_CARE: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-    case Coral::ClearOp::LOAD:      return VK_ATTACHMENT_LOAD_OP_LOAD;
-    case Coral::ClearOp::CLEAR:     return VK_ATTACHMENT_LOAD_OP_CLEAR;
+    case CO_CLEAR_OP_DONT_CARE: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    case CO_CLEAR_OP_LOAD:      return VK_ATTACHMENT_LOAD_OP_LOAD;
+    case CO_CLEAR_OP_CLEAR:     return VK_ATTACHMENT_LOAD_OP_CLEAR;
     default:
         assert(false);
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -69,9 +69,9 @@ CommandBufferImpl::~CommandBufferImpl()
 
 
 bool
-CommandBufferImpl::init(const Coral::CommandBufferCreateConfig& config)
+CommandBufferImpl::init(const Coral::CommandBuffer::CreateConfig& config)
 {
-    mName        = config.name;
+    mName        = config.name ? config.name : "";
     mCommandPool = mCommandQueue.getVkCommandPool();
  
     auto device  = context().getVkDevice();
@@ -122,41 +122,23 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
     {
         return false;
     }
-    // Validate the clear colors
-    // Each framebuffer attachment must have a corresponding clear color in the liust
-    auto clearColors = info.clearColor;
-    std::ranges::sort(clearColors, {}, &Coral::ClearColor::attachment);
-
-    auto zipped = std::views::zip(colorAttachments, clearColors);
-
-    bool clearColorsValid = std::ranges::all_of(zipped, [](const auto& tuple)
-    { 
-            return std::get<0>(tuple).attachment == std::get<1>(tuple).attachment;
-    });
-
-    if (!clearColorsValid)
-    {
-        return false;
-    }
-
-    bool clearDepthValid = depthAttachment.has_value() == info.clearDepth.has_value();
-    if (!clearDepthValid)
-    {
-        return false;
-    }
 
     std::vector<VkRenderingAttachmentInfo> attachments;
-    for (const auto& [colorAttachment, clearColor] : zipped)
+    for (const auto& [attachment, image] : colorAttachments)
     {
         VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
  
-        auto image = static_cast<Coral::Vulkan::ImageImpl*>(colorAttachment.image);
+        auto clearColor = info.clearColor.find(attachment);
+        if (clearColor == info.clearColor.end())
+        {
+            return false;
+        }
 
-        attachmentInfo.loadOp                      = ::convert(clearColor.clearOp);
-        attachmentInfo.clearValue.color.float32[0] = clearColor.color[0];
-        attachmentInfo.clearValue.color.float32[1] = clearColor.color[1];
-        attachmentInfo.clearValue.color.float32[2] = clearColor.color[2];
-        attachmentInfo.clearValue.color.float32[3] = clearColor.color[3];
+        attachmentInfo.loadOp                      = ::convert(clearColor->second.clearOp);
+        attachmentInfo.clearValue.color.float32[0] = clearColor->second.color[0];
+        attachmentInfo.clearValue.color.float32[1] = clearColor->second.color[1];
+        attachmentInfo.clearValue.color.float32[2] = clearColor->second.color[2];
+        attachmentInfo.clearValue.color.float32[3] = clearColor->second.color[3];
 
         attachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         attachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
@@ -180,8 +162,13 @@ CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
 
     if (depthAttachment)
     {
-        auto image = static_cast<Coral::Vulkan::ImageImpl*>(depthAttachment->image);
-        
+        if (!info.clearDepth)
+        {
+            return false;
+        }
+
+        auto image = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(depthAttachment);
+
         // Clear the depth attachment
         depthAttachmentInfo.loadOp                          = ::convert(info.clearDepth->clearOp);
         depthAttachmentInfo.clearValue.depthStencil.depth   = info.clearDepth->depth;
@@ -212,9 +199,6 @@ CommandBufferImpl::cmdEndRenderPass()
 }
 
 
-
-
-
 bool
 CommandBufferImpl::cmdCopyBuffer(const CopyBufferInfo& info)
 {
@@ -243,7 +227,7 @@ CommandBufferImpl::cmdCopyImage(const CopyImageInfo& info)
 bool
 CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, size_t offset, size_t stride)
 {
-    if (buffer->type() != BufferType::VERTEX_BUFFER)
+    if (buffer->type() != CO_BUFFER_TYPE_VERTEX)
     {
         return false;
     }
@@ -261,9 +245,9 @@ CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, 
 
 
 bool
-CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, IndexFormat format, size_t offset)
+CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, CoIndexFormat format, size_t offset)
 {  
-    if (buffer->type() != BufferType::INDEX_BUFFER)
+    if (buffer->type() != CO_BUFFER_TYPE_INDEX)
     {
         // TODO buffer type must be index buffer
         return false;
@@ -274,10 +258,10 @@ CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, IndexFormat format,
     VkIndexType indexType{};
     switch (format)
     {
-        case IndexFormat::UINT16 :
+        case CO_INDEX_FORMAT_UINT16 :
             indexType = VK_INDEX_TYPE_UINT16;
             break;
-        case IndexFormat::UINT32:
+        case CO_INDEX_FORMAT_UINT32:
             indexType = VK_INDEX_TYPE_UINT32;
             break;
         default:
@@ -311,41 +295,40 @@ CommandBufferImpl::cmdDrawIndexed(const DrawIndexInfo& info)
 
 
 bool
-CommandBufferImpl::cmdSetViewport(const Coral::ViewportInfo& info)
+CommandBufferImpl::cmdSetViewport(const CoViewportInfo& info)
 {
     if (info.maxDepth < info.minDepth)
     {
         return false;
     }
 
-    if (info.viewport.width == 0 || info.viewport.height == 0)
+    if (info.viewport.extent.width == 0 || info.viewport.extent.height == 0)
     {
         return false;
     }
 
     VkViewport viewport;
-    viewport.x        = static_cast<float>(info.viewport.x);
-    viewport.y        = static_cast<float>(info.viewport.y);
-    viewport.width    = static_cast<float>(info.viewport.width);
-    viewport.height   = static_cast<float>(info.viewport.height);
+    viewport.x        = static_cast<float>(info.viewport.bottom);
+    viewport.y        = static_cast<float>(info.viewport.left);
+    viewport.width    = static_cast<float>(info.viewport.extent.width);
+    viewport.height   = static_cast<float>(info.viewport.extent.height);
     viewport.minDepth = static_cast<float>(info.minDepth);
     viewport.maxDepth = static_cast<float>(info.maxDepth);
 
     // Vulkan and OpenGL use different coordinate systems. Per default, the Vulkan coordinate system is y-down. To
     // combat the inverted image, we need to flip the viewport by passing negative height and adjust the y-offset.
-    if (info.mode == Coral::ViewportMode::Y_UP)
+    if (info.mode == CO_VIEWPORT_MODE_Y_UP)
     {
-        viewport.x      = info.viewport.x;
         viewport.y      = viewport.height + viewport.y;
         viewport.width  = viewport.width;
         viewport.height = -viewport.height;
     }
 
     VkRect2D rect;
-    rect.extent.width  = info.viewport.width;
-    rect.extent.height = info.viewport.height;
-    rect.offset.x      = info.viewport.x;
-    rect.offset.y      = info.viewport.y;
+    rect.extent.width  = info.viewport.extent.width;
+    rect.extent.height = info.viewport.extent.height;
+    rect.offset.x      = info.viewport.bottom;
+    rect.offset.y      = info.viewport.left;
 
     vkCmdSetViewport(mCommandBuffer, 0, 1, &viewport);
     vkCmdSetScissor(mCommandBuffer, 0, 1, &rect);
@@ -365,7 +348,6 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
     auto buffer = static_cast<Coral::Vulkan::BufferImpl*>(info.buffer);
 
     auto stagingBuffer = context().requestStagingBuffer(info.data.size());
-    auto stagingBufferVK = static_cast<Coral::Vulkan::BufferImpl*>(stagingBuffer.get());
 
     auto mapped = stagingBuffer->map();
     std::memcpy(mapped + info.offset, info.data.data(), info.data.size());
@@ -376,27 +358,51 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
     bufferCopy.dstOffset = info.offset;
     bufferCopy.size      = info.data.size();
 
-    vkCmdCopyBuffer(mCommandBuffer, stagingBufferVK->getVkBuffer(), buffer->getVkBuffer(), 1, &bufferCopy);
+    vkCmdCopyBuffer(mCommandBuffer, stagingBuffer->getVkBuffer(), buffer->getVkBuffer(), 1, &bufferCopy);
 
-    /*VkBufferMemoryBarrier barrier{};
-    barrier.buffer = bufferImpl->getVkBuffer();
+    VkPipelineStageFlags dstStageMask;
+
+    VkBufferMemoryBarrier barrier{};
+    barrier.sType               = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+    barrier.buffer              = buffer->getVkBuffer();
     barrier.dstQueueFamilyIndex = context().getQueueFamilyIndex();
-    barrier.srcQueueFamilyIndex = context().getQueueFamilyIndex();*/
+    barrier.srcQueueFamilyIndex = context().getQueueFamilyIndex();
+    barrier.offset              = 0;
+    barrier.size                = VK_WHOLE_SIZE;
+    barrier.srcAccessMask       = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    /*VkBufferMemoryBarrier barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER };
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.image = image->getVkImage();
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = image->getMipLevels();*/
+    switch (buffer->type())
+    {
+        case CO_BUFFER_TYPE_INDEX:
+            barrier.dstAccessMask = VK_ACCESS_INDEX_READ_BIT;
+            dstStageMask          = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+            break;
+        case CO_BUFFER_TYPE_VERTEX:
+            barrier.dstAccessMask = VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+            dstStageMask          = VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+            break;
+        case CO_BUFFER_TYPE_UNIFORM:
+            barrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
+            dstStageMask          = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                                    VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+            break;
+        case CO_BUFFER_TYPE_STORAGE:
+            barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT;
+            dstStageMask = VK_PIPELINE_STAGE_VERTEX_SHADER_BIT | 
+                           VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | 
+                           VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+            break;
+    }
 
-    //imageBarriers.push_back(barrier);
+    vkCmdPipelineBarrier(mCommandBuffer,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        dstStageMask,
+        0,
+        0, nullptr,
+        1, &barrier,
+        0, nullptr
+    );
 
-    //vkCmdPipelineBarrier(mCommandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, )
     // Store the temporary staging buffer until the command buffer was executed
     mStagingBuffers.push_back(std::move(stagingBuffer));
 
@@ -405,7 +411,7 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
 
 
 bool
-CommandBufferImpl::cmdClearImage(Coral::Image* image, const Coral::ClearColor& clearColor)
+CommandBufferImpl::cmdClearImage(Coral::Image* image, const CoClearColor& clearColor)
 {
     if (image->presentable())
     {
@@ -584,33 +590,48 @@ CommandBufferImpl::cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding)
     mCachedDescriptorInfos[binding] = info;
 }
 
-
-void
-CommandBufferImpl::cmdBindDescriptor(Coral::Image* image, Coral::Sampler* sampler, uint32_t binding)
-{
-    auto imageImpl   = static_cast<ImageImpl*>(image);
-    auto samplerImpl = static_cast<SamplerImpl*>(sampler);
-
-    VkDescriptorImageInfo info{};
-    info.sampler     = samplerImpl ? samplerImpl->getVkSampler() : VK_NULL_HANDLE;
-    info.imageView   = imageImpl ? imageImpl->getVkImageView() : VK_NULL_HANDLE;
-    info.imageLayout = imageImpl->getPreferredImageLayout();
-
-    mCachedDescriptorInfos[binding] = info;
-}
-
-
 void
 CommandBufferImpl::cmdBindDescriptor(Coral::Image* image, uint32_t binding)
 {
-    cmdBindDescriptor(image, nullptr, binding);
+    auto iter = mCachedDescriptorInfos.find(binding);
+
+    VkDescriptorImageInfo* info{ nullptr };
+    if (iter != mCachedDescriptorInfos.end())
+    {
+        info = std::get_if<VkDescriptorImageInfo>(&iter->second);
+    }
+    if (!info)
+    {
+        iter = mCachedDescriptorInfos.emplace(binding, VkDescriptorImageInfo{}).first;
+        info = &std::get<VkDescriptorImageInfo>(iter->second);
+    }
+
+    auto imageImpl = static_cast<ImageImpl*>(image);
+
+    info->imageView   = imageImpl ? imageImpl->getVkImageView() : VK_NULL_HANDLE;
+    info->imageLayout = imageImpl ? imageImpl->getPreferredImageLayout() : VK_IMAGE_LAYOUT_UNDEFINED;
 }
 
 
 void
 CommandBufferImpl::cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding)
 {
-    cmdBindDescriptor(nullptr, sampler, binding);
+    auto iter = mCachedDescriptorInfos.find(binding);
+
+    VkDescriptorImageInfo* info{ nullptr };
+    if (iter != mCachedDescriptorInfos.end())
+    {
+        info = std::get_if<VkDescriptorImageInfo>(&iter->second);
+    }
+    if (!info)
+    {
+        iter = mCachedDescriptorInfos.emplace(binding, VkDescriptorImageInfo{}).first;
+        info = &std::get<VkDescriptorImageInfo>(iter->second);
+    }
+
+    auto samplerImpl = static_cast<SamplerImpl*>(sampler);
+
+    info->sampler = samplerImpl ? samplerImpl->getVkSampler() : VK_NULL_HANDLE;
 }
 
 

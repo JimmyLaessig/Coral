@@ -25,7 +25,7 @@ endfunction()
 #
 function(coral_configure_target TARGET_NAME)
 
-set(multiValueArgs PUBLIC_HEADERS PRIVATE_HEADERS SOURCES PUBLIC_MODULES PRIVATE_MODULES MODULE_SOURCES PUBLIC_DEPENDENCIES PRIVATE_DEPENDENCIES)
+set(multiValueArgs PUBLIC_HEADERS PRIVATE_HEADERS SOURCES PUBLIC_MODULES PRIVATE_MODULES MODULE_SOURCES PUBLIC_DEPENDENCIES PRIVATE_DEPENDENCIES EXPORT_HEADER)
 
 cmake_parse_arguments("INPUT" "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 
@@ -43,8 +43,12 @@ if (NOT(${TARGET_TYPE} STREQUAL "EXECUTABLE"))
     string(TOUPPER "${TARGET_NAME}" TARGET_NAME_UPPERCASE)
 
     set(GENERATED_HEADER_DIR ${CMAKE_CURRENT_BINARY_DIR}/generated/include)
-    set(EXPORT_HEADER ${GENERATED_HEADER_DIR}/${TARGET_NAME}/System.hpp)
 
+    if (EXPORT_HEADER)
+        set(EXPORT_HEADER ${GENERATED_HEADER_DIR}/${TARGET_NAME}/EXPORT_HEADER)
+    else()
+        set(EXPORT_HEADER ${GENERATED_HEADER_DIR}/${TARGET_NAME}/System.hpp)
+    endif()
     # The generate_export_header function is used to generate a file containing
     # suitable preprocessor for the EXPORT macros to be used in library classes.
     # The header is automatically populated with the proper preprocessor defines

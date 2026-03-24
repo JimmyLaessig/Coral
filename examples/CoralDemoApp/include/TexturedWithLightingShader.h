@@ -1,5 +1,5 @@
 
-#include <Coral/UniformBlockBuilder.hpp>
+#include <Coral/Util/UniformBlockBuilder.hpp>
 #include <Coral/ShaderLanguage.hpp>
 
 #include <iostream>
@@ -64,11 +64,40 @@ struct FragmentOutput
 };
 
 
+struct VertexShader
+{
+	VertexOutput main(const VertexInput& input, 
+		              const csl::UniformBuffer<Uniforms, "Uniforms", csl::Location{ 0 }>& uniforms)
+	{
+		VertexOutput output;
+		output.position    = uniforms->modelViewProjectionMatrix * csl::float4(*input.position, 1.f);
+		output.worldNormal = csl::normalize(uniforms->normalMatrix * (*input.normal));
+		output.texcoord0   = input.texcoord0;
+		return output;
+	}
+};
+
+
+struct FragmentShader
+{
+	FragmentOutput main(const FragmentInput& input,
+		                const csl::UniformBuffer<Uniforms, "Uniforms", csl::Location{ 0 }>& uniforms,
+		                const csl::Sampler2D<"colorTexture", csl::Location{ 1 } >& colorTexture)
+	{
+		FragmentOutput output;
+		auto worldNormal = csl::normalize(*input.worldNormal);
+		auto lightDir    = uniforms->lightDirection;
+		auto n_dot_l     = csl::dot(lightDir, worldNormal);
+		auto color       = colorTexture.sample(*input.texcoord0).xyz();
+		output.color     = csl::float4(color * uniforms->lightColor * n_dot_l, 1.f);
+		return output;
+	}
+};
+
 VertexOutput vertexShaderMain(const VertexInput& input, 
 	                          const csl::UniformBuffer<Uniforms, "Uniforms", csl::Location{ 0 }>& uniforms)
 {
 	VertexOutput output;
-
 	output.position    = uniforms->modelViewProjectionMatrix * csl::float4(*input.position, 1.f);
 	output.worldNormal = csl::normalize(uniforms->normalMatrix * (*input.normal));
 	output.texcoord0   = input.texcoord0;
@@ -86,9 +115,8 @@ FragmentOutput fragmentShaderMain(const FragmentInput& input,
 	auto worldNormal = csl::normalize(*input.worldNormal);
 	auto lightDir    = uniforms->lightDirection;
 	auto n_dot_l     = csl::dot(lightDir, worldNormal);
-
-	auto color   = colorTexture.sample(*input.texcoord0).xyz();
-	output.color = csl::float4(color * uniforms->lightColor * n_dot_l, 1.f);
+	auto color       = colorTexture.sample(*input.texcoord0).xyz();
+	output.color     = csl::float4(color * uniforms->lightColor *  n_dot_l, 1.f);
 	return output;
 }
 
@@ -106,8 +134,9 @@ shaderSource()
 	ShaderSource shaderSource;
 
 	{
-		csl::ShaderGraph shaderGraph;
-		shaderGraph.SetShaderFunction(&vertexShaderMain);
+		csl::ShaderGraph shaderGraph(VertexShader{});
+
+
 		Coral::ShaderLanguage::CompilerSPV compiler;
 		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::VERTEX);
 
@@ -126,8 +155,7 @@ shaderSource()
 	}
 
 	{
-		csl::ShaderGraph shaderGraph;
-		shaderGraph.SetShaderFunction(&fragmentShaderMain);
+		csl::ShaderGraph shaderGraph(FragmentShader{});
 		Coral::ShaderLanguage::CompilerSPV compiler;
 		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::FRAGMENT);
 

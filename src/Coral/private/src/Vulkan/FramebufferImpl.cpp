@@ -2,6 +2,8 @@
 
 #include <Coral/Vulkan/VulkanFormat.hpp>
 
+#include <Coral/Vulkan/ImageImpl.hpp>
+
 #include <algorithm>
 #include <cassert>
 #include <optional>
@@ -14,13 +16,13 @@ namespace
 {
 
 VkAttachmentLoadOp
-convert(Coral::ClearOp clearOp)
+convert(CoClearOp clearOp)
 {
 	switch (clearOp)
 	{
-		case Coral::ClearOp::DONT_CARE: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		case Coral::ClearOp::LOAD:		return VK_ATTACHMENT_LOAD_OP_LOAD;
-		case Coral::ClearOp::CLEAR:		return VK_ATTACHMENT_LOAD_OP_CLEAR;
+		case CO_CLEAR_OP_DONT_CARE: return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		case CO_CLEAR_OP_LOAD:		return VK_ATTACHMENT_LOAD_OP_LOAD;
+		case CO_CLEAR_OP_CLEAR:		return VK_ATTACHMENT_LOAD_OP_CLEAR;
 		default:
 			assert(false);
 			return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -29,7 +31,7 @@ convert(Coral::ClearOp clearOp)
 
 
 std::optional<VkExtent2D>
-getFramebufferExtent(const Coral::FramebufferCreateConfig& config)
+getFramebufferExtent(const Coral::Framebuffer::CreateConfig& config)
 {
 	if (!config.colorAttachments.empty())
 	{
@@ -37,7 +39,7 @@ getFramebufferExtent(const Coral::FramebufferCreateConfig& config)
 	}
 	else if (config.depthAttachment)
 	{
-		return VkExtent2D{ config.depthAttachment->image->width(), config.depthAttachment->image->height() };
+		return VkExtent2D{ config.depthAttachment->width(), config.depthAttachment->height() };
 	}
 
 	return {};
@@ -46,24 +48,30 @@ getFramebufferExtent(const Coral::FramebufferCreateConfig& config)
 } // namespace
 
 
-std::optional<Coral::FramebufferCreationError>
-FramebufferImpl::init(const Coral::FramebufferCreateConfig& config)
+std::optional<Coral::Framebuffer::CreateError>
+FramebufferImpl::init(const Coral::Framebuffer::CreateConfig& config)
 {
 	auto extent = getFramebufferExtent(config);
 
 	if (!extent)
 	{
-		return FramebufferCreationError::INTERNAL_ERROR;
+		return Framebuffer::CreateError::INTERNAL_ERROR;
 	}
 
 	mWidth  = extent->width;
 	mHeight = extent->height;
 
-	mColorAttachments.assign_range(config.colorAttachments);
-	mDepthAttachment = config.depthAttachment;
+	for (const auto& [image, binding] : config.colorAttachments)
+	{
+		mColorAttachments.emplace(binding, std::static_pointer_cast<ImageImpl>(image));
+	}
 
-	// Sort the color attachments by attachment index for easier validation
-	std::ranges::sort(mColorAttachments, {}, &Coral::ColorAttachment::attachment);
+	if (mColorAttachments.size() != config.colorAttachments.size())
+	{
+		return Framebuffer::CreateError::DUPLICATE_COLOR_ATTACHMENTS;
+	}
+
+	mDepthAttachment = std::static_pointer_cast<ImageImpl>(config.depthAttachment);
 
 	// Validate the attachments:
 	// 1. The image format must not be a depth format
@@ -77,21 +85,14 @@ FramebufferImpl::init(const Coral::FramebufferCreateConfig& config)
 
 	if (!colorFormatsValid)
 	{
-		return FramebufferCreationError::INVALID_COLOR_ATTACHMENT_FORMAT;
-	}
-
-	// Check if the color attachments are unique
-	bool attachmentsValid = std::ranges::adjacent_find(mColorAttachments, {}, &Coral::ColorAttachment::attachment) == mColorAttachments.end();
-	if (!attachmentsValid)
-	{
-		return FramebufferCreationError::DUPLICATE_COLOR_ATTACHMENTS;
+		return Framebuffer::CreateError::INVALID_COLOR_ATTACHMENT_FORMAT;
 	}
 
 	if (mDepthAttachment)
 	{
-		if (!isDepthFormat(mDepthAttachment->image->format()))
+		if (!isDepthFormat(mDepthAttachment->format()))
 		{
-			return FramebufferCreationError::INTERNAL_ERROR;
+			return Framebuffer::CreateError::INVALID_DEPTH_STENCIL_ATTACHMENT_FORMAT;
 		}
 	}
 
@@ -99,13 +100,13 @@ FramebufferImpl::init(const Coral::FramebufferCreateConfig& config)
 }
 
 
-const std::vector<Coral::ColorAttachment>&
+const std::map<uint32_t, ImageImplPtr>&
 FramebufferImpl::colorAttachments()
 {
 	return mColorAttachments;
 }
 
-const std::optional<Coral::DepthAttachment>&
+ImageImplPtr
 FramebufferImpl::depthAttachment()
 {
 	return mDepthAttachment;
@@ -126,34 +127,20 @@ FramebufferImpl::height() const
 }
 
 
-Coral::FramebufferSignature
-FramebufferImpl::signature()
+Coral::Framebuffer::Layout
+FramebufferImpl::layout()
 {
-	Coral::FramebufferSignature signature{};
+	Coral::Framebuffer::Layout layout{};
 
 	if (mDepthAttachment)
 	{
-		signature.depthStencilAttachmentFormat = mDepthAttachment->image->format();
+		layout.depthStencilAttachment = CoDepthStencilAttachmentInfo{ mDepthAttachment->format() };
 	}
 
-	for (const auto& colorAttachment : mColorAttachments)
+	for (const auto& [binding, image] : mColorAttachments)
 	{
-		signature.colorAttachmentFormats.push_back(colorAttachment.image->format());
+		layout.colorAttachments.push_back({ image->format(), binding });
 	}
 
-	return signature;
-}
-
-
-Coral::Image*
-FramebufferImpl::colorAttachment(uint32_t attachment)
-{
-	for (const auto& ca : mColorAttachments)
-	{
-		if (ca.attachment == attachment)
-		{
-			return ca.image;
-		}
-	}
-	return nullptr;
+	return layout;
 }

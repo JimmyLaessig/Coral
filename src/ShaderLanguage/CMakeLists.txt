@@ -38,7 +38,7 @@ set(CSL_SHADERLANGUAGE_HEADERS
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/CompilerGLSL.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/CompilerSPV.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/ControlFlow.hpp
-    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Expression.hpp
+    ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Node.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Expressions.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Functions.hpp
     ${CSL_SHADERLANGUAGE_INCLUDE_DIR}/Matrix.hpp
@@ -57,7 +57,7 @@ set(CSL_HEADER
 set(CSL_SOURCES
     ${CSL_SOURCE_DIR}/CompilerGLSL.cpp
     ${CSL_SOURCE_DIR}/CompilerSPV.cpp
-    ${CSL_SOURCE_DIR}/Expression.cpp
+    ${CSL_SOURCE_DIR}/Node.cpp
     ${CSL_SOURCE_DIR}/Expressions.cpp
     ${CSL_SOURCE_DIR}/ShaderGraph.cpp
     ${CSL_SOURCE_DIR}/Value.cpp)

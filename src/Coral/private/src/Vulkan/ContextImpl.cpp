@@ -53,7 +53,7 @@ ContextImpl::~ContextImpl()
 
 
 std::shared_ptr<ContextImpl>
-ContextImpl::create(const ContextCreateConfig& config)
+ContextImpl::create(const Context::CreateConfig& config)
 {
 	auto context = std::make_shared<ContextImpl>();
 
@@ -67,7 +67,7 @@ ContextImpl::create(const ContextCreateConfig& config)
 
 
 bool
-ContextImpl::init(const ContextCreateConfig& config)
+ContextImpl::init(const Context::CreateConfig& config)
 {
 	if (volkInitialize() != VK_SUCCESS)
 	{
@@ -81,7 +81,7 @@ ContextImpl::init(const ContextCreateConfig& config)
 	bool requestValidationLayers{ true };
 #endif
 
-	std::string appName = config.applicationName.empty() ? "Coral" : std::string(config.applicationName);
+	std::string appName = config.pApplicationName ? config.pApplicationName : "Coral";
 
 	vkb::InstanceBuilder builder;
 	auto instance = builder
@@ -265,7 +265,7 @@ ContextImpl::init(const ContextCreateConfig& config)
 		return false;
 	}
 
-	mStagingBufferPool = std::make_unique<BufferPool>(*this, Coral::BufferType::STORAGE_BUFFER, true);
+	mStagingBufferPool = std::make_unique<BufferPool>(*this, CO_BUFFER_TYPE_STORAGE, true);
 
 	vkGetPhysicalDeviceProperties(mPhysicalDevice, &mProperties);
 
@@ -294,66 +294,66 @@ ContextImpl::getComputeQueue()
 }
 
 
-std::expected<Coral::BufferPtr, Coral::BufferCreationError>
-ContextImpl::createBuffer(const Coral::BufferCreateConfig& config)
+std::expected<Coral::BufferPtr, Coral::Buffer::CreateError>
+ContextImpl::createBuffer(const Coral::Buffer::CreateConfig& config)
 {
-	return create<Coral::Buffer, BufferImpl, Coral::BufferCreationError>(config);
+	return create<Coral::Buffer, BufferImpl, Coral::Buffer::CreateError>(config);
 }
 
 
-std::expected<Coral::FencePtr, Coral::FenceCreationError>
-ContextImpl::createFence()
+std::expected<Coral::FencePtr, Coral::Fence::CreateError>
+ContextImpl::createFence(const Coral::Fence::CreateConfig& config)
 {
-	return create<Coral::Fence, FenceImpl, Coral::FenceCreationError>();
+	return create<Coral::Fence, FenceImpl, Coral::Fence::CreateError>();
 }
 
 
-std::expected<Coral::FramebufferPtr, Coral::FramebufferCreationError>
-ContextImpl::createFramebuffer(const Coral::FramebufferCreateConfig& config)
+std::expected<Coral::FramebufferPtr, Coral::Framebuffer::CreateError>
+ContextImpl::createFramebuffer(const Coral::Framebuffer::CreateConfig& config)
 {
-	return create<Coral::Framebuffer, FramebufferImpl, Coral::FramebufferCreationError>(config);
+	return create<Coral::Framebuffer, FramebufferImpl, Coral::Framebuffer::CreateError>(config);
 }
 
 
-std::expected<Coral::ImagePtr, Coral::ImageCreationError>
-ContextImpl::createImage(const Coral::ImageCreateConfig& config)
+std::expected<Coral::ImagePtr, Coral::Image::CreateError>
+ContextImpl::createImage(const Coral::Image::CreateConfig& config)
 {
-	return create<Coral::Image, ImageImpl, Coral::ImageCreationError>(config);
+	return create<Coral::Image, ImageImpl, Coral::Image::CreateError>(config);
 }
 
 
-std::expected<Coral::PipelineStatePtr, Coral::PipelineStateCreationError>
-ContextImpl::createPipelineState(const Coral::PipelineStateCreateConfig& config)
+std::expected<Coral::PipelineStatePtr, Coral::PipelineState::CreateError>
+ContextImpl::createPipelineState(const Coral::PipelineState::CreateConfig& config)
 {
-	return create<Coral::PipelineState, PipelineStateImpl, Coral::PipelineStateCreationError>(config);
+	return create<Coral::PipelineState, PipelineStateImpl, Coral::PipelineState::CreateError>(config);
 }
 
 
-std::expected<Coral::SamplerPtr, Coral::SamplerCreationError>
-ContextImpl::createSampler(const Coral::SamplerCreateConfig& config)
+std::expected<Coral::SamplerPtr, Coral::Sampler::CreateError>
+ContextImpl::createSampler(const Coral::Sampler::CreateConfig& config)
 {
-	return create<Coral::Sampler, SamplerImpl, Coral::SamplerCreationError>(config);
+	return create<Coral::Sampler, SamplerImpl, Coral::Sampler::CreateError>(config);
 }
 
 
-std::expected<Coral::SemaphorePtr, Coral::SemaphoreCreationError>
-ContextImpl::createSemaphore()
+std::expected<Coral::SemaphorePtr, Coral::Semaphore::CreateError>
+ContextImpl::createSemaphore(const Coral::Semaphore::CreateConfig& config)
 {
-	return create<Coral::Semaphore, SemaphoreImpl, Coral::SemaphoreCreationError>();
+	return create<Coral::Semaphore, SemaphoreImpl, Coral::Semaphore::CreateError>();
 }
 
 
-std::expected<Coral::ShaderModulePtr, Coral::ShaderModuleCreationError>
-ContextImpl::createShaderModule(const Coral::ShaderModuleCreateConfig& config)
+std::expected<Coral::ShaderModulePtr, Coral::ShaderModule::CreateError>
+ContextImpl::createShaderModule(const Coral::ShaderModule::CreateConfig& config)
 {
-	return create<Coral::ShaderModule, ShaderModuleImpl, Coral::ShaderModuleCreationError>(config);
+	return create<Coral::ShaderModule, ShaderModuleImpl, Coral::ShaderModule::CreateError>(config);
 }
 
 
-std::expected<Coral::SwapchainPtr, Coral::SwapchainCreationError>
-ContextImpl::createSwapchain(const Coral::SwapchainCreateConfig& config)
+std::expected<Coral::SwapchainPtr, Coral::Swapchain::CreateError>
+ContextImpl::createSwapchain(const Coral::Swapchain::CreateConfig& config)
 {
-	return create<Coral::Swapchain, SwapchainImpl,Coral::SwapchainCreationError>(config);
+	return create<Coral::Swapchain, SwapchainImpl,Coral::Swapchain::CreateError>(config);
 }
 
 
@@ -371,8 +371,8 @@ ContextImpl::getQueueFamilyIndex()
 }
 
 
-std::shared_ptr<Coral::Buffer>
+BufferImplPtr
 ContextImpl::requestStagingBuffer(size_t bufferSize)
 {
-	return mStagingBufferPool->requestBuffer(bufferSize);
+	return std::static_pointer_cast<BufferImpl>(mStagingBufferPool->requestBuffer(bufferSize));
 }

@@ -12,7 +12,7 @@ SemaphoreImpl::~SemaphoreImpl()
 }
 
 
-std::optional<Coral::SemaphoreCreationError>
+std::optional<Coral::Semaphore::CreateError>
 SemaphoreImpl::init()
 {
 	VkSemaphoreTypeCreateInfo timelineCreateInfo{ VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO };
@@ -25,7 +25,7 @@ SemaphoreImpl::init()
 
 	if (vkCreateSemaphore(context().getVkDevice(), &info, nullptr, &mSemaphore) != VK_SUCCESS)
 	{
-		return Coral::SemaphoreCreationError::INTERNAL_ERROR;
+		return Coral::Semaphore::CreateError::INTERNAL_ERROR;
 	}
 
 	return {};

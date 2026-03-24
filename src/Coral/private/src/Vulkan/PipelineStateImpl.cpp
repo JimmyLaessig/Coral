@@ -20,13 +20,13 @@ namespace
 {
 
 VkShaderStageFlagBits
-convert(Coral::ShaderStage shaderStage)
+convert(CoShaderStage shaderStage)
 {
 	switch (shaderStage)
 	{
-		case Coral::ShaderStage::VERTEX:
+		case CO_SHADER_STAGE_VERTEX:
 			return VK_SHADER_STAGE_VERTEX_BIT;
-		case Coral::ShaderStage::FRAGMENT:
+		case CO_SHADER_STAGE_FRAGMENT:
 			return VK_SHADER_STAGE_FRAGMENT_BIT;
 		default:
 			assert(false);
@@ -36,26 +36,18 @@ convert(Coral::ShaderStage shaderStage)
 
 
 VkFormat
-convert(Coral::AttributeFormat format)
+convert(CoAttributeFormat format)
 {
 	switch (format)
 	{
-		case Coral::AttributeFormat::VEC4F:
-			return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case Coral::AttributeFormat::VEC3F:
-			return VK_FORMAT_R32G32B32_SFLOAT;
-		case Coral::AttributeFormat::VEC2F:
-			return VK_FORMAT_R32G32_SFLOAT;
-		case Coral::AttributeFormat::FLOAT:
-			return VK_FORMAT_R32_SFLOAT;
-		case Coral::AttributeFormat::INT32:
-			return VK_FORMAT_R32_SINT;
-		case Coral::AttributeFormat::INT16:
-			return VK_FORMAT_R16_SINT;
-		case Coral::AttributeFormat::UINT32:
-			return VK_FORMAT_R32_UINT;
-		case Coral::AttributeFormat::UINT16:
-			return VK_FORMAT_R16_UINT;
+		case CO_ATTRIBUTE_FORMAT_VEC4F: return VK_FORMAT_R32G32B32A32_SFLOAT;
+		case CO_ATTRIBUTE_FORMAT_VEC3F: return VK_FORMAT_R32G32B32_SFLOAT;
+		case CO_ATTRIBUTE_FORMAT_VEC2F: return VK_FORMAT_R32G32_SFLOAT;
+		case CO_ATTRIBUTE_FORMAT_FLOAT: return VK_FORMAT_R32_SFLOAT;
+		case CO_ATTRIBUTE_FORMAT_INT32: return VK_FORMAT_R32_SINT;
+		case CO_ATTRIBUTE_FORMAT_INT16: return VK_FORMAT_R16_SINT;
+		case CO_ATTRIBUTE_FORMAT_UINT32: return VK_FORMAT_R32_UINT;
+		case CO_ATTRIBUTE_FORMAT_UINT16: return VK_FORMAT_R16_UINT;
 		default:
 			assert(false);
 			return VK_FORMAT_UNDEFINED;
@@ -63,15 +55,15 @@ convert(Coral::AttributeFormat format)
 }
 
 VkPolygonMode
-convert(Coral::PolygonMode mode)
+convert(CoPolygonMode mode)
 {
 	switch (mode)
 	{
-		case Coral::PolygonMode::WIREFRAME:
+		case CO_POLYGON_MODE_WIREFRAME:
 			return VK_POLYGON_MODE_LINE;
-		case Coral::PolygonMode::SOLID:
+		case CO_POLYGON_MODE_SOLID:
 			return VK_POLYGON_MODE_FILL;
-		case Coral::PolygonMode::POINTS:
+		case CO_POLYGON_MODE_POINTS:
 			return VK_POLYGON_MODE_POINT;
 		default:
 			assert(false);
@@ -81,17 +73,17 @@ convert(Coral::PolygonMode mode)
 
 
 VkCullModeFlags
-convert(Coral::CullMode mode)
+convert(CoCullMode mode)
 {
 	switch (mode)
 	{
-		case Coral::CullMode::NONE:
+		case CO_CULL_MODE_NONE:
 			return VK_CULL_MODE_NONE;
-		case Coral::CullMode::FRONT_AND_BACK:
+		case CO_CULL_MODE_FRONT_AND_BACK:
 			return VK_CULL_MODE_FRONT_AND_BACK;
-		case Coral::CullMode::BACK:
+		case CO_CULL_MODE_BACK:
 			return VK_CULL_MODE_BACK_BIT;
-		case Coral::CullMode::FRONT:
+		case CO_CULL_MODE_FRONT:
 			return VK_CULL_MODE_FRONT_BIT;
 		default:
 			assert(false);
@@ -101,13 +93,13 @@ convert(Coral::CullMode mode)
 
 
 VkFrontFace
-convert(Coral::FrontFaceOrientation orientation)
+convert(CoFrontFaceOrientation orientation)
 {
 	switch (orientation)
 	{
-		case Coral::FrontFaceOrientation::CCW:
+		case CO_FRONT_FACE_ORIENTATION_CCW:
 			return VK_FRONT_FACE_COUNTER_CLOCKWISE;
-		case Coral::FrontFaceOrientation::CW:
+		case CO_FRONT_FACE_ORIENTATION_CW:
 			return VK_FRONT_FACE_CLOCKWISE;
 		default:
 			assert(false);
@@ -117,15 +109,15 @@ convert(Coral::FrontFaceOrientation orientation)
 
 
 VkPrimitiveTopology
-convert(Coral::Topology topology)
+convert(CoTopology topology)
 {
 	switch (topology)
 	{
-		case Coral::Topology::POINT_LIST:
+		case CO_TOPOLOGY_POINT_LIST:
 			return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-		case Coral::Topology::LINE_LIST:
+		case CO_TOPOLOGY_LINE_LIST:
 			return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-		case Coral::Topology::TRIANGLE_LIST:
+		case CO_TOPOLOGY_TRIANGLE_LIST:
 			return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
 		default:
 			assert(false);
@@ -180,8 +172,8 @@ PipelineStateImpl::~PipelineStateImpl()
 }
 
 
-std::optional<Coral::PipelineStateCreationError>
-PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
+std::optional<Coral::PipelineState::CreateError>
+PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
 {
 	//-------------------------------------------------------------
 	// Shader Stage State
@@ -192,9 +184,9 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	Coral::Vulkan::ShaderModuleImpl* vertexShader{ nullptr };
 	for (const auto& shaderModule : config.shaderModules)
 	{
-		auto shader = static_cast<Coral::Vulkan::ShaderModuleImpl*>(shaderModule);
+		auto shader = static_cast<Coral::Vulkan::ShaderModuleImpl*>(shaderModule.get());
 
-		if (shader->shaderStage() == Coral::ShaderStage::VERTEX)
+		if (shader->shaderStage() == CO_SHADER_STAGE_VERTEX)
 		{
 			vertexShader = shader;
 		}
@@ -208,7 +200,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 
 	if (!vertexShader)
 	{
-		return Coral::PipelineStateCreationError::INTERNAL_ERROR;
+		return Coral::PipelineState::CreateError::INTERNAL_ERROR;
 	}
 	
 	//-------------------------------------------------------------
@@ -340,15 +332,15 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	//-------------------------------------------------------------
 
 	std::vector<VkFormat> colorAttachments;
-	for (auto format : config.framebufferSignature.colorAttachmentFormats)
+	for (auto format : config.framebufferLayout.colorAttachments)
 	{
-		colorAttachments.push_back(Coral::Vulkan::convert(format));
+		colorAttachments.push_back(Coral::Vulkan::convert(format.format));
 	};
 
 	VkFormat depthStencilFormat{ VK_FORMAT_UNDEFINED };
-	if (config.framebufferSignature.depthStencilAttachmentFormat)
+	if (config.framebufferLayout.depthStencilAttachment)
 	{
-		depthStencilFormat = Coral::Vulkan::convert(*config.framebufferSignature.depthStencilAttachmentFormat);
+		depthStencilFormat = Coral::Vulkan::convert(config.framebufferLayout.depthStencilAttachment->format);
 	}
 	VkPipelineRenderingCreateInfo renderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
 	renderingCreateInfo.colorAttachmentCount	= static_cast<uint32_t>(colorAttachments.size());
@@ -388,7 +380,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 	VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
 	if (vkCreateDescriptorSetLayout(context().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
 	{
-		return PipelineStateCreationError::INTERNAL_ERROR;
+		return PipelineState::CreateError::INTERNAL_ERROR;
 	}
 
 	//-------------------------------------------------------------
@@ -401,7 +393,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 
 	if (vkCreatePipelineLayout(context().getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
 	{
-		return PipelineStateCreationError::INTERNAL_ERROR;
+		return PipelineState::CreateError::INTERNAL_ERROR;
 	}
 
 	//-------------------------------------------------------------
@@ -425,7 +417,7 @@ PipelineStateImpl::init(const Coral::PipelineStateCreateConfig& config)
 
 	if (vkCreateGraphicsPipelines(context().getVkDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline) != VK_SUCCESS)
 	{
-		return PipelineStateCreationError::INTERNAL_ERROR;
+		return PipelineState::CreateError::INTERNAL_ERROR;
 	}
 
 	return {};

@@ -1,40 +1,34 @@
 #include <Coral/ShaderLanguage/Value.hpp>
-#include <Coral/ShaderLanguage/Expression.hpp>
+#include <Coral/ShaderLanguage/Node.hpp>
 
 #include <Coral/ShaderLanguage/UniformBuffer.hpp>
 
 using namespace Coral::ShaderLanguage;
 
-Value::Value(std::shared_ptr<Expression> source)
-	: mSource(source)
+Value::Value(std::shared_ptr<Node> source)
+	: mNode(source)
 {
 }
 
-std::shared_ptr<Expression>
-Value::source() const &
+
+std::shared_ptr<Node>
+Value::node() const &
 {
-	return mSource;
+	return mNode;
 }
 
 
-std::shared_ptr<Expression>
-Value::source() &&
+std::shared_ptr<Node>
+Value::node() &&
 {
 	// Mark the source of this expression to be inlined if this is an r-value reference
-	mSource->SetInlineIfPossible();
-	return mSource;
-}
-
-
-ValueType
-Value::typeId() const
-{
-	return mSource->GetValueType();
+	mNode->setInlineIfPossible();
+	return mNode;
 }
 
 
 void
-Value::setSource(std::shared_ptr<Expression> source)
+Value::setNode(std::shared_ptr<Node> source)
 {
-	mSource = source;
+	mNode = source;
 }

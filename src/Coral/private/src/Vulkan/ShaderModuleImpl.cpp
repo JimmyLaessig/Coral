@@ -19,19 +19,19 @@ using namespace Coral::Vulkan;
 namespace
 {
 
-std::optional<Coral::AttributeFormat>
+std::optional<CoAttributeFormat>
 convert(SpvReflectFormat format)
 {
 	switch (format)
 	{
-		case SPV_REFLECT_FORMAT_R16_UINT:				return Coral::AttributeFormat::UINT16;
-		case SPV_REFLECT_FORMAT_R32_UINT:				return Coral::AttributeFormat::UINT32;
-		case SPV_REFLECT_FORMAT_R16_SINT:				return Coral::AttributeFormat::INT16;
-		case SPV_REFLECT_FORMAT_R32_SINT:				return Coral::AttributeFormat::INT32;
-		case SPV_REFLECT_FORMAT_R32_SFLOAT:				return Coral::AttributeFormat::FLOAT;
-		case SPV_REFLECT_FORMAT_R32G32_SFLOAT:			return Coral::AttributeFormat::VEC2F;
-		case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:		return Coral::AttributeFormat::VEC3F;
-		case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:	return Coral::AttributeFormat::VEC4F;
+		case SPV_REFLECT_FORMAT_R16_UINT:				return CO_ATTRIBUTE_FORMAT_UINT16;
+		case SPV_REFLECT_FORMAT_R32_UINT:				return CO_ATTRIBUTE_FORMAT_UINT32;
+		case SPV_REFLECT_FORMAT_R16_SINT:				return CO_ATTRIBUTE_FORMAT_INT16;
+		case SPV_REFLECT_FORMAT_R32_SINT:				return CO_ATTRIBUTE_FORMAT_INT32;
+		case SPV_REFLECT_FORMAT_R32_SFLOAT:				return CO_ATTRIBUTE_FORMAT_FLOAT;
+		case SPV_REFLECT_FORMAT_R32G32_SFLOAT:			return CO_ATTRIBUTE_FORMAT_VEC2F;
+		case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:		return CO_ATTRIBUTE_FORMAT_VEC3F;
+		case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT:	return CO_ATTRIBUTE_FORMAT_VEC4F;
 		default:
 			return {};
 	}
@@ -57,25 +57,25 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 	switch (variable.type_description->type_flags)
 	{
 	case BoolFlags:
-		result.members.push_back({ Coral::UniformFormat::BOOL, fullName , 1, variable.size, variable.padded_size });
+		result.members.push_back({ CO_UNIFORM_FORMAT_BOOL, fullName , 1, variable.size, variable.padded_size });
 		break;
 	case IntFlags:
-		result.members.push_back({ Coral::UniformFormat::INT32, fullName , 1, variable.size, variable.padded_size });
+		result.members.push_back({ CO_UNIFORM_FORMAT_INT32, fullName , 1, variable.size, variable.padded_size });
 		break;
 	case FloatFlags:
-		result.members.push_back({ Coral::UniformFormat::FLOAT, fullName , 1, variable.size, variable.padded_size });
+		result.members.push_back({ CO_UNIFORM_FORMAT_FLOAT, fullName , 1, variable.size, variable.padded_size });
 		break;
 	case FloatVectorFlags:
 		switch (traits.numeric.vector.component_count)
 		{
 		case 2:
-			result.members.push_back({ Coral::UniformFormat::VEC2F, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_VEC2F, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 3:
-			result.members.push_back({ Coral::UniformFormat::VEC3F, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_VEC3F, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 4:
-			result.members.push_back({ Coral::UniformFormat::VEC4F, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_VEC4F, fullName , 1, variable.size, variable.padded_size });
 			break;
 		default:
 			assert(false);
@@ -85,13 +85,13 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 		switch (traits.numeric.vector.component_count)
 		{
 		case 2:
-			result.members.push_back({ Coral::UniformFormat::VEC2I, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_VEC2I, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 3:
-			result.members.push_back({ Coral::UniformFormat::VEC3I, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_VEC3I, fullName , 1, variable.size, variable.padded_size });
 			break;
 		case 4:
-			result.members.push_back({ Coral::UniformFormat::VEC4I, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_VEC4I, fullName , 1, variable.size, variable.padded_size });
 			break;
 		default:
 			assert(false);
@@ -100,11 +100,11 @@ insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, cons
 	case MatrixFlags:
 		if (traits.numeric.matrix.column_count == 4 && traits.numeric.matrix.row_count == 4)
 		{
-			result.members.push_back({ Coral::UniformFormat::MAT44F, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_MAT44F, fullName , 1, variable.size, variable.padded_size });
 		}
 		else if (traits.numeric.matrix.column_count == 3 && traits.numeric.matrix.row_count == 3)
 		{
-			result.members.push_back({ Coral::UniformFormat::MAT33F, fullName , 1, variable.size, variable.padded_size });
+			result.members.push_back({ CO_UNIFORM_FORMAT_MAT33F, fullName , 1, variable.size, variable.padded_size });
 		}
 		else
 		{
@@ -153,12 +153,12 @@ ShaderModuleImpl::~ShaderModuleImpl()
 }
 
 
-std::optional<Coral::ShaderModuleCreationError>
-ShaderModuleImpl::init(const ShaderModuleCreateConfig& config)
+std::optional<Coral::ShaderModule::CreateError>
+ShaderModuleImpl::init(const ShaderModule::CreateConfig& config)
 {
-	mName = config.name;
+	mName        = config.name;
 	mShaderStage = config.stage;
-	mEntryPoint = config.entryPoint;
+	mEntryPoint  = config.entryPoint;
 
 	VkShaderModuleCreateInfo createInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
 	createInfo.pCode = (uint32_t*)config.source.data();
@@ -166,12 +166,12 @@ ShaderModuleImpl::init(const ShaderModuleCreateConfig& config)
 
 	if (vkCreateShaderModule(context().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
 	{
-		return ShaderModuleCreationError::INTERNAL_ERROR;
+		return ShaderModule::CreateError::INTERNAL_ERROR;
 	}
 
 	if (!reflect(config.source))
 	{
-		return ShaderModuleCreationError::INTERNAL_ERROR;
+		return ShaderModule::CreateError::INTERNAL_ERROR;
 	}
 
 	return {};
@@ -313,7 +313,7 @@ ShaderModuleImpl::name() const
 }
 
 
-Coral::ShaderStage
+CoShaderStage
 ShaderModuleImpl::shaderStage() const
 {
 	return mShaderStage;

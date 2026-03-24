@@ -1,7 +1,7 @@
 #ifndef CORAL_SHADERLANGUAGE_EXPRESSIONS_HPP
 #define CORAL_SHADERLANGUAGE_EXPRESSIONS_HPP
 
-#include <Coral/ShaderLanguage/Expression.hpp>
+#include <Coral/ShaderLanguage/Value.hpp>
 
 #include <memory>
 #include <string>
@@ -12,45 +12,73 @@
 namespace Coral::ShaderLanguage
 {
 
-template<typename T>
-class ExpressionBase : public Expression
+class Node;
+using NodePtr = std::shared_ptr<Node>;
+using ConstNodePtr = std::shared_ptr<const Node>;
+
+class ExpressionBase
 {
 public:
-	using Expression::Expression;
+	ExpressionBase(ValueType type)
+		: mType(type)
+	{
+	}
 
-	ExpressionType Type() const override { return T::ClassType; }
+	ValueType valueType() const
+	{
+		return mType;
+	}
 
+	NodePtr node()
+	{
+		return mNode.lock();
+	}
+
+	ConstNodePtr node() const
+	{
+		return mNode.lock();
+	}
+
+	virtual void setNode(NodePtr node)
+	{
+		mNode = node;
+	}
+
+private:
+
+	std::weak_ptr<Node> mNode;
+
+	ValueType mType{};
 };
 
 
 /// Class defining a constant scalar value expression
 template<typename Scalar>
-class ConstantExpression : public ExpressionBase<ConstantExpression<Scalar>>
+class ConstantExpression : public ExpressionBase
 {
 public:
 
-	constexpr static ValueType GetValueType() requires std::same_as<Scalar, int> { return ValueType::INT; }
-	constexpr static ValueType GetValueType() requires std::same_as<Scalar, float> { return ValueType::FLOAT; }
-	constexpr static ValueType GetValueType() requires std::same_as<Scalar, bool> { return ValueType::BOOL; }
-
-	constexpr static ExpressionType GetClassType() requires std::same_as<Scalar, int> { return ExpressionType::CONSTANT_INT; }
-	constexpr static ExpressionType GetClassType() requires std::same_as<Scalar, float> { return ExpressionType::CONSTANT_FLOAT; }
-	constexpr static ExpressionType GetClassType() requires std::same_as<Scalar, bool> { return ExpressionType::CONSTANT_BOOL; }
-
-	constexpr static ExpressionType ClassType = GetClassType();
-
-	ConstantExpression(Scalar value)
-		: ExpressionBase<ConstantExpression<Scalar>>(GetValueType(), {})
+	ConstantExpression(Scalar value) requires std::same_as<Scalar, int>
+		: ExpressionBase(ValueType::INT)
 		, mValue(value)
 	{
 	}
 
+	ConstantExpression(Scalar value) requires std::same_as<Scalar, float>
+		: ExpressionBase(ValueType::FLOAT)
+		, mValue(value)
+	{
+	}
+
+	ConstantExpression(Scalar value) requires std::same_as<Scalar, bool>
+		: ExpressionBase(ValueType::BOOL)
+		, mValue(value)
+	{
+	}
 
 	Scalar value() const { return mValue; }
 
 private:
-
-
 
 	Scalar mValue{ 0 };
 };
@@ -75,15 +103,14 @@ enum class DefaultSemantics
 
 
 /// Class defining a shader input attrribute
-class InputAttributeExpression : public ExpressionBase<InputAttributeExpression>
+class InputAttributeExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::INPUT_ATTRIBUTE;
 
 	InputAttributeExpression(const ValueType& type, uint32_t location, std::string_view name)
-		: ExpressionBase(type, {})
-		, mName(name)
+		: ExpressionBase(type)
 		, mLocation(location)
+		, mName(name)
 	{
 	}
 
@@ -91,11 +118,16 @@ public:
 
 	uint32_t location() const { return mLocation; }
 
-	bool InlineIfPossible() const override { return true; }
+	void setNode(NodePtr node) override
+	{
+		ExpressionBase::setNode(node);
+		//node->setInlineIfPossible();
+	}
 
 private:
 
 	uint32_t mLocation;
+
 	std::string mName;
 };
 
@@ -109,26 +141,15 @@ struct AttributeBinding
 using AttributeBindingInfo = std::variant<AttributeBinding, DefaultSemantics>;
 
 /// Class defining a shader output attribute
-class OutputAttributeExpression : public ExpressionBase<OutputAttributeExpression>
+class OutputAttributeExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::OUTPUT_ATTRIBUTE;
 
-	OutputAttributeExpression(ExpressionPtr input, uint32_t location, std::string_view name)
-		: ExpressionBase(input->GetValueType(), { input })
-		, mBindingInfo(AttributeBinding{ std::string(name), location })
-	{
-	}
+	OutputAttributeExpression(ValueType valueType, uint32_t location, std::string_view name);
 
-	OutputAttributeExpression(ExpressionPtr input, DefaultSemantics attribute)
-		: ExpressionBase(input->GetValueType(), { input })
-		, mBindingInfo(attribute)
-	{
-	}
+	OutputAttributeExpression(ValueType valueType, DefaultSemantics attribute);
 
-	const AttributeBindingInfo& BindingInfo() const { return mBindingInfo; }
-
-	bool InlineIfPossible() const override { return true; }
+	const AttributeBindingInfo& BindingInfo() const;
 
 private:
 
@@ -136,14 +157,12 @@ private:
 };
 
 
-class UniformBufferExpression : public ExpressionBase<UniformBufferExpression>
+class UniformBufferInfo
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::UNIFORM_BUFFER;
 
-	UniformBufferExpression(uint32_t location, std::string_view name)
-		: ExpressionBase(ValueType::STRUCT, {})
-		, mLocation(location)
+	UniformBufferInfo(uint32_t location, std::string_view name)
+		: mLocation(location)
 		, mName(name)
 	{}
 
@@ -162,39 +181,48 @@ private:
 	uint32_t mLocation;
 
 	std::string mName;
-
 };
 
 
-class UniformExpression : public ExpressionBase<UniformExpression>
+class UniformExpression : public ExpressionBase
 {
 public:
 
-	constexpr static ExpressionType ClassType = ExpressionType::UNIFORM;
-
-	UniformExpression(const ValueType& type, std::string_view name, std::shared_ptr<UniformBufferExpression> buffer)
-		: ExpressionBase(type, { buffer })
+	UniformExpression(const ValueType& type, std::string_view name, std::shared_ptr<UniformBufferInfo> buffer)
+		: ExpressionBase(type)
 		, mName(name)
+		, mBufferInfo(buffer)
 	{
 	}
 
-	bool InlineIfPossible() const override { return true; }
+	void setNode(NodePtr node) override
+	{
+		ExpressionBase::setNode(node);
+		//node->setInlineIfPossible();
+	}
+
+	std::shared_ptr<const UniformBufferInfo> bufferInfo() const
+	{
+		return mBufferInfo;
+	}
 
 	const std::string& name() const { return mName; }
 
 private:
 
 	std::string mName;
+
+	std::shared_ptr< UniformBufferInfo> mBufferInfo;
+
 };
 
 
-class SamplerExpression : public ExpressionBase<SamplerExpression>
+class SamplerExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::SAMPLER;
 
 	SamplerExpression(uint32_t location, std::string_view name)
-		: ExpressionBase(ValueType::SAMPLER2D, {})
+		: ExpressionBase(ValueType::SAMPLER2D)
 		, mName(name)
 		, mLocation(location)
 	{
@@ -238,13 +266,12 @@ enum class Operator
 };
 
 /// Class defining an arithmetic operator expression
-class OperatorExpression : public ExpressionBase<OperatorExpression>
+class OperatorExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::OPERATOR;
 
-	OperatorExpression(ValueType outputType, ExpressionPtr lhs, Operator op, ExpressionPtr rhs)
-		: ExpressionBase(outputType, { lhs, rhs })
+	OperatorExpression(ValueType outputType, Operator op)
+		: ExpressionBase(outputType)
 		, mOperator(op)
 	{
 	}
@@ -258,13 +285,12 @@ private:
 
 
 /// Class defining a cast operator expression
-class CastExpression : public ExpressionBase<CastExpression>
+class CastExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::CAST;
 
-	CastExpression(ValueType outputType, ExpressionPtr input)
-		: ExpressionBase(outputType, { input })
+	CastExpression(ValueType outputType)
+		: ExpressionBase(outputType)
 	{
 	}
 };
@@ -290,14 +316,12 @@ enum class NativeFunction
 
 
 /// Class defining a native function call in the shader graph
-class NativeFunctionExpression : public ExpressionBase<NativeFunctionExpression>
+class NativeFunctionExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::NATIVE_FUNCTION;
 
-	template<typename ...ExpressionPtrs>
-	NativeFunctionExpression(ValueType valueType, NativeFunction function, ExpressionPtrs... inputs)
-		: ExpressionBase(valueType, { inputs... })
+	NativeFunctionExpression(ValueType valueType, NativeFunction function)
+		: ExpressionBase(valueType)
 		, mFunction(function)
 	{
 	}
@@ -311,19 +335,12 @@ private:
 
 
 /// Class defining a native constructor call in the shader graph
-class ConstructorExpression : public ExpressionBase<ConstructorExpression>
+class ConstructorExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::CONSTRUCTOR;
 
 	ConstructorExpression(ValueType valueType)
-		: ExpressionBase(valueType, {  })
-	{
-	}
-
-	template<typename ...ExpressionPtrs>
-	ConstructorExpression(ValueType valueType, ExpressionPtrs... inputs)
-		: ExpressionBase(valueType, std::vector<ExpressionPtr>{ (inputs)... })
+		: ExpressionBase(valueType)
 	{
 	}
 };
@@ -339,13 +356,12 @@ enum class Swizzle
 };
 
 /// Class defining a swizzle operation in the shader graph
-class SwizzleExpression : public ExpressionBase<SwizzleExpression>
+class SwizzleExpression : public ExpressionBase
 {
 public:
-	constexpr static ExpressionType ClassType = ExpressionType::SWIZZLE;
 
-	SwizzleExpression(ValueType outputType, Swizzle swizzle, ExpressionPtr input)
-		: ExpressionBase(outputType, { input })
+	SwizzleExpression(ValueType outputType, Swizzle swizzle)
+		: ExpressionBase(outputType)
 		, mSwizzle(swizzle)
 	{
 	}
@@ -356,6 +372,20 @@ private:
 
 	Swizzle mSwizzle;
 };
+
+
+using Expression = std::variant<ConstantExpression<float>, 
+	                            ConstantExpression<int>, 
+	                            ConstantExpression<bool>,
+	                            InputAttributeExpression,
+	                            OutputAttributeExpression,
+	                            UniformExpression,
+	                            SamplerExpression,
+	                            OperatorExpression,
+	                            CastExpression,
+	                            NativeFunctionExpression,
+	                            ConstructorExpression,
+	                            SwizzleExpression>;
 
 } // namespace Coral::ShaderLanguage
 

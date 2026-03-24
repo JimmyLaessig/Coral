@@ -9,6 +9,8 @@
 namespace Coral::ShaderLanguage
 {
 
+class Node;
+
 // ============================================================
 //  FunctionTraits — handles function pointers
 // ============================================================
@@ -16,12 +18,12 @@ namespace Coral::ShaderLanguage
 template <typename T>
 struct FunctionTraits;
 
-// function pointer
-template <typename R, typename... Args>
-struct FunctionTraits<R(*)(Args...)>
+template <typename C, typename R, typename... Args>
+struct FunctionTraits<R(C::*)(Args...)>
 {
+	using ClassType  = C;
 	using ReturnType = R;
-	using ArgsTuple = std::tuple<std::remove_cvref_t<Args>...>;
+	using ArgsTuple  = std::tuple<std::remove_cvref_t<Args>...>;
 };
 
 
@@ -29,67 +31,45 @@ class ShaderGraph
 {
 public:
 
-	template<typename Fun>
-	void SetShaderFunction(Fun f)
+	template<typename T>
+	ShaderGraph(T&& shader)
 	{
-		InvokeShaderFunction(f);
-	}
+		auto main = &T::main;
 
-	std::vector<const InputAttributeExpression*> Inputs() const;
-
-	std::vector<const OutputAttributeExpression*> Outputs() const;
-
-	std::vector<const UniformBufferExpression*> UniformBuffers() const;
-
-	std::vector<const Expression*> ExpressionList() const;
-
-	template<typename T, typename ...Args>
-	static std::shared_ptr<T> PushExpression(Args&&... args)
-	{
-		auto expression = std::make_shared<T>(std::forward<Args>(args)...);
-		if (sCurrentShaderModule)
-		{
-			sCurrentShaderModule->mInstructions.push_back(expression);
-		}
-		else
-		{
-			assert(false);
-		}
-
-		return expression;
-	}
-
-	template<typename T, typename ...Args>
-	static std::shared_ptr<Expression> ReplaceExpression(std::shared_ptr<Expression> old, Args&&... args)
-	{
-		auto expression = std::make_shared<T>(std::forward<Args>(args)...);
-
-		ReplaceExpressionImpl(old, expression);
-
-		return expression;
-	}
-
-private:
-
-	static void ReplaceExpressionImpl(std::shared_ptr<Expression> old, std::shared_ptr<Expression> newExpression);
-
-	template<typename Func>
-	void InvokeShaderFunction(Func func)
-	{
-		using ArgsTuple = typename FunctionTraits<Func>::ArgsTuple;
+		using Args = FunctionTraits<decltype(main)>::ArgsTuple;
 
 		sCurrentShaderModule = this;
-
 		{
-			auto result = std::apply(func, ArgsTuple{});
+			Args args{};
+
+			auto result = std::apply(
+				[&](auto&&... unpacked) {
+					return (shader.*main)(std::forward<decltype(unpacked)>(unpacked)...);
+				},
+				args
+			);
 		}
 
 		sCurrentShaderModule = nullptr;
 	}
 
+	std::vector<const InputAttributeExpression*> inputs() const;
+
+	std::vector<const OutputAttributeExpression*> outputs() const;
+
+	std::vector<const UniformExpression*> uniforms() const;
+
+	std::vector<std::shared_ptr<const Node>> expressions() const;
+
+	void addNode(std::shared_ptr<Node> node);
+
+	static ShaderGraph* current() { return sCurrentShaderModule; }
+
+private:
+
 	static inline ShaderGraph* sCurrentShaderModule{ nullptr };
 
-	std::vector<ExpressionPtr> mInstructions;
+	std::vector<NodePtr> mNodes;
 
 }; // class ShaderModule
 

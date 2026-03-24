@@ -24,11 +24,11 @@ public:
 
 	virtual ~ShaderModuleImpl();
 
-	std::optional<ShaderModuleCreationError> init(const Coral::ShaderModuleCreateConfig& config);
+	std::optional<ShaderModule::CreateError> init(const Coral::ShaderModule::CreateConfig& config);
 
 	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
-	ShaderStage shaderStage() const override;
+	CoShaderStage shaderStage() const override;
 
 	const std::string& name() const override;
 
@@ -56,7 +56,7 @@ private:
 
 	std::string mEntryPoint;
 
-	Coral::ShaderStage mShaderStage{ Coral::ShaderStage::VERTEX };
+	CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
 
 	VkShaderModule mShaderModule{ VK_NULL_HANDLE };
 };

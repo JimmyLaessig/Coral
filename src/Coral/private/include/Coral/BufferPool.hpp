@@ -17,7 +17,7 @@ class BufferPool
 {
 public:
 
-	BufferPool(Coral::Context& context, Coral::BufferType bufferType, bool cpuVisible);
+	BufferPool(Coral::Context& context, CoBufferType bufferType, bool cpuVisible);
 
 	/// Request a buffer from the pool
 	/**
@@ -28,13 +28,13 @@ public:
 
 private:
 
-	Coral::Context* mContext{ nullptr };
+	Coral::Context& mContext;
 
 	std::multimap<size_t, Coral::BufferPtr> mBufferPool;
 
 	std::mutex mBufferPoolProtection;
 
-	Coral::BufferType mBufferType{ Coral::BufferType::STORAGE_BUFFER };
+	CoBufferType mBufferType{ CO_BUFFER_TYPE_STORAGE };
 
 	bool mCpuVisible{ false };
 }; 

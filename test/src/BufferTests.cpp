@@ -25,7 +25,7 @@ TEST_CASE_PERSISTENT_FIXTURE(UnitTests::CoralTestFixture, "Buffer creation tests
 		auto buffer       = ctx.createBuffer(config);
 
 		REQUIRE_FALSE(buffer);
-		CHECK(buffer.error() == Coral::BufferCreationError::INVALID_SIZE);
+		CHECK(buffer.error() == Coral::Buffer::CreateError::INVALID_SIZE);
 	}
 
 	SECTION("Non-zero buffer - creation should succeed")

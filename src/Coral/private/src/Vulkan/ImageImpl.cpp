@@ -10,14 +10,14 @@ namespace
 {
 
 VkImageAspectFlags
-getAspectFlags(Coral::PixelFormat format)
+getAspectFlags(CoPixelFormat format)
 {
 	switch (format)
 	{
-		case Coral::PixelFormat::DEPTH16:
-		case Coral::PixelFormat::DEPTH32_F:
+		case CO_PIXEL_FORMAT_DEPTH16:
+		case CO_PIXEL_FORMAT_DEPTH32_F:
 			return VK_IMAGE_ASPECT_DEPTH_BIT;
-		case Coral::PixelFormat::DEPTH24_STENCIL8:
+		case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:
 			return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 		default:
 			return VK_IMAGE_ASPECT_COLOR_BIT;
@@ -26,7 +26,7 @@ getAspectFlags(Coral::PixelFormat format)
 
 
 VkImageUsageFlags
-getUsageFlags(Coral::PixelFormat format)
+getUsageFlags(CoPixelFormat format)
 {
 	VkImageUsageFlags flags = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
 
@@ -61,7 +61,7 @@ ImageImpl::~ImageImpl()
 
 
 bool
-ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount, ImageUsageHint usageHint)
+ImageImpl::init(VkImage image, CoPixelFormat format, uint32_t width, uint32_t height, uint32_t mipLevelCount,CoImageUsageHint usageHint)
 {
 	mImage			= image;
 	mFormat			= format;
@@ -74,10 +74,10 @@ ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32
 
 	switch (usageHint)
 	{
-		case ImageUsageHint::FRAMEBUFFER_ATTACHMENT:
+		case CO_IMAGE_USAGE_HINT_FRAMEBUFFER_ATTACHMENT:
 			mPreferredImageLayout = isDepthFormat(format) ? VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL : VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 			break;
-		case ImageUsageHint::SHADER_READ_ONLY:
+		case CO_IMAGE_USAGE_HINT_SHADER_READ_ONLY:
 			mPreferredImageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 			break;
 		default:
@@ -103,12 +103,12 @@ ImageImpl::init(VkImage image, Coral::PixelFormat format, uint32_t width, uint32
 }
 
 
-std::optional<Coral::ImageCreationError>
-ImageImpl::init(const Coral::ImageCreateConfig& config)
+std::optional<Coral::Image::CreateError>
+ImageImpl::init(const Coral::Image::CreateConfig& config)
 {
 	mFormat		= config.format;
-	mWidth		= config.width;
-	mHeight		= config.height;
+	mWidth		= config.extent.width;
+	mHeight		= config.extent.height;
 	mIsOwner	= true;
 
 	if (config.hasMipMaps)
@@ -123,8 +123,8 @@ ImageImpl::init(const Coral::ImageCreateConfig& config)
 	VkImageCreateInfo createInfo{ VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
 	createInfo.imageType		= VK_IMAGE_TYPE_2D;
 	createInfo.arrayLayers		= 1;
-	createInfo.extent.width		= config.width;
-	createInfo.extent.height	= config.height;
+	createInfo.extent.width		= mWidth;
+	createInfo.extent.height	= mHeight;
 	createInfo.extent.depth		= 1;
 	createInfo.mipLevels		= mMipLevelCount;
 	createInfo.format			= convert(config.format);
@@ -141,12 +141,12 @@ ImageImpl::init(const Coral::ImageCreateConfig& config)
 	VmaAllocationInfo info{};
 	if (vmaCreateImage(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mImage, &mAllocation, &info) != VK_SUCCESS)
 	{
-		return ImageCreationError::INTERNAL_ERROR;
+		return Image::CreateError::INTERNAL_ERROR;
 	}
 
-	if (!init(mImage, config.format, config.width, config.height, mMipLevelCount, config.usageHint))
+	if (!init(mImage, config.format, mWidth, mHeight, mMipLevelCount, config.usageHint))
 	{
-		return ImageCreationError::INTERNAL_ERROR;
+		return Image::CreateError::INTERNAL_ERROR;
 	}
 
 	mIsOwner = true;
@@ -183,7 +183,7 @@ ImageImpl::height() const
 }
 
 
-Coral::PixelFormat
+CoPixelFormat
 ImageImpl::format() const
 {
 	return mFormat;

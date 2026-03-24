@@ -32,13 +32,10 @@ enum class ValueType
 	FLOAT4X4,
 	/// 2D texture sampler
 	SAMPLER2D,
-
-	STRUCT,
 };
 
 
-class Expression;
-class ShaderGraph;
+class Node;
 
 /// Base struct for all values of shader graph expressions
 /**
@@ -54,24 +51,19 @@ struct Value
 {
 public:
 
-	Value();
-
-	Value(std::shared_ptr<Expression> source);
+	Value(std::shared_ptr<Node> source);
 
 	// Get the wrapped ShaderGraph node
-	std::shared_ptr<Expression> source() const &;
+	std::shared_ptr<Node> node() const &;
 
 	// Get the wrapped ShaderGraph node
-	std::shared_ptr<Expression> source() &&;
+	std::shared_ptr<Node> node() &&;
 
-	void setSource(std::shared_ptr<Expression> source);
-
-	/// Get the type id of the value
-	ValueType typeId() const;
+	void setNode(std::shared_ptr<Node> source);
 
 private:
 
-	std::shared_ptr<Expression> mSource;
+	std::shared_ptr<Node> mNode;
 };
 
 } // namespace ShaderLanguage 

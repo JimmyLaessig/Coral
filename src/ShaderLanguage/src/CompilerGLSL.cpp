@@ -1,6 +1,8 @@
 #include <Coral/ShaderLanguage/CompilerGLSL.hpp>
 
 #include <Coral/ShaderLanguage/Visitor.hpp>
+#include <Coral/ShaderLanguage/Node.hpp>
+
 #include <cassert>
 #include <cmath>
 #include <format>
@@ -121,31 +123,6 @@ toString(Swizzle swizzle)
 
 constexpr auto TAB = "    ";
 
-
-template<typename Visitor>
-auto visit(const Expression& expr, Visitor visitor)
-{
-	switch (expr.Type())
-	{
-		case ExpressionType::CONSTANT_FLOAT:   return visitor(static_cast<const ConstantExpression<float>&>(expr));
-		case ExpressionType::CONSTANT_INT:     return visitor(static_cast<const ConstantExpression<int>&>(expr));
-		case ExpressionType::CONSTANT_BOOL:    return visitor(static_cast<const ConstantExpression<bool>&>(expr));
-		case ExpressionType::INPUT_ATTRIBUTE:  return visitor(static_cast<const InputAttributeExpression&>(expr));
-		case ExpressionType::OUTPUT_ATTRIBUTE: return visitor(static_cast<const OutputAttributeExpression&>(expr));
-		case ExpressionType::UNIFORM_BUFFER:   return visitor(static_cast<const UniformBufferExpression&>(expr));
-		case ExpressionType::UNIFORM:          return visitor(static_cast<const UniformExpression&>(expr));
-		case ExpressionType::NATIVE_FUNCTION:  return visitor(static_cast<const NativeFunctionExpression&>(expr));
-		case ExpressionType::CONSTRUCTOR:      return visitor(static_cast<const ConstructorExpression&>(expr));
-		case ExpressionType::CAST:             return visitor(static_cast<const CastExpression&>(expr));
-		case ExpressionType::SWIZZLE:          return visitor(static_cast<const SwizzleExpression&>(expr));
-		//case ExpressionType::CONDITIONAL:      return visitor(static_cast<const ConditionalExpression&>(expr));
-		case ExpressionType::OPERATOR:         return visitor(static_cast<const OperatorExpression&>(expr));
-		case ExpressionType::SAMPLER:          return visitor(static_cast<const SamplerExpression&>(expr));
-	}
-
-	std::unreachable();
-}
-
 } // namespace
 
 
@@ -200,13 +177,6 @@ CompilerGLSL::format(const OutputAttributeExpression& expr)
 
 
 std::string
-CompilerGLSL::format(const UniformBufferExpression& expr)
-{
-	return expr.name();
-}
-
-
-std::string
 CompilerGLSL::format(const UniformExpression& expr)
 {
 	return expr.name();
@@ -216,11 +186,11 @@ CompilerGLSL::format(const UniformExpression& expr)
 std::string
 CompilerGLSL::format(const OperatorExpression& expr)
 {
-	auto inputs = expr.Inputs();
+	auto inputs = expr.node()->inputs();
 	if (expr.getOperator() == Operator::ASSIGNMENT)
 	{
 		auto lhs = resolve(*inputs[0]);
-		mNameLookUp[&expr] = lhs;
+		mNameLookUp[expr.node().get()] = lhs;
 		return std::format("{} {} {}",
 			               lhs,
 			               toString(expr.getOperator()),
@@ -241,26 +211,25 @@ CompilerGLSL::format(const NativeFunctionExpression& expr)
 {
 	return std::format("{}({})",
 		               toString(expr.Function()),
-					   formatFunctionArgumentList(expr.Inputs()));
+					   formatFunctionArgumentList(expr.node()->inputs()));
 }
 
 
 std::string
 CompilerGLSL::format(const ConstructorExpression& expr)
 {
-
 	return std::format("{}({})",
-					   toString(expr.GetValueType()),
-					   formatFunctionArgumentList(expr.Inputs()));
+					   toString(expr.valueType()),
+					   formatFunctionArgumentList(expr.node()->inputs()));
 }
 
 
 std::string
 CompilerGLSL::format(const CastExpression& expr)
 {
-	auto inputs = expr.Inputs();
+	auto inputs = expr.node()->inputs();
 	return std::format("({}){}",
-					   toString(expr.GetValueType()),
+					   toString(expr.valueType()),
 					   resolve(*inputs.front()));
 }
 
@@ -268,7 +237,7 @@ CompilerGLSL::format(const CastExpression& expr)
 std::string
 CompilerGLSL::format(const SwizzleExpression& expr)
 {
-	auto inputs = expr.Inputs();
+	auto inputs = expr.node()->inputs();
 	return std::format("{}.{}", 
 		               resolve(*inputs.front()),
 	                   toString(expr.swizzle()));
@@ -294,27 +263,27 @@ CompilerGLSL::format(const SamplerExpression& expr)
 
 
 std::string
-CompilerGLSL::format(const Expression* expr)
+CompilerGLSL::format(const Expression& expr)
 {
-	return visit(*expr, Visitor{ [this](const auto& e) { return format(e); } });
+	return std::visit(Visitor{ [this](const auto& e) { return format(e); }}, expr);
 }
 
 
 std::string
-CompilerGLSL::resolve(const Expression& expr)
+CompilerGLSL::resolve(const Node& node)
 {
-	auto iter = mNameLookUp.find(&expr);
+	auto iter = mNameLookUp.find(&node);
 	if (iter != mNameLookUp.end())
 	{
 		return iter->second;
 	}
 
-	return format(&expr);
+	return format(node.expression());
 }
 
 
 std::string
-CompilerGLSL::formatFunctionArgumentList(const std::vector<const Expression*>& args)
+CompilerGLSL::formatFunctionArgumentList(const std::vector<ConstNodePtr>& args)
 {
 	std::stringstream ss;
 
@@ -337,19 +306,13 @@ CompilerGLSL::buildUniformBlocksString()
 {
 	std::stringstream ss;
 
-	std::unordered_map<const UniformBufferExpression*, std::vector<const UniformExpression*>> expressionsSorted;
+	std::unordered_map<const UniformBufferInfo*, std::vector<const UniformExpression*>> expressionsSorted;
 
 	for (const auto& expression : mInstructionsList)
 	{
-		if (auto uniform = expression->Cast<UniformExpression>())
+		if (auto uniform = std::get_if<UniformExpression>(&expression->expression()))
 		{
-			for (auto input : uniform->Inputs())
-			{
-				if (auto uniformBuffer = input->Cast<UniformBufferExpression>())
-				{
-					expressionsSorted[uniformBuffer].push_back(uniform);
-				}
-			}
+			expressionsSorted[uniform->bufferInfo().get()].push_back(uniform);
 		}
 	}
 
@@ -360,7 +323,7 @@ CompilerGLSL::buildUniformBlocksString()
 
 		for (const auto& member : members)
 		{
-			ss << TAB << toString(member->GetValueType()) << " " << member->name() << ";\n";
+			ss << TAB << toString(member->valueType()) << " " << member->name() << ";\n";
 		}
 
 		ss << "};\n";
@@ -378,9 +341,9 @@ CompilerGLSL::buildSamplerString()
 
 	std::set<const SamplerExpression*> samplers;
 
-	for (const auto& expression : mInstructionsList)
+	for (const auto& node : mInstructionsList)
 	{
-		if (auto sampler = expression->Cast<SamplerExpression>())
+		if (auto sampler = std::get_if<SamplerExpression>(&node->expression()))
 		{
 			samplers.insert(sampler);
 		}
@@ -401,12 +364,12 @@ std::string
 CompilerGLSL::buildInputAttributeDefinitionsString()
 {
 	std::map<uint32_t, std::string> attributesSorted;
-	for (const auto& attr : mShader->Inputs())
+	for (const auto& attr : mShader->inputs())
 	{
 		auto location = attr->location();
 		attributesSorted[location] = std::format("layout (location = {}) in {} {};\n",
 			                                     location,
-			                                     toString(attr->GetValueType()), format(*attr));
+			                                     toString(attr->valueType()), format(*attr));
 	}
 
 	std::stringstream ss;
@@ -424,7 +387,7 @@ std::string
 CompilerGLSL::buildOutputAttributeDefinitionsString()
 {
 	std::map<uint32_t, std::string> attributesSorted;
-	for (const auto& attr : mShader->Outputs())
+	for (const auto& attr : mShader->outputs())
 	{
 		std::visit(Visitor{
 			[](DefaultSemantics)
@@ -434,7 +397,7 @@ CompilerGLSL::buildOutputAttributeDefinitionsString()
 			{
 				attributesSorted[binding.location] = std::format("layout (location = {}) out {} {};\n",
 					                                             binding.location,
-													             toString(attr->GetValueType()),
+													             toString(attr->valueType()),
 													             format(*attr));
 			}
 		}, attr->BindingInfo());
@@ -458,46 +421,45 @@ CompilerGLSL::buildMainFunctionString()
 	ss << "void main()" << std::endl;
 	ss << "{" << std::endl;
 
-	for (const auto expr : mInstructionsList)
+	for (auto node : mInstructionsList)
 	{
-		if (expr->Cast<InputAttributeExpression>()  || 
-			expr->Cast<OutputAttributeExpression>() || 
-			expr->Cast<UniformBufferExpression>()   || 
-			expr->Cast<UniformExpression>()         ||
-			expr->Cast<SamplerExpression>())
+		const auto& expr = node->expression();
+
+		if (std::holds_alternative<InputAttributeExpression>(expr)  ||
+			std::holds_alternative<OutputAttributeExpression>(expr) ||
+			std::holds_alternative<UniformExpression>(expr)         ||
+			std::holds_alternative<SamplerExpression>(expr))
 		{
 			continue;
 		}
 
-		if (auto op = expr->Cast<OperatorExpression>())
+		if (auto op = std::get_if<OperatorExpression>(&expr))
 		{
 			if (op->getOperator() == Operator::ASSIGNMENT)
 			{
-				ss << TAB << format(expr) << ";\n";
+				ss << TAB << format(*op) << ";\n";
 			}
-
-			continue;
 		}
 
-		if (!expr->InlineIfPossible())
+		if (!node->inlineIfPossible())
 		{
-			mNameLookUp[expr] = std::format("{}{}", getTypeShortName(expr->GetValueType()), mVarCounter++);
-			ss << TAB << std::format("{} {} = {};\n", toString(expr->GetValueType()), mNameLookUp[expr], format(expr));
+			mNameLookUp[node.get()] = std::format("{}{}", getTypeShortName(node->valueType()), mVarCounter++);
+			ss << TAB << std::format("{} {} = {};\n", toString(node->valueType()), mNameLookUp[node.get()], format(node->expression()));
 			continue;
 		}
 	}
 
-	auto outputs = mShader->Outputs();
+	auto outputs = mShader->outputs();
 	for (const auto& output : outputs)
 	{
-		auto input = output->Inputs().front();
-		if (input->InlineIfPossible())
+		auto input = output->node()->inputs().front();
+		if (input->inlineIfPossible())
 		{
-			ss << TAB << std::format("{} = {};\n", format(output), format(input));
+			ss << TAB << std::format("{} = {};\n", format(*output), format(input->expression()));
 		}
 		else
 		{
-			ss << TAB << std::format("{} = {};\n", format(output), mNameLookUp[input]);
+			ss << TAB << std::format("{} = {};\n", format(*output), mNameLookUp[input.get()]);
 		}
 	}
 
@@ -512,7 +474,7 @@ CompilerGLSL::Compile(const ShaderGraph& shaderModule, ShaderStage stage)
 {
 	mShader = &shaderModule;
 	
-	mInstructionsList = mShader->ExpressionList();
+	mInstructionsList = mShader->expressions();
 
 	Result result;
 

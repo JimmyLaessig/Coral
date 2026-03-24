@@ -33,15 +33,15 @@ CommandQueueImpl::~CommandQueueImpl()
 }
 
 
-std::expected<Coral::CommandBufferPtr, Coral::CommandBufferCreationError>
-CommandQueueImpl::createCommandBuffer(const Coral::CommandBufferCreateConfig& config)
+std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError>
+CommandQueueImpl::createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config)
 {
 	auto cb = new Coral::Vulkan::CommandBufferImpl(*this);
 
 	if (!cb->init(config))
 	{
 		delete cb;
-		return std::unexpected(Coral::CommandBufferCreationError::INTERNAL_ERROR);
+		return std::unexpected(Coral::CommandBuffer::CreateError::INTERNAL_ERROR);
 	}
 
 	return Coral::CommandBufferPtr(cb);
@@ -49,7 +49,7 @@ CommandQueueImpl::createCommandBuffer(const Coral::CommandBufferCreateConfig& co
 
 
 bool
-CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fence* fence)
+CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::FencePtr fence)
 {
 	std::lock_guard lock(mQueueProtection);
 
@@ -57,7 +57,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 	std::vector<VkPipelineStageFlags> waitFlags;
 	for (auto semaphore : info.waitSemaphores)
 	{
-		waitSemaphores.push_back(static_cast<const Vulkan::SemaphoreImpl*>(semaphore)->getVkSemaphore());
+		waitSemaphores.push_back(std::static_pointer_cast<Vulkan::SemaphoreImpl>(semaphore)->getVkSemaphore());
 		// Wait with execution of all commands until all semaphores are signaled
 		waitFlags.push_back(VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
 	}
@@ -65,7 +65,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 	std::vector<VkSemaphore> signalSemaphores;
 	for (auto semaphore : info.signalSemaphores)
 	{
-		signalSemaphores.push_back(static_cast<Vulkan::SemaphoreImpl*>(semaphore)->getVkSemaphore());
+		signalSemaphores.push_back(std::static_pointer_cast<Vulkan::SemaphoreImpl>(semaphore)->getVkSemaphore());
 	}
 
 	// Collect all command buffers and staging buffers used in the command buffers
@@ -74,7 +74,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 
 	for (auto commandBuffer : info.commandBuffers)
 	{
-		auto commandBufferImpl = static_cast<Vulkan::CommandBufferImpl*>(commandBuffer);
+		auto commandBufferImpl = std::static_pointer_cast<Vulkan::CommandBufferImpl>(commandBuffer);
 		commandBuffers.push_back(commandBufferImpl->getVkCommandBuffer());
 
 		auto commandBufferStagingBuffers = commandBufferImpl->getStagingBuffers();
@@ -92,7 +92,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
 	// decrement the count. Idling the command queue must wait until the in-flight staging buffer count is 0.
 
 	// If an external fence is used, reuse this fence, otherwise create a temporary fence object.
-	VkFence vkFence = fence ? static_cast<Coral::Vulkan::FenceImpl*>(fence)->getVkFence() : VK_NULL_HANDLE;
+	VkFence vkFence = fence ? std::static_pointer_cast<Coral::Vulkan::FenceImpl>(fence)->getVkFence() : VK_NULL_HANDLE;
 	bool ownsFence = false;
 	if (!stagingBuffers.empty() && !vkFence)
 	{
