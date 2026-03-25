@@ -1,6 +1,6 @@
 
 #include <Coral/Util/UniformBlockBuilder.hpp>
-#include <Coral/ShaderLanguage.hpp>
+#include <csl/csl.hpp>
 
 #include <iostream>
 #include <string_view>
@@ -137,7 +137,7 @@ shaderSource()
 		csl::ShaderGraph shaderGraph(VertexShader{});
 
 
-		Coral::ShaderLanguage::CompilerSPV compiler;
+		csl::CompilerSPV compiler;
 		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::VERTEX);
 
 		std::cout << "-------------------- Vertex shader --------------------" << std::endl;
@@ -156,7 +156,7 @@ shaderSource()
 
 	{
 		csl::ShaderGraph shaderGraph(FragmentShader{});
-		Coral::ShaderLanguage::CompilerSPV compiler;
+		csl::CompilerSPV compiler;
 		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::FRAGMENT);
 
 		std::cout << "-------------------- Fragment shader --------------------" << std::endl;
