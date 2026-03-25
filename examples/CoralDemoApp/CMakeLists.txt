@@ -58,7 +58,7 @@ coral_configure_target(${CORAL_DEMO_APP_TARGET_NAME}
         glfw
         stb
         Coral
-        CoralShaderLanguage
+        csl
         CoralUtil)
 
 target_sources(${CORAL_DEMO_APP_TARGET_NAME} PRIVATE

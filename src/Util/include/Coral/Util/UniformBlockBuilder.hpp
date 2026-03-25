@@ -35,7 +35,7 @@ class Layout
  * 5. If the member is a column-major matrix with C columns and R rows, the matrix is stored identically to an
  *    array of C column vectors with R components each, according to rule (4).
  * 6. If the member is an array of S column - major matrices with C columns and R rows, the matrix is stored
- *    identically to a row of S × C column vectors with R components each, according to rule(4).
+ *    identically to a row of S * C column vectors with R components each, according to rule(4).
  */
 template<>
 class Layout<CO_UNIFORM_BUFFER_LAYOUT_STD_140>
@@ -133,7 +133,7 @@ getMemberLayouts(const CoUniformBlockDefinition& definition)
 
         offset += stride * member.count;
     }
-    
+
     return result;
 }
 
@@ -142,7 +142,7 @@ namespace Coral
 {
 
 template<typename Vec2F, typename Vec3F, typename Vec4F, typename Vec2I, typename Vec3I, typename Vec4I, typename Mat33F, typename Mat44F>
-class CORALUTIL_API UniformBlockBuilder
+class UniformBlockBuilder
 {
 public:
 

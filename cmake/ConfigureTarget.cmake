@@ -35,7 +35,7 @@ get_target_property(TARGET_TYPE ${TARGET_NAME} TYPE)
 # Generate the export header
 ###############################################################################
 
-if (NOT(${TARGET_TYPE} STREQUAL "EXECUTABLE"))
+if ((${TARGET_TYPE} STREQUAL "STATIC_LIBRARY") OR (${TARGET_TYPE} STREQUAL "SHARED_LIBRARY"))
     # The GenerateExportHeader module contains the function definition for 
     # generate_export_header()
     include(GenerateExportHeader)
@@ -98,10 +98,13 @@ endif()
 ###############################################################################
 # Set target properties
 ###############################################################################
-
 # CMake requires the language standard to be specified as compile feature
 # when a target provides C++20 modules and the target will be installed 
-target_compile_features(${TARGET_NAME} PUBLIC cxx_std_23)
+if (${TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY")
+    target_compile_features(${TARGET_NAME} INTERFACE cxx_std_23)
+else()
+    target_compile_features(${TARGET_NAME} PUBLIC cxx_std_23)
+endif()
 
 # The visual studio compiler creates a .pdb files containing the debug 
 # information of the library. Setting the following property ensures the
@@ -117,12 +120,19 @@ endif()
 # Link the target
 ###############################################################################
 
-# (https://cmake.org/cmake/help/latest/command/target_link_libraries.html)
-target_link_libraries(${TARGET_NAME}
-    PRIVATE
-        ${INPUT_PRIVATE_DEPENDENCIES}
-    PUBLIC
-        ${INPUT_PUBLIC_DEPENDENCIES})
+    # (https://cmake.org/cmake/help/latest/command/target_link_libraries.html)
+if (${TARGET_TYPE} STREQUAL "INTERFACE_LIBRARY")
+    target_link_libraries(${TARGET_NAME}
+        INTERFACE
+            ${INPUT_PRIVATE_DEPENDENCIES}
+            ${INPUT_PUBLIC_DEPENDENCIES})
+else()
+    target_link_libraries(${TARGET_NAME}
+        PRIVATE
+            ${INPUT_PRIVATE_DEPENDENCIES}
+        PUBLIC
+            ${INPUT_PUBLIC_DEPENDENCIES})
+endif()
 
 ###############################################################################
 # Install the target

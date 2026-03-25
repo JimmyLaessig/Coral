@@ -10,7 +10,6 @@ include(${CMAKE_BINARY_DIR}/cmake/get_cpm.cmake)
 include(catch2.cmake)
 include(glfw.cmake)
 include(glm.cmake)
-include(glslang.cmake)
 include(imgui.cmake)
 include(spirv-reflect.cmake)
 include(stb.cmake)
@@ -18,7 +17,7 @@ include(vk-bootstrap.cmake)
 include(vma.cmake)
 include(volk.cmake)
 include(vulkan-headers.cmake)
-
+include(csl.cmake)
 # Put all third-party dependencies into a separate folders to cleanup the IDE project explorer.
 
 function (get_all_targets result_var directory)
