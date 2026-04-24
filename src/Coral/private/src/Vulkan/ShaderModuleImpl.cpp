@@ -161,7 +161,7 @@ ShaderModuleImpl::init(const ShaderModule::CreateConfig& config)
 	mEntryPoint  = config.entryPoint;
 
 	VkShaderModuleCreateInfo createInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-	createInfo.pCode = (uint32_t*)config.source.data();
+	createInfo.pCode    = (uint32_t*)config.source.data();
 	createInfo.codeSize = config.source.size();
 
 	if (vkCreateShaderModule(context().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
@@ -266,12 +266,6 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 
 	std::sort(mInputAttributeLayout.begin(), mInputAttributeLayout.end(), 
 			  [](const auto& lhs, const auto& rhs) { return lhs.location < rhs.location; });
-
-	uint32_t binding{ 0 };
-	for (auto& description : mInputAttributeLayout)
-	{
-		description.binding = binding++;
-	}
 
 	std::vector<SpvReflectInterfaceVariable*> outputVariables;
 	{

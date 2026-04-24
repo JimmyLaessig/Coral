@@ -124,18 +124,12 @@ typedef struct
 	uint32_t firstIndex;
 } CoDrawIndexInfo;
 
-typedef enum
-{
-	CO_VIEWPORT_MODE_Y_UP,
-	CO_VIEWPORT_MODE_Y_DOWN
-} CoViewportMode;
 
 typedef struct
 {
 	CoRectangle viewport;
 	float minDepth;
 	float maxDepth;
-	CoViewportMode mode;
 } CoViewportInfo;
 
 
@@ -175,12 +169,12 @@ CORAL_API CoResult coCommandBufferGenerateMipMaps(CoCommandBuffer commandBuffer,
 /// Bind the vertex buffer
 /**
  * \param buffer The buffer containing the vertex attribute data
- * \param binding Index of the vertex input whose state is updated by the command
+ * \param location The vertex attribute whose state is updated by the command
  * \param offset The offset from the base address of the buffer to the first element in bytes
  * \param stride The byte stride between attributes in the buffer. If zero, the elements are assumed to be tightly
  * packed and the stride will be set to the byte size of one element.
  */
-CORAL_API CoResult coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding, size_t offset, size_t stride);
+CORAL_API CoResult coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t location, size_t offset, size_t stride);
 
 /// Bind the index buffer
 /**
@@ -197,7 +191,8 @@ CORAL_API CoResult coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, Co
 CORAL_API CoResult coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* info);
 
 ///
-CORAL_API CoResult coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding);
+CORAL_API CoResult coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding, CoShaderStageFlags shaderStages);
+
 
 ///
 CORAL_API CoResult coCommandBufferBindImage(CoCommandBuffer commandBuffer, CoImage image, uint32_t binding);

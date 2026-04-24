@@ -302,12 +302,12 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
 	for (const auto& info : vertexShader->inputAttributeLayout())
 	{
 		auto& bindingDescription		= bindingDescriptions.emplace_back();
-		bindingDescription.binding		= info.binding;
+		bindingDescription.binding		= info.location;
 		bindingDescription.inputRate	= VK_VERTEX_INPUT_RATE_VERTEX;
 		bindingDescription.stride		= 0;
 
 		auto& attributeDescription		= attributeDescriptions.emplace_back();
-		attributeDescription.binding	= info.binding;
+		attributeDescription.binding	= info.location;
 		attributeDescription.location	= info.location;
 		attributeDescription.format		= ::convert(info.format);
 		attributeDescription.offset		= 0;

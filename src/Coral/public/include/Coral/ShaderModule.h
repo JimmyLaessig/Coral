@@ -35,9 +35,6 @@ typedef struct
 /// Structure specifying a shader attribute binding
 typedef struct 
 {
-	/// The buffer binding index
-	uint32_t binding;
-
 	// The location in the shader of the attribute
 	uint32_t location;
 

@@ -1,5 +1,8 @@
 #include "Cube.hpp"
-#include "TexturedWithLightingShader.h"
+
+#include "SimpleVertexShader.hpp"
+//#include "DiffuseTextureFragmentShader.hpp"
+#include "OpacityMaskFragmentShader.hpp"
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -20,6 +23,7 @@
 #include <Coral/ImGui_Impl_Coral.h>
 
 #include <Coral/Util/RAII.hpp>
+#include <Coral/Util/UniformBlockBuilder.hpp>
 
 #include <backends/imgui_impl_glfw.h>
 
@@ -31,9 +35,80 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <ranges>
 
 namespace
 {
+
+struct ShaderSource
+{
+	std::string vertexShader;
+	std::string fragmentShader;
+};
+
+void
+printShaderSource(const std::string& s)
+{
+	auto lines = std::views::split(s, '\n');
+
+	for (const auto& [i, line] : std::views::enumerate(lines))
+	{
+		auto lineNumber = std::to_string(i + 1);
+		lineNumber.resize(3, ' ');
+		std::cout << lineNumber << ": " << std::string_view(line.begin(), line.end()) << std::endl;
+	}
+}
+
+
+inline std::optional<ShaderSource>
+shaderSource()
+{
+	ShaderSource shaderSource;
+
+	{
+		csl::Examples::SimpleVertexShader vertexShader;
+		csl::ShaderGraph shaderGraph(vertexShader);
+
+		csl::CompilerSPV compiler;
+		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::VERTEX);
+
+		std::cout << "-------------------- Vertex shader --------------------" << std::endl;
+		printShaderSource(compiler.GetShaderSourceGLSL().shaderCode);
+		
+		if (!result)
+		{
+			std::cerr << result.error().message << std::endl;
+			return {};
+		}
+		else
+		{
+			shaderSource.vertexShader = std::move(result->shaderCode);
+		}
+	}
+
+	{
+		csl::Examples::OpacityMaskFragmentShader fragmentShader;
+		csl::ShaderGraph shaderGraph(fragmentShader);
+		csl::CompilerSPV compiler;
+		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::FRAGMENT);
+
+		std::cout << "-------------------- Fragment shader --------------------" << std::endl;
+		printShaderSource(compiler.GetShaderSourceGLSL().shaderCode);
+
+		if (!result)
+		{
+			std::cerr << result.error().message << std::endl;
+			return {};
+		}
+		else
+		{
+			shaderSource.fragmentShader = std::move(result->shaderCode);
+		}
+	}
+
+	return { std::move(shaderSource) };
+}
+
 
 struct Image
 {
@@ -336,7 +411,7 @@ int main()
 		return EXIT_FAILURE;
 	}
 
-	auto shader = TexturedWithLightingShader::shaderSource();
+	auto shader = shaderSource();
 	if (!shader)
 	{
 		return EXIT_FAILURE;
@@ -394,9 +469,9 @@ int main()
 
 	std::span attributes(layout.pInputAttributeBindingInfos, layout.inputAttributeBindingInfoCount);
 
-	auto positionsBinding = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::POSITION_LOCATION; })->binding;
-	auto normalsBinding   = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::NORMAL_LOCATION; })->binding;
-	auto texcoordsBinding = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == TexturedWithLightingShader::TEXCOORD0_LOCATION; })->binding;
+	auto positionAttribute  = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == 0; })->location;
+	auto normalsAttribute   = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == 1; })->location;
+	auto texcoordsAttribute = std::ranges::find_if(attributes, [](const CoAttributeBindingInfo& info) { return info.location == 2; })->location;
 
 
 	glm::mat4 modelMatrix(1.f);
@@ -407,13 +482,16 @@ int main()
 	auto farPlane		  = 1000.f;
 	auto projectionMatrix = glm::perspective(fov, static_cast<float>(WIDTH) / HEIGHT, nearPlane, farPlane);
 
-	UniformBlockBuilder uniformBlock(layout.pDescriptorBindingInfos[0].block);
-	uniformBlock.set("lightColor", glm::vec3{ 1.f, 1.f, 1.f });
-	uniformBlock.set("lightDirection", glm::normalize(glm::vec3{ 1.f, 1.f, 1.f }));
-	uniformBlock.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-	uniformBlock.set("normalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
-
-	auto uniformBuffer = createUniformBuffer(context.get(), uniformBlock);
+	UniformBlockBuilder matrices(layout.pDescriptorBindingInfos[0].block);
+	matrices.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+	matrices.set("normalMatrix", glm::transpose(glm::inverse(glm::mat3(modelMatrix))));
+	auto matricesBuffer = createUniformBuffer(context.get(), matrices);
+	
+	coShaderModuleGetLayout(fragmentShader.get(), &layout);
+	UniformBlockBuilder lightData(layout.pDescriptorBindingInfos[0].block);
+	lightData.set("lightColor", glm::vec4{ 1.f, 1.f, 1.f, 1.f });
+	lightData.set("lightDirection", glm::normalize(glm::vec4{ 1.f, 1.f, 1.f, 1.f }));
+	auto lightDataBuffer = createUniformBuffer(context.get(), lightData);
 
 	auto [texture, sampler] = createTexture(context.get(), "resources/uvtest.png");
 
@@ -539,9 +617,9 @@ int main()
 		ImGuiIO& io = ImGui::GetIO();
 		ImGui::Render();
 
-		uniformBlock.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
-		uniformBlock.set("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
-		updateUniformBuffer(uniformBuffer.get(), uniformBlock);
+		matrices.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
+		matrices.set("normalMatrix", glm::mat3(glm::transpose(glm::inverse(modelMatrix))));
+		updateUniformBuffer(matricesBuffer.get(), matrices);
 
 		CoCommandBufferCreateConfig commandBufferConfig{};
 	
@@ -567,18 +645,19 @@ int main()
 		CoViewportInfo viewport
 		{
 			CoRectangle{ 0, 0, static_cast<uint32_t>(width),  static_cast<uint32_t>(height) },
-			0.f,  1.f , CO_VIEWPORT_MODE_Y_UP,
+			0.f,  1.f
 		};
 
 		coCommandBufferSetViewport(commandBuffer.get(), &viewport);
 		coCommandBufferBindPipeline(commandBuffer.get(), pipelineState.get());
-		coCommandBufferBindUniformBuffer(commandBuffer.get(), uniformBuffer.get(), 0);
-		coCommandBufferBindImage(commandBuffer.get(), texture.get(),  1);
-		coCommandBufferBindSampler(commandBuffer.get(), sampler.get(), 1);
+		coCommandBufferBindUniformBuffer(commandBuffer.get(), matricesBuffer.get(), 0);
+		coCommandBufferBindUniformBuffer(commandBuffer.get(), lightDataBuffer.get(), 1);
+		coCommandBufferBindImage(commandBuffer.get(), texture.get(),  2);
+		coCommandBufferBindSampler(commandBuffer.get(), sampler.get(), 2);
 
-		coCommandBufferBindVertexBuffer(commandBuffer.get(), positions.get(), positionsBinding, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
-		coCommandBufferBindVertexBuffer(commandBuffer.get(), normals.get(),   normalsBinding,   0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
-		coCommandBufferBindVertexBuffer(commandBuffer.get(), texcoords.get(), texcoordsBinding, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
+		coCommandBufferBindVertexBuffer(commandBuffer.get(), positions.get(), positionAttribute,  0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
+		coCommandBufferBindVertexBuffer(commandBuffer.get(), normals.get(),   normalsAttribute,   0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
+		coCommandBufferBindVertexBuffer(commandBuffer.get(), texcoords.get(), texcoordsAttribute, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
 
 		coCommandBufferBindIndexBuffer(commandBuffer.get(), indices.get(), indexFormat, 0);
 

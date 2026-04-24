@@ -18,8 +18,7 @@ add_executable(${CORAL_DEMO_APP_TARGET_NAME})
 ###############################################################################
 
 set(CORAL_DEMO_APP_INCLUDES 
-    ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp 
-    ${CORAL_DEMO_APP_INCLUDE_DIR}/TexturedWithLightingShader.h)
+    ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp)
 
 set(IMGUI_INCLUDES
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
@@ -58,7 +57,8 @@ coral_configure_target(${CORAL_DEMO_APP_TARGET_NAME}
         glfw
         stb
         Coral
-        csl
+        csl::csl
+        csl::Examples
         CoralUtil)
 
 target_sources(${CORAL_DEMO_APP_TARGET_NAME} PRIVATE

@@ -44,7 +44,6 @@ coShaderModuleGetLayout(const CoShaderModule shaderModule, CoShaderModuleLayout*
 		for (const auto& binding : shaderModule->impl->inputAttributeLayout())
 		{
 			shaderModule->mInputAttributeLayoutData.emplace_back(
-				binding.binding, 
 				binding.location, 
 				binding.format, 
 				shaderModule->mStringCache.insert(binding.name).first->c_str()
@@ -57,7 +56,6 @@ coShaderModuleGetLayout(const CoShaderModule shaderModule, CoShaderModuleLayout*
 		for (const auto& binding : shaderModule->impl->outputAttributeLayout())
 		{
 			shaderModule->mOutputAttributeLayoutData.emplace_back(
-				binding.binding,
 				binding.location,
 				binding.format,
 				shaderModule->mStringCache.insert(binding.name).first->c_str()
