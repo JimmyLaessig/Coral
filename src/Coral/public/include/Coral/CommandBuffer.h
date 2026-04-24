@@ -191,8 +191,7 @@ CORAL_API CoResult coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, Co
 CORAL_API CoResult coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* info);
 
 ///
-CORAL_API CoResult coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding, CoShaderStageFlags shaderStages);
-
+CORAL_API CoResult coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding);
 
 ///
 CORAL_API CoResult coCommandBufferBindImage(CoCommandBuffer commandBuffer, CoImage image, uint32_t binding);
