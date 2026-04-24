@@ -225,7 +225,7 @@ CommandBufferImpl::cmdCopyImage(const CopyImageInfo& info)
 
 
 bool
-CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, size_t offset, size_t stride)
+CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t location, size_t offset, size_t stride)
 {
     if (buffer->type() != CO_BUFFER_TYPE_VERTEX)
     {
@@ -238,7 +238,7 @@ CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t binding, 
     VkDeviceSize vkSize   = bufferImpl->size();
     VkDeviceSize vkStride = stride;
 
-    vkCmdBindVertexBuffers2(mCommandBuffer, binding, 1, &vkBuffer, &vkOffset, &vkSize, &vkStride);
+    vkCmdBindVertexBuffers2(mCommandBuffer, location, 1, &vkBuffer, &vkOffset, &vkSize, &vkStride);
 
     return true;
 }
@@ -317,13 +317,10 @@ CommandBufferImpl::cmdSetViewport(const CoViewportInfo& info)
 
     // Vulkan and OpenGL use different coordinate systems. Per default, the Vulkan coordinate system is y-down. To
     // combat the inverted image, we need to flip the viewport by passing negative height and adjust the y-offset.
-    if (info.mode == CO_VIEWPORT_MODE_Y_UP)
-    {
-        viewport.y      = viewport.height + viewport.y;
-        viewport.width  = viewport.width;
-        viewport.height = -viewport.height;
-    }
-
+    viewport.y      = viewport.height + viewport.y;
+    viewport.width  = viewport.width;
+    viewport.height = -viewport.height;
+    
     VkRect2D rect;
     rect.extent.width  = info.viewport.extent.width;
     rect.extent.height = info.viewport.extent.height;
@@ -590,6 +587,7 @@ CommandBufferImpl::cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding)
     mCachedDescriptorInfos[binding] = info;
 }
 
+
 void
 CommandBufferImpl::cmdBindDescriptor(Coral::Image* image, uint32_t binding)
 {
@@ -650,7 +648,7 @@ CommandBufferImpl::cmdBindCachedDescriptors()
    
     for (const auto& [binding, info] : mCachedDescriptorInfos)
     {
-        VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };// = descriptorWrites.emplace_back();
+        VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
         descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         descriptorWrite.dstBinding      = binding;
         descriptorWrite.dstSet          = VK_NULL_HANDLE;

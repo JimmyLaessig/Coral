@@ -5,10 +5,7 @@
 #include <Coral/Vulkan/SemaphoreImpl.hpp>
 #include <Coral/Vulkan/SwapchainImpl.hpp>
 
-#include <mutex>
-#include <vector>
 #include <future>
-#include <ranges>
 
 
 using namespace Coral::Vulkan;

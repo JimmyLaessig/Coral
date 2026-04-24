@@ -118,9 +118,9 @@ coCommandBufferBlitImage(CoCommandBuffer commandBuffer, CoImage source, CoImage 
 
 
 CoResult
-coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding, size_t offset, size_t stride)
+coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t location, size_t offset, size_t stride)
 {
-    return commandBuffer->impl->cmdBindVertexBuffer(buffer->impl.get(), binding, offset, stride) ? CO_SUCCESS : CO_FAILED;
+    return commandBuffer->impl->cmdBindVertexBuffer(buffer->impl.get(), location, offset, stride) ? CO_SUCCESS : CO_FAILED;
 }
 
 

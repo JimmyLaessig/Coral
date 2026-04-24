@@ -7,11 +7,9 @@
 #include <Coral/Vulkan/Resource.hpp>
 #include <Coral/Vulkan/Vulkan.hpp>
 
-#include <future>
 #include <mutex>
 #include <thread>
 #include <unordered_map>
-#include <unordered_set>
 
 namespace Coral::Vulkan
 {

@@ -17,8 +17,6 @@ namespace Coral
 /// Structure specifying a shader attribute binding
 struct AttributeBindingInfo
 {
-	/// The buffer binding index
-	uint32_t binding{ 0 };
 	// The location in the shader of the attribute
 	uint32_t location{ 0 };
 	/// The format of the attribute
