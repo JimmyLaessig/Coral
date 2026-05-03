@@ -9,16 +9,16 @@
 /// Structure specifying the parameters of a newly created swapchain object
 typedef struct 
 {
-	/// Pointer to the native window handle
-	void* nativeWindowHandle;
-	/// The pixel format of the swapchain images
-	CoPixelFormat format;
-	/// Pointer to the pixel format of the depth-stencil image. If nullptr, no depth-stencil image is created
-	CoPixelFormat* depthFormat;
-	/// Minimum number of images in the swapchain
-	uint32_t minImageCount;
-	/// Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
-	bool lockToVSync;
+    /// Pointer to the native window handle
+    void* nativeWindowHandle;
+    /// The pixel format of the swapchain images
+    CoPixelFormat format;
+    /// Pointer to the pixel format of the depth-stencil image. If nullptr, no depth-stencil image is created
+    CoPixelFormat* depthFormat;
+    /// Minimum number of images in the swapchain
+    uint32_t minImageCount;
+    /// Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
+    bool lockToVSync;
 } CoSwapchainCreateConfig;
 
 
@@ -43,18 +43,18 @@ CORAL_API void coDestroySwapchain(CoSwapchain swapchain);
 
 typedef struct
 {
-	/// The framebuffer used to render to the swapchain image
-	CoFramebuffer framebuffer;
+    /// The framebuffer used to render to the swapchain image
+    CoFramebuffer framebuffer;
 
-	/// Semaphore that is signaled once the swapchain image is ready for use
-	/**
-	 * Command buffers that render to the swapchain image's framebuffer must wait for this semaphore before beginning
-	 * rendering.
-	 */
-	CoSemaphore imageAcquiredSemaphore;
+    /// Semaphore that is signaled once the swapchain image is ready for use
+    /**
+     * Command buffers that render to the swapchain image's framebuffer must wait for this semaphore before beginning
+     * rendering.
+     */
+    CoSemaphore imageAcquiredSemaphore;
 
-	/// Index of the swapchain image
-	uint32_t index;
+    /// Index of the swapchain image
+    uint32_t index;
 } CoSwapchainImageInfo;
 
 /// Get the image count of the swapchain

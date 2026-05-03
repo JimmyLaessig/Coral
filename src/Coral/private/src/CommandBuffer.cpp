@@ -1,14 +1,12 @@
-#include <Coral/CommandBuffer.h>
+#include <Coral/Buffer.hpp>
 #include <Coral/CommandBuffer.hpp>
 #include <Coral/CommandQueue.hpp>
-
-#include <Coral/Sampler.hpp>
-
-#include <Coral/PipelineState.hpp>
-#include <Coral/Buffer.hpp>
-#include <Coral/Image.hpp>
 #include <Coral/Fence.hpp>
+#include <Coral/Image.hpp>
+#include <Coral/PipelineState.hpp>
+#include <Coral/Sampler.hpp>
 #include <Coral/Semaphore.hpp>
+
 #include <ranges>
 
 using namespace Coral;
@@ -86,7 +84,7 @@ CoResult
 coCommandBufferUpdateBufferData(CoCommandBuffer commandBuffer, const CoUpdateBufferDataInfo* updateInfo)
 {
     Coral::UpdateBufferDataInfo info{};
-    info.buffer = updateInfo->buffer->impl.get();
+    info.buffer = updateInfo->buffer->impl;
     info.data   = std::as_bytes(std::span(updateInfo->pData, updateInfo->dataCount));
     info.offset = updateInfo->offset;
     return commandBuffer->impl->cmdUpdateBufferData(info) ? CO_SUCCESS : CO_FAILED;
@@ -97,7 +95,7 @@ CoResult
 coCommandBufferUpdateImageData(CoCommandBuffer commandBuffer, const CoUpdateImageDataInfo* updateInfo)
 {
     Coral::UpdateImageDataInfo info{};
-    info.image = updateInfo->image->impl.get();
+    info.image = updateInfo->image->impl;
     info.data  = std::as_bytes(std::span(updateInfo->pData, updateInfo->dataCount));
     return commandBuffer->impl->cmdUpdateImageData(info) ? CO_SUCCESS : CO_FAILED;
 }
@@ -106,7 +104,7 @@ coCommandBufferUpdateImageData(CoCommandBuffer commandBuffer, const CoUpdateImag
 CoResult 
 coCommandBufferGenerateMipMaps(CoCommandBuffer commandBuffer, CoImage image)
 {
-    return commandBuffer->impl->cmdGenerateMipMaps(image->impl.get()) ? CO_SUCCESS : CO_FAILED;
+    return commandBuffer->impl->cmdGenerateMipMaps(image->impl) ? CO_SUCCESS : CO_FAILED;
 }
 
 
@@ -120,21 +118,21 @@ coCommandBufferBlitImage(CoCommandBuffer commandBuffer, CoImage source, CoImage 
 CoResult
 coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t location, size_t offset, size_t stride)
 {
-    return commandBuffer->impl->cmdBindVertexBuffer(buffer->impl.get(), location, offset, stride) ? CO_SUCCESS : CO_FAILED;
+    return commandBuffer->impl->cmdBindVertexBuffer(buffer->impl, location, offset, stride) ? CO_SUCCESS : CO_FAILED;
 }
 
 
 CoResult
 coCommandBufferBindIndexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, CoIndexFormat format, size_t offset)
 {
-    return commandBuffer->impl->cmdBindIndexBuffer(buffer->impl.get(), format, offset) ? CO_SUCCESS : CO_FAILED;
+    return commandBuffer->impl->cmdBindIndexBuffer(buffer->impl, format, offset) ? CO_SUCCESS : CO_FAILED;
 }
 
 
 CoResult
 coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, CoPipelineState pipeline)
 {
-    return commandBuffer->impl->cmdBindPipeline(pipeline->impl.get()) ? CO_SUCCESS : CO_FAILED;
+    return commandBuffer->impl->cmdBindPipeline(pipeline->impl) ? CO_SUCCESS : CO_FAILED;
 }
 
 
@@ -148,7 +146,7 @@ coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* 
 CoResult
 coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding)
 {
-    commandBuffer->impl->cmdBindDescriptor(buffer->impl.get(), binding);
+    commandBuffer->impl->cmdBindDescriptor(buffer->impl, binding);
     return CO_SUCCESS;
 }
 
@@ -156,7 +154,7 @@ coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer,
 CoResult
 coCommandBufferBindImage(CoCommandBuffer commandBuffer, CoImage image, uint32_t binding)
 {
-    commandBuffer->impl->cmdBindDescriptor(image->impl.get(), binding);
+    commandBuffer->impl->cmdBindDescriptor(image->impl, binding);
     return CO_SUCCESS;
 }
 
@@ -164,7 +162,7 @@ coCommandBufferBindImage(CoCommandBuffer commandBuffer, CoImage image, uint32_t 
 CoResult
 coCommandBufferBindSampler(CoCommandBuffer commandBuffer, CoSampler sampler, uint32_t binding)
 {
-    commandBuffer->impl->cmdBindDescriptor(sampler->impl.get(), binding);
+    commandBuffer->impl->cmdBindDescriptor(sampler->impl, binding);
     return CO_SUCCESS;
 }
 

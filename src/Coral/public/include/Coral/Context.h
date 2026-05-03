@@ -9,15 +9,15 @@
 
 typedef enum
 {
-	CO_GRAPHICS_API_VULKAN = 0
+    CO_GRAPHICS_API_VULKAN = 0
 } CoGraphicsAPI;
 
 
 typedef struct
 {
-	// 
-	CoGraphicsAPI graphicsAPI;
-	const char* pApplicationName;
+    // 
+    CoGraphicsAPI graphicsAPI;
+    const char* pApplicationName;
 } CoContextCreateConfig;
 
 

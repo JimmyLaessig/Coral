@@ -9,7 +9,7 @@
 
 namespace Coral::Vulkan
 {
-	VkSurfaceKHR createVkSurface(VkInstance instance, void* hwnd);
+    VkSurfaceKHR createVkSurface(VkInstance instance, void* hwnd);
 
 } // namespace Coral::Vulkan
 

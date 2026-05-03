@@ -18,54 +18,54 @@ class CORAL_API PipelineState
 {
 public:
 
-	struct CreateConfig
-	{
-		std::vector<ShaderModulePtr> shaderModules;
+    struct CreateConfig
+    {
+        std::vector<ShaderModulePtr> shaderModules;
 
-		Framebuffer::Layout framebufferLayout;
+        Framebuffer::Layout framebufferLayout;
 
-		/// The face culling mode of the pipeline 
-		/**
-		 * Default is back-face culling (front faces are CCW)
-		 */
-		CoFaceCullingMode faceCullingMode;
+        /// The face culling mode of the pipeline 
+        /**
+         * Default is back-face culling (front faces are CCW)
+         */
+        CoFaceCullingMode faceCullingMode;
 
-		/// The depth test mode of the pipeline. 
-		/**
-		 * Default is depth test enabled with LESS_OR_EQUAL compare op.
-		 */
-		CoDepthTestMode depthTestMode;
+        /// The depth test mode of the pipeline. 
+        /**
+         * Default is depth test enabled with LESS_OR_EQUAL compare op.
+         */
+        CoDepthTestMode depthTestMode;
 
-		/// The stencil test mode of the pipeline. 
-		/**
-		 * If unset, no stencil test is performed.
-		 */
-		 //StencilTestMode* stencilTestMode{ nullptr };
+        /// The stencil test mode of the pipeline. 
+        /**
+         * If unset, no stencil test is performed.
+         */
+         //StencilTestMode* stencilTestMode{ nullptr };
 
-		 /// The blend mode of the pipeline. 
-		CoBlendMode blendMode;
+         /// The blend mode of the pipeline. 
+        CoBlendMode blendMode;
 
-		/// The polygon mode of the pipeline
+        /// The polygon mode of the pipeline
 
-		CoPolygonMode polygonMode;
+        CoPolygonMode polygonMode;
 
-		///
-		CoTopology topology;
-	};
+        ///
+        CoTopology topology;
+    };
 
-	enum class CreateError
-	{
-		INTERNAL_ERROR
-	};
+    enum class CreateError
+    {
+        INTERNAL_ERROR
+    };
 
-	virtual ~PipelineState() = default;
+    virtual ~PipelineState() = default;
 };
 
 } // namespace Coral
 
 struct CoPipelineState_T
 {
-	std::shared_ptr<Coral::PipelineState> impl;
+    std::shared_ptr<Coral::PipelineState> impl;
 };
 
 #endif // !CORAL_PIPELINESTATE_HPP

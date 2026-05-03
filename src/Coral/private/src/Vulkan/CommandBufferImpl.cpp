@@ -71,9 +71,10 @@ CommandBufferImpl::~CommandBufferImpl()
 bool
 CommandBufferImpl::init(const Coral::CommandBuffer::CreateConfig& config)
 {
-    mName        = config.name ? config.name : "";
-    mCommandPool = mCommandQueue.getVkCommandPool();
- 
+    mName             = config.name ? config.name : "";
+    mRetainReferences = config.retainReferences;
+    mCommandPool      = mCommandQueue.getVkCommandPool();
+
     auto device  = context().getVkDevice();
 
     VkCommandBufferAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO };
@@ -202,14 +203,20 @@ CommandBufferImpl::cmdEndRenderPass()
 bool
 CommandBufferImpl::cmdCopyBuffer(const CopyBufferInfo& info)
 {
-    auto source = static_cast<Coral::Vulkan::BufferImpl*>(info.source);
-    auto dest   = static_cast<Coral::Vulkan::BufferImpl*>(info.dest);
+    auto source = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(info.source);
+    auto dest   = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(info.dest);
 
     VkBufferCopy bufferCopy;
     bufferCopy.srcOffset = info.sourceOffset;
     bufferCopy.dstOffset = info.destOffset;
     bufferCopy.size      = info.size;
     vkCmdCopyBuffer(mCommandBuffer, source->getVkBuffer(), dest->getVkBuffer(), 1, &bufferCopy);
+
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(source);
+        mRetainedResources.insert(dest);
+    }
 
     return true;
 }
@@ -225,14 +232,14 @@ CommandBufferImpl::cmdCopyImage(const CopyImageInfo& info)
 
 
 bool
-CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t location, size_t offset, size_t stride)
+CommandBufferImpl::cmdBindVertexBuffer(Coral::BufferPtr buffer, uint32_t location, size_t offset, size_t stride)
 {
     if (buffer->type() != CO_BUFFER_TYPE_VERTEX)
     {
         return false;
     }
 
-    auto bufferImpl       = static_cast<Coral::Vulkan::BufferImpl*>(buffer);
+    auto bufferImpl       = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(buffer);
     auto vkBuffer         = bufferImpl->getVkBuffer();
     VkDeviceSize vkOffset = offset;
     VkDeviceSize vkSize   = bufferImpl->size();
@@ -240,12 +247,16 @@ CommandBufferImpl::cmdBindVertexBuffer(Coral::Buffer* buffer, uint32_t location,
 
     vkCmdBindVertexBuffers2(mCommandBuffer, location, 1, &vkBuffer, &vkOffset, &vkSize, &vkStride);
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(bufferImpl);
+    }
     return true;
 }
 
 
 bool
-CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, CoIndexFormat format, size_t offset)
+CommandBufferImpl::cmdBindIndexBuffer(Coral::BufferPtr buffer, CoIndexFormat format, size_t offset)
 {  
     if (buffer->type() != CO_BUFFER_TYPE_INDEX)
     {
@@ -253,7 +264,7 @@ CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, CoIndexFormat forma
         return false;
     }
 
-    auto bufferImpl = static_cast<Coral::Vulkan::BufferImpl*>(buffer);
+    auto bufferImpl = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(buffer);
 
     VkIndexType indexType{};
     switch (format)
@@ -270,15 +281,25 @@ CommandBufferImpl::cmdBindIndexBuffer(Coral::Buffer* buffer, CoIndexFormat forma
 
     vkCmdBindIndexBuffer(mCommandBuffer, bufferImpl->getVkBuffer(), offset, indexType);
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(bufferImpl);
+    }
+
     return true;
 }
 
 
 bool
-CommandBufferImpl::cmdBindPipeline(Coral::PipelineState* pipelineState)
+CommandBufferImpl::cmdBindPipeline(Coral::PipelineStatePtr pipelineState)
 {
-    mLastBoundPipelineState = static_cast<Coral::Vulkan::PipelineStateImpl*>(pipelineState);
+    mLastBoundPipelineState = std::static_pointer_cast<Coral::Vulkan::PipelineStateImpl>(pipelineState);
     vkCmdBindPipeline(mCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mLastBoundPipelineState->getVkPipeline());
+
+    if (mRetainReferences)
+    {
+       // mRetainedResources.insert(pipelineState);
+    }
 
     return true;
 }
@@ -342,7 +363,7 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
         return false;
     }
 
-    auto buffer = static_cast<Coral::Vulkan::BufferImpl*>(info.buffer);
+    auto buffer = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(info.buffer);
 
     auto stagingBuffer = context().requestStagingBuffer(info.data.size());
 
@@ -401,21 +422,25 @@ CommandBufferImpl::cmdUpdateBufferData(const Coral::UpdateBufferDataInfo& info)
     );
 
     // Store the temporary staging buffer until the command buffer was executed
-    mStagingBuffers.push_back(std::move(stagingBuffer));
+    mRetainedResources.insert(stagingBuffer);
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(buffer);
+    }
     return true;
 }
 
 
 bool
-CommandBufferImpl::cmdClearImage(Coral::Image* image, const CoClearColor& clearColor)
+CommandBufferImpl::cmdClearImage(Coral::ImagePtr image, const CoClearColor& clearColor)
 {
     if (image->presentable())
     {
         return false;
     }
 
-    auto imageImpl = static_cast<Coral::Vulkan::ImageImpl*>(image);
+    auto imageImpl = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(image);
 
     VkClearColorValue color;
     color.float32[0] = clearColor.color[0];
@@ -442,6 +467,11 @@ CommandBufferImpl::cmdClearImage(Coral::Image* image, const CoClearColor& clearC
         static_cast<uint32_t>(ranges.size()),
         ranges.data());
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(imageImpl);
+    }
+
     return true;
 }
 
@@ -449,7 +479,7 @@ CommandBufferImpl::cmdClearImage(Coral::Image* image, const CoClearColor& clearC
 bool
 CommandBufferImpl::cmdUpdateImageData(const Coral::UpdateImageDataInfo& info)
 {
-    auto image = static_cast<Coral::Vulkan::ImageImpl*>(info.image);
+    auto image = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(info.image);
 
     auto stagingBuffer   = context().requestStagingBuffer(info.data.size());
     auto stagingBufferVK = static_cast<Coral::Vulkan::BufferImpl*>(stagingBuffer.get());
@@ -488,7 +518,7 @@ CommandBufferImpl::cmdUpdateImageData(const Coral::UpdateImageDataInfo& info)
 
     vkCmdCopyBufferToImage(mCommandBuffer, stagingBufferVK->getVkBuffer(), image->getVkImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy);
 
-    mStagingBuffers.push_back(std::move(stagingBuffer));
+    mRetainedResources.insert(stagingBuffer);
 
     // Finally, transition the image layout back
     ImageImpl::cmdTransitionImageLayout(mCommandBuffer,
@@ -501,14 +531,19 @@ CommandBufferImpl::cmdUpdateImageData(const Coral::UpdateImageDataInfo& info)
                                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(image);
+    }
+
     return true;
 }
 
 
 bool
-CommandBufferImpl::cmdGenerateMipMaps(Coral::Image* image)
+CommandBufferImpl::cmdGenerateMipMaps(Coral::ImagePtr image)
 {
-    auto impl = static_cast<ImageImpl*>(image);
+    auto impl = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(image);
 
     auto levels = image->getMipLevels();
     if (levels == 1)
@@ -571,25 +606,35 @@ CommandBufferImpl::cmdGenerateMipMaps(Coral::Image* image)
                                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(impl);
+    }
     return true;
 }
 
 
 void
-CommandBufferImpl::cmdBindDescriptor(Coral::Buffer* buffer, uint32_t binding)
+CommandBufferImpl::cmdBindDescriptor(Coral::BufferPtr buffer, uint32_t binding)
 {
     VkDescriptorBufferInfo info{};
 
-    info.buffer = static_cast<BufferImpl*>(buffer)->getVkBuffer();
-    info.offset = 0.f;
-    info.range  = buffer->size();
+    auto bufferImpl = std::static_pointer_cast<BufferImpl>(buffer);
+    info.buffer     = bufferImpl->getVkBuffer();
+    info.offset     = 0.f;
+    info.range      = buffer->size();
 
     mCachedDescriptorInfos[binding] = info;
+
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(bufferImpl);
+    }
 }
 
 
 void
-CommandBufferImpl::cmdBindDescriptor(Coral::Image* image, uint32_t binding)
+CommandBufferImpl::cmdBindDescriptor(Coral::ImagePtr image, uint32_t binding)
 {
     auto iter = mCachedDescriptorInfos.find(binding);
 
@@ -604,15 +649,20 @@ CommandBufferImpl::cmdBindDescriptor(Coral::Image* image, uint32_t binding)
         info = &std::get<VkDescriptorImageInfo>(iter->second);
     }
 
-    auto imageImpl = static_cast<ImageImpl*>(image);
+    auto imageImpl = std::static_pointer_cast<ImageImpl>(image);
 
     info->imageView   = imageImpl ? imageImpl->getVkImageView() : VK_NULL_HANDLE;
     info->imageLayout = imageImpl ? imageImpl->getPreferredImageLayout() : VK_IMAGE_LAYOUT_UNDEFINED;
+
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(imageImpl);
+    }
 }
 
 
 void
-CommandBufferImpl::cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding)
+CommandBufferImpl::cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding)
 {
     auto iter = mCachedDescriptorInfos.find(binding);
 
@@ -627,9 +677,14 @@ CommandBufferImpl::cmdBindDescriptor(Coral::Sampler* sampler, uint32_t binding)
         info = &std::get<VkDescriptorImageInfo>(iter->second);
     }
 
-    auto samplerImpl = static_cast<SamplerImpl*>(sampler);
+    auto samplerImpl = std::static_pointer_cast<SamplerImpl>(sampler);
 
     info->sampler = samplerImpl ? samplerImpl->getVkSampler() : VK_NULL_HANDLE;
+
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(samplerImpl);
+    }
 }
 
 
@@ -689,10 +744,10 @@ CommandBufferImpl::cmdBindCachedDescriptors()
 
 
 bool
-CommandBufferImpl::cmdBlitImage(Coral::Image* source, Coral::Image* dest)
+CommandBufferImpl::cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr dest)
 {
-    auto srcImpl = static_cast<Coral::Vulkan::ImageImpl*>(source);
-    auto dstImpl = static_cast<Coral::Vulkan::ImageImpl*>(dest);
+    auto srcImpl = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(source);
+    auto dstImpl = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(dest);
 
     // Transition the image layout of the source and destination image to VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL and 
     // VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL.
@@ -758,6 +813,12 @@ CommandBufferImpl::cmdBlitImage(Coral::Image* source, Coral::Image* dest)
                                         VK_PIPELINE_STAGE_TRANSFER_BIT,
                                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
 
+    if (mRetainReferences)
+    {
+        mRetainedResources.insert(srcImpl);
+        mRetainedResources.insert(dstImpl);
+    }
+
     return true;
 }
 
@@ -769,11 +830,10 @@ CommandBufferImpl::getVkCommandBuffer()
 }
 
 
-std::vector<std::shared_ptr<Coral::Buffer>>
-CommandBufferImpl::getStagingBuffers()
+[[nodiscard]] std::unordered_set<ResourcePtr>
+CommandBufferImpl::releaseRetainedResources()
 {
-    std::vector<std::shared_ptr<Coral::Buffer>> stagingBuffers;
-    stagingBuffers.swap(mStagingBuffers);
-
-    return stagingBuffers;
+    std::unordered_set<ResourcePtr> resources;
+    std::swap(resources, mRetainedResources);
+    return resources;
 }

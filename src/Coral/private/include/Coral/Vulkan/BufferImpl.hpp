@@ -11,40 +11,40 @@ namespace Coral::Vulkan
 {
 
 class BufferImpl : public Coral::Buffer,
-	               public std::enable_shared_from_this<BufferImpl>,
-	               public Resource
+                   public std::enable_shared_from_this<BufferImpl>,
+                   public Resource
 {
 public:
 
-	using Resource::Resource;
+    using Resource::Resource;
 
-	virtual ~BufferImpl();
+    virtual ~BufferImpl();
 
-	std::optional<Coral::Buffer::CreateError> init(const Buffer::CreateConfig& config);
+    std::optional<Coral::Buffer::CreateError> init(const Buffer::CreateConfig& config);
 
-	size_t size() const override;
+    size_t size() const override;
 
-	CoBufferType type() const override;
+    CoBufferType type() const override;
 
-	std::byte* map() override;
+    std::byte* map() override;
 
-	bool unmap() override;
+    bool unmap() override;
 
-	VkBuffer getVkBuffer();
+    VkBuffer getVkBuffer();
 
 private:
 
-	VkBuffer mBuffer{ VK_NULL_HANDLE };
+    VkBuffer mBuffer{ VK_NULL_HANDLE };
 
-	VmaAllocation mAllocation{ VK_NULL_HANDLE };
+    VmaAllocation mAllocation{ VK_NULL_HANDLE };
 
-	CoBufferType mType{ CO_BUFFER_TYPE_STORAGE };
+    CoBufferType mType{ CO_BUFFER_TYPE_STORAGE };
 
-	size_t mSize{ 0 };
+    size_t mSize{ 0 };
 
-	bool mCpuVisible{ false };
+    bool mCpuVisible{ false };
 
-	std::byte* mMapped{ nullptr };
+    std::byte* mMapped{ nullptr };
 
 };
 

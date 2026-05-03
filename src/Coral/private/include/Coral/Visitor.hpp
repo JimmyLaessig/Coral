@@ -8,7 +8,7 @@ namespace Coral
 template<class... Ts>
 struct Visitor : Ts...
 {
-	using Ts::operator()...;
+    using Ts::operator()...;
 };
 
 } // namespace Coral

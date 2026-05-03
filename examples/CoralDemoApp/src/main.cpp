@@ -1,8 +1,8 @@
 #include "Cube.hpp"
 
 #include "SimpleVertexShader.hpp"
-//#include "DiffuseTextureFragmentShader.hpp"
-#include "OpacityMaskFragmentShader.hpp"
+#include "DiffuseTextureFragmentShader.hpp"
+
 
 #include <GLFW/glfw3.h>
 #define GLFW_EXPOSE_NATIVE_WIN32
@@ -87,7 +87,7 @@ shaderSource()
 	}
 
 	{
-		csl::Examples::OpacityMaskFragmentShader fragmentShader;
+		csl::Examples::DiffuseTextureFragmentShader fragmentShader;
 		csl::ShaderGraph shaderGraph(fragmentShader);
 		csl::CompilerSPV compiler;
 		auto result = compiler.Compile(shaderGraph, csl::ShaderStage::FRAGMENT);

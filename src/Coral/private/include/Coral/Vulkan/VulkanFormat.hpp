@@ -13,166 +13,166 @@ namespace Coral::Vulkan
 inline VkFormat
 convert(CoPixelFormat format)
 {
-	switch (format)
-	{
-		case CO_PIXEL_FORMAT_DEPTH32_F:			return VK_FORMAT_D32_SFLOAT;
-		case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:	return VK_FORMAT_D24_UNORM_S8_UINT;
-		case CO_PIXEL_FORMAT_DEPTH16:			return VK_FORMAT_D16_UNORM;
+    switch (format)
+    {
+        case CO_PIXEL_FORMAT_DEPTH32_F:        return VK_FORMAT_D32_SFLOAT;
+        case CO_PIXEL_FORMAT_DEPTH24_STENCIL8: return VK_FORMAT_D24_UNORM_S8_UINT;
+        case CO_PIXEL_FORMAT_DEPTH16:          return VK_FORMAT_D16_UNORM;
 
-		case CO_PIXEL_FORMAT_RGBA32_F:			return VK_FORMAT_R32G32B32A32_SFLOAT;
-		case CO_PIXEL_FORMAT_RGB32_F:			return VK_FORMAT_R32G32B32_SFLOAT;
-		case CO_PIXEL_FORMAT_RG32_F:			return VK_FORMAT_R32G32_SFLOAT;
-		case CO_PIXEL_FORMAT_R32_F:				return VK_FORMAT_R32_SFLOAT;
+        case CO_PIXEL_FORMAT_RGBA32_F:         return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case CO_PIXEL_FORMAT_RGB32_F:          return VK_FORMAT_R32G32B32_SFLOAT;
+        case CO_PIXEL_FORMAT_RG32_F:           return VK_FORMAT_R32G32_SFLOAT;
+        case CO_PIXEL_FORMAT_R32_F:            return VK_FORMAT_R32_SFLOAT;
 
-		case CO_PIXEL_FORMAT_RGBA16_F:			return VK_FORMAT_R16G16B16A16_SFLOAT;
-		case CO_PIXEL_FORMAT_RGB16_F:			return VK_FORMAT_R16G16B16_SFLOAT;
-		case CO_PIXEL_FORMAT_RG16_F:			return VK_FORMAT_R16G16_SFLOAT;
-		case CO_PIXEL_FORMAT_R16_F:				return VK_FORMAT_R16_SFLOAT;
+        case CO_PIXEL_FORMAT_RGBA16_F:         return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case CO_PIXEL_FORMAT_RGB16_F:          return VK_FORMAT_R16G16B16_SFLOAT;
+        case CO_PIXEL_FORMAT_RG16_F:           return VK_FORMAT_R16G16_SFLOAT;
+        case CO_PIXEL_FORMAT_R16_F:            return VK_FORMAT_R16_SFLOAT;
 
-		case CO_PIXEL_FORMAT_RGBA32_I:			return VK_FORMAT_R32G32B32A32_SINT;
-		case CO_PIXEL_FORMAT_RGB32_I:			return VK_FORMAT_R32G32B32_SINT;
-		case CO_PIXEL_FORMAT_RG32_I:			return VK_FORMAT_R32G32_SINT;
-		case CO_PIXEL_FORMAT_R32_I:				return VK_FORMAT_R32_SINT;
+        case CO_PIXEL_FORMAT_RGBA32_I:         return VK_FORMAT_R32G32B32A32_SINT;
+        case CO_PIXEL_FORMAT_RGB32_I:          return VK_FORMAT_R32G32B32_SINT;
+        case CO_PIXEL_FORMAT_RG32_I:           return VK_FORMAT_R32G32_SINT;
+        case CO_PIXEL_FORMAT_R32_I:            return VK_FORMAT_R32_SINT;
 
-		case CO_PIXEL_FORMAT_RGBA32_UI:			return VK_FORMAT_R32G32B32A32_UINT;
-		case CO_PIXEL_FORMAT_RGB32_UI:			return VK_FORMAT_R32G32B32_UINT;
-		case CO_PIXEL_FORMAT_RG32_UI:			return VK_FORMAT_R32G32_UINT;
-		case CO_PIXEL_FORMAT_R32_UI:			return VK_FORMAT_R32_UINT;
+        case CO_PIXEL_FORMAT_RGBA32_UI:        return VK_FORMAT_R32G32B32A32_UINT;
+        case CO_PIXEL_FORMAT_RGB32_UI:         return VK_FORMAT_R32G32B32_UINT;
+        case CO_PIXEL_FORMAT_RG32_UI:          return VK_FORMAT_R32G32_UINT;
+        case CO_PIXEL_FORMAT_R32_UI:           return VK_FORMAT_R32_UINT;
 
-		case CO_PIXEL_FORMAT_RGBA16_I: 			return VK_FORMAT_R16G16B16A16_SNORM;
-		case CO_PIXEL_FORMAT_RGB16_I:  			return VK_FORMAT_R16G16B16_SNORM;
-		case CO_PIXEL_FORMAT_RG16_I:   			return VK_FORMAT_R16G16_SNORM;
-		case CO_PIXEL_FORMAT_R16_I:	   			return VK_FORMAT_R16_SNORM;
+        case CO_PIXEL_FORMAT_RGBA16_I:         return VK_FORMAT_R16G16B16A16_SNORM;
+        case CO_PIXEL_FORMAT_RGB16_I:          return VK_FORMAT_R16G16B16_SNORM;
+        case CO_PIXEL_FORMAT_RG16_I:           return VK_FORMAT_R16G16_SNORM;
+        case CO_PIXEL_FORMAT_R16_I:            return VK_FORMAT_R16_SNORM;
 
-		case CO_PIXEL_FORMAT_RGBA16_UI:			return VK_FORMAT_R16G16B16A16_UNORM;
-		case CO_PIXEL_FORMAT_RGB16_UI:			return VK_FORMAT_R16G16B16_UNORM;
-		case CO_PIXEL_FORMAT_RG16_UI:			return VK_FORMAT_R16G16_UNORM;
-		case CO_PIXEL_FORMAT_R16_UI:			return VK_FORMAT_R16_UNORM;
+        case CO_PIXEL_FORMAT_RGBA16_UI:        return VK_FORMAT_R16G16B16A16_UNORM;
+        case CO_PIXEL_FORMAT_RGB16_UI:         return VK_FORMAT_R16G16B16_UNORM;
+        case CO_PIXEL_FORMAT_RG16_UI:          return VK_FORMAT_R16G16_UNORM;
+        case CO_PIXEL_FORMAT_R16_UI:           return VK_FORMAT_R16_UNORM;
 
-		case CO_PIXEL_FORMAT_RGBA8_I:			return VK_FORMAT_R8G8B8A8_SNORM;
-		case CO_PIXEL_FORMAT_RGB8_I:			return VK_FORMAT_R8G8B8_SNORM;
-		case CO_PIXEL_FORMAT_RG8_I:				return VK_FORMAT_R8G8_SNORM;
-		case CO_PIXEL_FORMAT_R8_I:				return VK_FORMAT_R8_UNORM;
+        case CO_PIXEL_FORMAT_RGBA8_I:          return VK_FORMAT_R8G8B8A8_SNORM;
+        case CO_PIXEL_FORMAT_RGB8_I:           return VK_FORMAT_R8G8B8_SNORM;
+        case CO_PIXEL_FORMAT_RG8_I:            return VK_FORMAT_R8G8_SNORM;
+        case CO_PIXEL_FORMAT_R8_I:             return VK_FORMAT_R8_UNORM;
 
-		case CO_PIXEL_FORMAT_RGBA8_UI:			return VK_FORMAT_R8G8B8A8_UNORM;
-		case CO_PIXEL_FORMAT_RGB8_UI:			return VK_FORMAT_R8G8B8_UNORM;
-		case CO_PIXEL_FORMAT_RG8_UI:			return VK_FORMAT_R8G8_UNORM;
-		case CO_PIXEL_FORMAT_R8_UI:				return VK_FORMAT_R8_UNORM;
+        case CO_PIXEL_FORMAT_RGBA8_UI:         return VK_FORMAT_R8G8B8A8_UNORM;
+        case CO_PIXEL_FORMAT_RGB8_UI:          return VK_FORMAT_R8G8B8_UNORM;
+        case CO_PIXEL_FORMAT_RG8_UI:           return VK_FORMAT_R8G8_UNORM;
+        case CO_PIXEL_FORMAT_R8_UI:            return VK_FORMAT_R8_UNORM;
 
-		case CO_PIXEL_FORMAT_RGBA8_SRGB:		return VK_FORMAT_R8G8B8A8_SRGB;
-		case CO_PIXEL_FORMAT_RGB8_SRGB:			return VK_FORMAT_R8G8B8_SRGB;
-		case CO_PIXEL_FORMAT_RG8_SRGB:			return VK_FORMAT_R8G8_SRGB;
-		case CO_PIXEL_FORMAT_R8_SRGB:			return VK_FORMAT_R8_SRGB;
-	}
+        case CO_PIXEL_FORMAT_RGBA8_SRGB:       return VK_FORMAT_R8G8B8A8_SRGB;
+        case CO_PIXEL_FORMAT_RGB8_SRGB:        return VK_FORMAT_R8G8B8_SRGB;
+        case CO_PIXEL_FORMAT_RG8_SRGB:         return VK_FORMAT_R8G8_SRGB;
+        case CO_PIXEL_FORMAT_R8_SRGB:          return VK_FORMAT_R8_SRGB;
+    }
 
-	std::unreachable();
+    std::unreachable();
 };
 
 
 inline CoPixelFormat
 convert(VkFormat format)
 {
-	switch (format)
-	{
-		case VK_FORMAT_D32_SFLOAT:					return CO_PIXEL_FORMAT_DEPTH32_F;
-		case VK_FORMAT_D24_UNORM_S8_UINT:			return CO_PIXEL_FORMAT_DEPTH24_STENCIL8;
-		case VK_FORMAT_D16_UNORM:					return CO_PIXEL_FORMAT_DEPTH16;
+    switch (format)
+    {
+        case VK_FORMAT_D32_SFLOAT:          return CO_PIXEL_FORMAT_DEPTH32_F;
+        case VK_FORMAT_D24_UNORM_S8_UINT:   return CO_PIXEL_FORMAT_DEPTH24_STENCIL8;
+        case VK_FORMAT_D16_UNORM:           return CO_PIXEL_FORMAT_DEPTH16;
 
-		case VK_FORMAT_R32G32B32A32_SFLOAT:	   		return CO_PIXEL_FORMAT_RGBA32_F;
-		case VK_FORMAT_R32G32B32_SFLOAT:		   	return CO_PIXEL_FORMAT_RGB32_F;
-		case VK_FORMAT_R32G32_SFLOAT:			   	return CO_PIXEL_FORMAT_RG32_F;
-		case VK_FORMAT_R32_SFLOAT:			   		return CO_PIXEL_FORMAT_R32_F;
+        case VK_FORMAT_R32G32B32A32_SFLOAT: return CO_PIXEL_FORMAT_RGBA32_F;
+        case VK_FORMAT_R32G32B32_SFLOAT:    return CO_PIXEL_FORMAT_RGB32_F;
+        case VK_FORMAT_R32G32_SFLOAT:       return CO_PIXEL_FORMAT_RG32_F;
+        case VK_FORMAT_R32_SFLOAT:          return CO_PIXEL_FORMAT_R32_F;
 
-		case VK_FORMAT_R16G16B16A16_SFLOAT:	 		return CO_PIXEL_FORMAT_RGBA16_F;
-		case VK_FORMAT_R16G16B16_SFLOAT:		 	return CO_PIXEL_FORMAT_RGB16_F;
-		case VK_FORMAT_R16G16_SFLOAT:			 	return CO_PIXEL_FORMAT_RG16_F;
-		case VK_FORMAT_R16_SFLOAT:			 		return CO_PIXEL_FORMAT_R16_F;
+        case VK_FORMAT_R16G16B16A16_SFLOAT: return CO_PIXEL_FORMAT_RGBA16_F;
+        case VK_FORMAT_R16G16B16_SFLOAT:    return CO_PIXEL_FORMAT_RGB16_F;
+        case VK_FORMAT_R16G16_SFLOAT:       return CO_PIXEL_FORMAT_RG16_F;
+        case VK_FORMAT_R16_SFLOAT:          return CO_PIXEL_FORMAT_R16_F;
 
-		case VK_FORMAT_R32G32B32A32_SINT:	  		return CO_PIXEL_FORMAT_RGBA32_I;
-		case VK_FORMAT_R32G32B32_SINT:	  			return CO_PIXEL_FORMAT_RGB32_I;
-		case VK_FORMAT_R32G32_SINT:		  			return CO_PIXEL_FORMAT_RG32_I;
-		case VK_FORMAT_R32_SINT:			  		return CO_PIXEL_FORMAT_R32_I;
+        case VK_FORMAT_R32G32B32A32_SINT:   return CO_PIXEL_FORMAT_RGBA32_I;
+        case VK_FORMAT_R32G32B32_SINT:      return CO_PIXEL_FORMAT_RGB32_I;
+        case VK_FORMAT_R32G32_SINT:         return CO_PIXEL_FORMAT_RG32_I;
+        case VK_FORMAT_R32_SINT:            return CO_PIXEL_FORMAT_R32_I;
 
-		case VK_FORMAT_R32G32B32A32_UINT:			return CO_PIXEL_FORMAT_RGBA32_UI;
-		case VK_FORMAT_R32G32B32_UINT:				return CO_PIXEL_FORMAT_RGB32_UI;
-		case VK_FORMAT_R32G32_UINT:					return CO_PIXEL_FORMAT_RG32_UI;
-		case VK_FORMAT_R32_UINT:					return CO_PIXEL_FORMAT_R32_UI;
+        case VK_FORMAT_R32G32B32A32_UINT:   return CO_PIXEL_FORMAT_RGBA32_UI;
+        case VK_FORMAT_R32G32B32_UINT:      return CO_PIXEL_FORMAT_RGB32_UI;
+        case VK_FORMAT_R32G32_UINT:         return CO_PIXEL_FORMAT_RG32_UI;
+        case VK_FORMAT_R32_UINT:            return CO_PIXEL_FORMAT_R32_UI;
 
-		case VK_FORMAT_R16G16B16A16_SINT:			return CO_PIXEL_FORMAT_RGBA16_I;
-		case VK_FORMAT_R16G16B16_SINT:			 	return CO_PIXEL_FORMAT_RGB16_I;
-		case VK_FORMAT_R16G16_SINT:				 	return CO_PIXEL_FORMAT_RG16_I;
-		case VK_FORMAT_R16_SINT:					return CO_PIXEL_FORMAT_R16_I;
+        case VK_FORMAT_R16G16B16A16_SINT:   return CO_PIXEL_FORMAT_RGBA16_I;
+        case VK_FORMAT_R16G16B16_SINT:      return CO_PIXEL_FORMAT_RGB16_I;
+        case VK_FORMAT_R16G16_SINT:         return CO_PIXEL_FORMAT_RG16_I;
+        case VK_FORMAT_R16_SINT:            return CO_PIXEL_FORMAT_R16_I;
 
-		case VK_FORMAT_R16G16B16A16_UINT:	 		return CO_PIXEL_FORMAT_RGBA16_UI;
-		case VK_FORMAT_R16G16B16_UINT:	 			return CO_PIXEL_FORMAT_RGB16_UI;
-		case VK_FORMAT_R16G16_UINT:		 			return CO_PIXEL_FORMAT_RG16_UI;
-		case VK_FORMAT_R16_UINT:		 			return CO_PIXEL_FORMAT_R16_UI;
+        case VK_FORMAT_R16G16B16A16_UINT:   return CO_PIXEL_FORMAT_RGBA16_UI;
+        case VK_FORMAT_R16G16B16_UINT:      return CO_PIXEL_FORMAT_RGB16_UI;
+        case VK_FORMAT_R16G16_UINT:         return CO_PIXEL_FORMAT_RG16_UI;
+        case VK_FORMAT_R16_UINT:            return CO_PIXEL_FORMAT_R16_UI;
 
-		case VK_FORMAT_R8G8B8A8_SINT:	   			return CO_PIXEL_FORMAT_RGBA8_I;
-		case VK_FORMAT_R8G8B8_SINT:	   				return CO_PIXEL_FORMAT_RGB8_I;
-		case VK_FORMAT_R8G8_SINT:		   			return CO_PIXEL_FORMAT_RG8_I;
-		case VK_FORMAT_R8_SINT:		   				return CO_PIXEL_FORMAT_R8_I;
+        case VK_FORMAT_R8G8B8A8_SINT:       return CO_PIXEL_FORMAT_RGBA8_I;
+        case VK_FORMAT_R8G8B8_SINT:         return CO_PIXEL_FORMAT_RGB8_I;
+        case VK_FORMAT_R8G8_SINT:           return CO_PIXEL_FORMAT_RG8_I;
+        case VK_FORMAT_R8_SINT:             return CO_PIXEL_FORMAT_R8_I;
 
-		case VK_FORMAT_R8G8B8A8_UINT:	  			return CO_PIXEL_FORMAT_RGBA8_UI;
-		case VK_FORMAT_R8G8B8_UINT:	  				return CO_PIXEL_FORMAT_RGB8_UI;
-		case VK_FORMAT_R8G8_UINT:		  			return CO_PIXEL_FORMAT_RG8_UI;
-		case VK_FORMAT_R8_UINT:		  				return CO_PIXEL_FORMAT_R8_UI;
+        case VK_FORMAT_R8G8B8A8_UINT:       return CO_PIXEL_FORMAT_RGBA8_UI;
+        case VK_FORMAT_R8G8B8_UINT:         return CO_PIXEL_FORMAT_RGB8_UI;
+        case VK_FORMAT_R8G8_UINT:           return CO_PIXEL_FORMAT_RG8_UI;
+        case VK_FORMAT_R8_UINT:             return CO_PIXEL_FORMAT_R8_UI;
+                                            
+        case VK_FORMAT_R8G8B8A8_SRGB:       return CO_PIXEL_FORMAT_RGBA8_SRGB;
+        case VK_FORMAT_R8G8B8_SRGB:         return CO_PIXEL_FORMAT_RGB8_SRGB;
+        case VK_FORMAT_R8G8_SRGB:           return CO_PIXEL_FORMAT_RG8_SRGB;
+        case VK_FORMAT_R8_SRGB:             return CO_PIXEL_FORMAT_R8_SRGB;
 
-		case VK_FORMAT_R8G8B8A8_SRGB:				return CO_PIXEL_FORMAT_RGBA8_SRGB;
-		case VK_FORMAT_R8G8B8_SRGB:					return CO_PIXEL_FORMAT_RGB8_SRGB;
-		case VK_FORMAT_R8G8_SRGB:					return CO_PIXEL_FORMAT_RG8_SRGB;
-		case VK_FORMAT_R8_SRGB:						return CO_PIXEL_FORMAT_R8_SRGB;
-
-		default:
-			std::unreachable();
-	}
+        default:
+            std::unreachable();
+    }
 };
 
 
 inline bool
 isDepthFormat(CoPixelFormat format)
 {
-	switch (format)
-	{
-		case CO_PIXEL_FORMAT_DEPTH32_F:			
-		case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:	
-		case CO_PIXEL_FORMAT_DEPTH16:			
-			return true;
-		default:
-			return false;
-	}
+    switch (format)
+    {
+        case CO_PIXEL_FORMAT_DEPTH32_F:            
+        case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:    
+        case CO_PIXEL_FORMAT_DEPTH16:            
+            return true;
+        default:
+            return false;
+    }
 }
 
 
 inline bool
 isStencilFormat(CoPixelFormat format)
 {
-	switch (format)
-	{
-		case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:
-			return true;
-		default:
-			return false;
-	}
+    switch (format)
+    {
+        case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:
+            return true;
+        default:
+            return false;
+    }
 }
 
 
 inline VkBufferUsageFlags
 convert(CoBufferType bufferType)
 {
-	switch (bufferType)
-	{
-		case CO_BUFFER_TYPE_INDEX:
-			return VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		case CO_BUFFER_TYPE_VERTEX:
-			return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		case CO_BUFFER_TYPE_STORAGE:
-			return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-		case CO_BUFFER_TYPE_UNIFORM:
-			return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-	}
+    switch (bufferType)
+    {
+        case CO_BUFFER_TYPE_INDEX:
+            return VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        case CO_BUFFER_TYPE_VERTEX:
+            return VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        case CO_BUFFER_TYPE_STORAGE:
+            return VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        case CO_BUFFER_TYPE_UNIFORM:
+            return VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+    }
 
-	std::unreachable();	
+    std::unreachable();    
 }
 
 } // namespace Coral::Vulkan

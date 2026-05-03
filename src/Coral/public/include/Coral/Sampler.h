@@ -7,43 +7,43 @@
 /// 
 typedef enum
 {
-	/// Return the texture element that is nearest to the specified texture coordinates
-	CO_FILTER_NEAREST = 0,
-	/// Returns the weighted average of the four texture elements that are closest to the specified texture coordinates
-	CO_FILTER_LINEAR = 1,
+    /// Return the texture element that is nearest to the specified texture coordinates
+    CO_FILTER_NEAREST = 0,
+    /// Returns the weighted average of the four texture elements that are closest to the specified texture coordinates
+    CO_FILTER_LINEAR = 1,
 } CoFilter;
 
 
 ///
 typedef enum
 {
-	/// 
-	CO_WRAP_MODE_CLAMP_TO_EDGE = 0,
-	/// 
-	CO_WRAP_MODE_REPEAT = 1,
-	/// 
-	CO_WRAP_MODE_MIRROR = 2,
-	/// 
-	CO_WRAP_MODE_ONE = 3,
-	/// 
-	CO_WRAP_MODE_ZERO = 4,
+    /// 
+    CO_WRAP_MODE_CLAMP_TO_EDGE = 0,
+    /// 
+    CO_WRAP_MODE_REPEAT = 1,
+    /// 
+    CO_WRAP_MODE_MIRROR = 2,
+    /// 
+    CO_WRAP_MODE_ONE = 3,
+    /// 
+    CO_WRAP_MODE_ZERO = 4,
 } CoWrapMode;
 
 
 ///
 typedef struct 
 {
-	/// 
-	CoFilter minFilter;
+    /// 
+    CoFilter minFilter;
 
-	///
-	CoFilter magFilter;
+    ///
+    CoFilter magFilter;
 
-	///
-	CoFilter mipmapFilter;
+    ///
+    CoFilter mipmapFilter;
 
-	///
-	CoWrapMode wrapMode;
+    ///
+    CoWrapMode wrapMode;
 
 } CoSamplerCreateConfig;
 
