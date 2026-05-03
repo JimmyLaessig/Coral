@@ -15,43 +15,43 @@ namespace Coral::Vulkan
 {
 
 class CommandQueueImpl : public Coral::CommandQueue,
-	                     public Resource
+                         public Resource
 {
 public:
 
-	CommandQueueImpl(ContextImpl& context, VkQueue queue, uint32_t index, uint32_t mQueueFamilyIndex);
+    CommandQueueImpl(ContextImpl& context, VkQueue queue, uint32_t index, uint32_t mQueueFamilyIndex);
 
-	virtual ~CommandQueueImpl();
+    virtual ~CommandQueueImpl();
 
-	std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError> createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config) override;
+    std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError> createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config) override;
 
-	bool submit(const Coral::CommandBufferSubmitInfo& info, FencePtr fence) override;
+    bool submit(const Coral::CommandBufferSubmitInfo& info, FencePtr fence) override;
 
-	bool submit(const Coral::PresentInfo& info) override;
+    bool submit(const Coral::PresentInfo& info) override;
 
-	bool waitIdle() override;
+    bool waitIdle() override;
 
-	uint32_t getQueueIndex() { return mQueueIndex; }
+    uint32_t getQueueIndex() { return mQueueIndex; }
 
-	VkCommandPool getVkCommandPool();
+    VkCommandPool getVkCommandPool();
 
-	VkQueue getVkQueue();
+    VkQueue getVkQueue();
 
 private:
 
-	void awaitStagingBufferReturnTasks();
+    void awaitRetainTasks();
 
-	std::mutex mQueueProtection;
+    std::mutex mQueueProtection;
 
-	VkQueue mQueue{ VK_NULL_HANDLE };
+    VkQueue mQueue{ VK_NULL_HANDLE };
 
-	uint32_t mQueueIndex{ 0 };
+    uint32_t mQueueIndex{ 0 };
 
-	uint32_t mQueueFamilyIndex{ 0 };
+    uint32_t mQueueFamilyIndex{ 0 };
 
-	std::unordered_map<std::thread::id, VkCommandPool> mCommandPools;
+    std::unordered_map<std::thread::id, VkCommandPool> mCommandPools;
 
-	std::atomic<size_t> mStagingBuffersInFlight{ 0 };
+    std::atomic<size_t> mResourcesInFlight{ 0 };
 };
 
 } // namespace Coral::Vulkan

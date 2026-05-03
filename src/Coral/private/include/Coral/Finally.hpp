@@ -11,24 +11,24 @@ class Finally
 public:
 
 [[ nodiscard ]] explicit Finally(Action&& action)
-		: mAction(action)
-	{
-	}
+        : mAction(action)
+    {
+    }
 
-	~Finally()
-	{
-		mAction();
-	}
+    ~Finally()
+    {
+        mAction();
+    }
 
-	Finally(const Finally&) = delete;
-	Finally(Finally&&) = delete;
+    Finally(const Finally&) = delete;
+    Finally(Finally&&) = delete;
 
-	Finally& operator=(const Finally&) = delete;
-	Finally& operator=(Finally&&) = delete;
+    Finally& operator=(const Finally&) = delete;
+    Finally& operator=(Finally&&) = delete;
 
 private:
 
-	Action mAction;
+    Action mAction;
 };
 
 } // namespace Common

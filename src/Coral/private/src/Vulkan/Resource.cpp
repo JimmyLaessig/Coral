@@ -3,7 +3,7 @@
 using namespace Coral::Vulkan;
 
 Resource::Resource(ContextImpl& context)
-	: mContext(context)
+    : mContext(context)
 {
 }
 
@@ -11,5 +11,5 @@ Resource::Resource(ContextImpl& context)
 ContextImpl&
 Resource::context()
 {
-	return mContext;
+    return mContext;
 }

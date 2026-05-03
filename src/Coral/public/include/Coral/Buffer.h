@@ -5,27 +5,27 @@
 
 typedef enum
 {
-	/// The buffer is used as a vertex buffer
-	CO_BUFFER_TYPE_VERTEX  = 0,
-	/// The buffer is used as an index buffer
-	CO_BUFFER_TYPE_INDEX   = 1,
-	/// The buffer is used as uniform buffer
-	CO_BUFFER_TYPE_UNIFORM = 2,
-	/// The buffer is used as storage buffer
-	CO_BUFFER_TYPE_STORAGE = 3,
+    /// The buffer is used as a vertex buffer
+    CO_BUFFER_TYPE_VERTEX  = 0,
+    /// The buffer is used as an index buffer
+    CO_BUFFER_TYPE_INDEX   = 1,
+    /// The buffer is used as uniform buffer
+    CO_BUFFER_TYPE_UNIFORM = 2,
+    /// The buffer is used as storage buffer
+    CO_BUFFER_TYPE_STORAGE = 3,
 } CoBufferType;
 
 // Structure specifying the parameters of a newly created buffer object
 typedef struct
 {
-	/// The size of the buffer in bytes
-	uint64_t size;
+    /// The size of the buffer in bytes
+    uint64_t size;
 
-	/// The type of the buffer
-	CoBufferType type;
+    /// The type of the buffer
+    CoBufferType type;
 
-	/// Flag indicating if the buffer's memory is mapped to CPU memory
-	bool cpuVisible;
+    /// Flag indicating if the buffer's memory is mapped to CPU memory
+    bool cpuVisible;
 } CoBufferCreateConfig;
 
 

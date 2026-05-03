@@ -10,13 +10,13 @@ class Resource
 {
 public:
 
-	Resource(ContextImpl& context);
+    Resource(ContextImpl& context);
 
-	ContextImpl& context();
+    ContextImpl& context();
 
 private:
 
-	ContextImpl& mContext;
+    ContextImpl& mContext;
 
 };
 

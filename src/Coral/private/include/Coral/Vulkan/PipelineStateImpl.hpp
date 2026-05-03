@@ -15,42 +15,42 @@ namespace Coral::Vulkan
 {
 
 class PipelineStateImpl : public Coral::PipelineState
-	                    , public Resource
-	                    , public std::enable_shared_from_this<PipelineStateImpl>
+                        , public Resource
+                        , public std::enable_shared_from_this<PipelineStateImpl>
 {
 public:
 
-	using Resource::Resource;
+    using Resource::Resource;
 
-	virtual ~PipelineStateImpl();
+    virtual ~PipelineStateImpl();
 
-	std::optional<PipelineState::CreateError> init(const PipelineState::CreateConfig& config);
+    std::optional<PipelineState::CreateError> init(const PipelineState::CreateConfig& config);
 
-	VkPipeline getVkPipeline();
+    VkPipeline getVkPipeline();
 
-	std::span<VkDescriptorSetLayout> getVkDescriptorSetLayouts();
+    std::span<VkDescriptorSetLayout> getVkDescriptorSetLayouts();
 
-	VkPipelineLayout getVkPipelineLayout();
+    VkPipelineLayout getVkPipelineLayout();
 
-	VkPipelineBindPoint getVkPipelineBindingPoint() { return VK_PIPELINE_BIND_POINT_GRAPHICS; }
+    VkPipelineBindPoint getVkPipelineBindingPoint() { return VK_PIPELINE_BIND_POINT_GRAPHICS; }
 
 private:
 
-	VkPipelineLayout mPipelineLayout{ VK_NULL_HANDLE };
+    VkPipelineLayout mPipelineLayout{ VK_NULL_HANDLE };
 
-	VkPipeline mPipeline{ VK_NULL_HANDLE };
+    VkPipeline mPipeline{ VK_NULL_HANDLE };
 
-	VkDescriptorSetLayout mDescriptorSetLayout{ VK_NULL_HANDLE };
+    VkDescriptorSetLayout mDescriptorSetLayout{ VK_NULL_HANDLE };
 
-	CoFaceCullingMode mFaceCullingMode;
+    CoFaceCullingMode mFaceCullingMode;
 
-	CoDepthTestMode mDepthTestMode;
+    CoDepthTestMode mDepthTestMode;
 
-	CoBlendMode mBlendMode;
+    CoBlendMode mBlendMode;
 
-	CoPolygonMode mPolygonMode;
+    CoPolygonMode mPolygonMode;
 
-	std::optional<CoStencilTestMode> mStencilTestMode;
+    std::optional<CoStencilTestMode> mStencilTestMode;
 };
 
 } // namespace Coral::Vulkan

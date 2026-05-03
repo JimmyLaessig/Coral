@@ -11,111 +11,111 @@ using namespace Coral::Vulkan;
 
 BufferImpl::~BufferImpl()
 {
-	if (mBuffer != VK_NULL_HANDLE)
-	{
-		vmaDestroyBuffer(context().getVmaAllocator(), mBuffer, mAllocation);
-	}
+    if (mBuffer != VK_NULL_HANDLE)
+    {
+        vmaDestroyBuffer(context().getVmaAllocator(), mBuffer, mAllocation);
+    }
 }
 
 
 std::optional<Coral::Buffer::CreateError>
 BufferImpl::init(const Coral::Buffer::CreateConfig& config)
 {
-	if (config.size == 0)
-	{
-		return Coral::Buffer::CreateError::INVALID_SIZE;
-	}
+    if (config.size == 0)
+    {
+        return Coral::Buffer::CreateError::INVALID_SIZE;
+    }
 
-	mType		= config.type;
-	mSize		= config.size;
-	mCpuVisible = config.cpuVisible;
+    mType       = config.type;
+    mSize       = config.size;
+    mCpuVisible = config.cpuVisible;
 
-	uint32_t queueFamilyIndex = context().getQueueFamilyIndex();
+    uint32_t queueFamilyIndex = context().getQueueFamilyIndex();
 
-	VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-	createInfo.pQueueFamilyIndices   = &queueFamilyIndex;
-	createInfo.queueFamilyIndexCount = 1;
-	createInfo.sharingMode			 = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.size					 = mSize;
-	createInfo.usage				 = convert(mType);
+    VkBufferCreateInfo createInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    createInfo.pQueueFamilyIndices   = &queueFamilyIndex;
+    createInfo.queueFamilyIndexCount = 1;
+    createInfo.sharingMode           = VK_SHARING_MODE_EXCLUSIVE;
+    createInfo.size                  = mSize;
+    createInfo.usage                 = convert(mType);
 
-	VmaAllocationCreateInfo allocCreateInfo{};
-	allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
+    VmaAllocationCreateInfo allocCreateInfo{};
+    allocCreateInfo.usage = VMA_MEMORY_USAGE_AUTO;
 
-	if (mCpuVisible)
-	{
-		allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
-	}
+    if (mCpuVisible)
+    {
+        allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    }
 
-	VmaAllocationInfo allocInfo{};
-	switch (vmaCreateBuffer(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
-	{
-		case VK_SUCCESS:
-			return {};
-		case VK_ERROR_OUT_OF_DEVICE_MEMORY:
-		case VK_ERROR_OUT_OF_HOST_MEMORY:
-			return Coral::Buffer::CreateError::OUT_OF_MEMORY;
-		default:
-			return Coral::Buffer::CreateError::INTERNAL_ERROR;
-	}
+    VmaAllocationInfo allocInfo{};
+    switch (vmaCreateBuffer(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
+    {
+        case VK_SUCCESS:
+            return {};
+        case VK_ERROR_OUT_OF_DEVICE_MEMORY:
+        case VK_ERROR_OUT_OF_HOST_MEMORY:
+            return Coral::Buffer::CreateError::OUT_OF_MEMORY;
+        default:
+            return Coral::Buffer::CreateError::INTERNAL_ERROR;
+    }
 }
 
 
 VkBuffer
 BufferImpl::getVkBuffer()
 {
-	return mBuffer;
+    return mBuffer;
 }
 
 
 size_t BufferImpl::size() const
 {
-	return mSize;
+    return mSize;
 }
 
 CoBufferType
 BufferImpl::type() const
 {
-	return mType;
+    return mType;
 }
 
 
 std::byte*
 BufferImpl::map()
 {
-	if (!mCpuVisible)
-	{
-		return nullptr;
-	}
+    if (!mCpuVisible)
+    {
+        return nullptr;
+    }
 
-	// Already mapped
-	if (mMapped)
-	{
-		return nullptr;
-	}
+    // Already mapped
+    if (mMapped)
+    {
+        return nullptr;
+    }
 
-	void* data{ nullptr };
+    void* data{ nullptr };
 
-	if (vmaMapMemory(context().getVmaAllocator(), mAllocation, &data) != VK_SUCCESS)
-	{
-		return nullptr;
-	}
+    if (vmaMapMemory(context().getVmaAllocator(), mAllocation, &data) != VK_SUCCESS)
+    {
+        return nullptr;
+    }
 
-	mMapped = (std::byte*)data;
-	return mMapped;
+    mMapped = (std::byte*)data;
+    return mMapped;
 }
 
 
 bool
 BufferImpl::unmap()
 {
-	if (!mMapped)
-	{
-		return false;
-	}
+    if (!mMapped)
+    {
+        return false;
+    }
 
-	mMapped = nullptr;
-	vmaUnmapMemory(context().getVmaAllocator(), mAllocation);
+    mMapped = nullptr;
+    vmaUnmapMemory(context().getVmaAllocator(), mAllocation);
 
-	return true;
+    return true;
 }

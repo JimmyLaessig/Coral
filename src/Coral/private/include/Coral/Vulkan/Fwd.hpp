@@ -5,7 +5,7 @@
 
 namespace Coral::Vulkan
 {
-
+class Resource;
 class BufferImpl;
 class CommandBufferImpl;
 class CommandQueueImpl;
@@ -19,6 +19,7 @@ class SemaphoreImpl;
 class ShaderModuleImpl;
 class SwapchainImpl;
 
+using ResourcePtr          = std::shared_ptr<Resource>;
 using BufferImplPtr        = std::shared_ptr<BufferImpl>;
 using CommandBufferImplPtr = std::shared_ptr<CommandBufferImpl>;
 using ContextImplPtr       = std::shared_ptr<ContextImpl>;

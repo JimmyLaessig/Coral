@@ -14,31 +14,31 @@ typedef CoFramebuffer_T* CoFramebuffer;
 // Structure specifying the parameters of a color attachment
 typedef struct
 {
-	// Image of the attachment
-	/**
-	 * Image format must be a color format.
-	 */
-	CoImage image;
+    // Image of the attachment
+    /**
+     * Image format must be a color format.
+     */
+    CoImage image;
 
-	// Binding index of the color attachment
-	uint32_t binding;
+    // Binding index of the color attachment
+    uint32_t binding;
 
 } CoColorAttachment;
 
 // Structure specifying the parameters of a newly created framebuffer object
 typedef struct  
 {
-	// Pointer to a list of color attachments
-	const CoColorAttachment* pColorAttachments;
+    // Pointer to a list of color attachments
+    const CoColorAttachment* pColorAttachments;
 
-	// Number of entries in pColorAttachments
-	uint32_t colorAttachmentCount;
+    // Number of entries in pColorAttachments
+    uint32_t colorAttachmentCount;
 
-	// Optional depth-stencil attachment
-	/** 
-	 * The format of the image must be a depth-stencil format.
-	 */
-	CoImage depthAttachment;
+    // Optional depth-stencil attachment
+    /** 
+     * The format of the image must be a depth-stencil format.
+     */
+    CoImage depthAttachment;
 
 } CoFramebufferCreateConfig;
 
@@ -46,36 +46,36 @@ typedef struct
 // Structure specifying the attributes of a color attachment
 typedef struct
 {
-	// Format of the attachment
-	CoPixelFormat format;
+    // Format of the attachment
+    CoPixelFormat format;
 
-	// Binding index of the attachment
-	uint32_t binding;
+    // Binding index of the attachment
+    uint32_t binding;
 
 } CoColorAttachmentInfo;
 
 // Structure specifying the attributes of a depth-stencil attachment
 typedef struct
 {
-	// Format of the attachment
-	CoPixelFormat format;
+    // Format of the attachment
+    CoPixelFormat format;
 
 } CoDepthStencilAttachmentInfo;
 
 // Structure specifying the layout of a framebuffer
 typedef struct  
 {
-	// Pointer to a list of CoColorAttachmentInfo structures
-	const CoColorAttachmentInfo* pColorAttachments;
+    // Pointer to a list of CoColorAttachmentInfo structures
+    const CoColorAttachmentInfo* pColorAttachments;
 
-	// Number of elements in the pColorAttachments array
-	uint32_t colorAttachmentCount;
+    // Number of elements in the pColorAttachments array
+    uint32_t colorAttachmentCount;
 
-	// Pointer to a CoDepthStencilAttachmentInfo instance.
-	/**
-	 * If nullptr, the framebuffer is created without a depth-stencil attachment.
-	 */
-	const CoDepthStencilAttachmentInfo* depthStencilAttachment;
+    // Pointer to a CoDepthStencilAttachmentInfo instance.
+    /**
+     * If nullptr, the framebuffer is created without a depth-stencil attachment.
+     */
+    const CoDepthStencilAttachmentInfo* depthStencilAttachment;
 
 } CoFramebufferLayout;
 

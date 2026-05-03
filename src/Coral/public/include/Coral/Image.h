@@ -6,10 +6,10 @@
 
 typedef enum
 {
-	// The image is primarily used as read-only resource in a shader
-	CO_IMAGE_USAGE_HINT_SHADER_READ_ONLY       = 0,
-	// The image is primarily used as frame buffer attachment
-	CO_IMAGE_USAGE_HINT_FRAMEBUFFER_ATTACHMENT = 1,
+    // The image is primarily used as read-only resource in a shader
+    CO_IMAGE_USAGE_HINT_SHADER_READ_ONLY       = 0,
+    // The image is primarily used as frame buffer attachment
+    CO_IMAGE_USAGE_HINT_FRAMEBUFFER_ATTACHMENT = 1,
 
 } CoImageUsageHint;
 
@@ -17,22 +17,22 @@ typedef enum
 /// Configuration to create an image
 typedef struct
 {
-	/// The extent of the image
-	CoExtent extent;
+    /// The extent of the image
+    CoExtent extent;
 
-	/// Flag indicating if the image should be equipped with multiple levels of detail for minified sampling of the image.
-	bool hasMipMaps;
+    /// Flag indicating if the image should be equipped with multiple levels of detail for minified sampling of the image.
+    bool hasMipMaps;
 
-	/// The format and type of the texel blocks contained in the Image
-	CoPixelFormat format;
+    /// The format and type of the texel blocks contained in the Image
+    CoPixelFormat format;
 
-	/// Hint about the usage of the image
-	/**
-	 * The usage hint helps Coral to optimize memory layout of the image for best performance. Note that the hint is
-	 * not binding and images with usage hint SHADER_READ_ONLY can still be used as framebuffer attachments and vice
-	 * versa.
-	 */
-	CoImageUsageHint usageHint;
+    /// Hint about the usage of the image
+    /**
+     * The usage hint helps Coral to optimize memory layout of the image for best performance. Note that the hint is
+     * not binding and images with usage hint SHADER_READ_ONLY can still be used as framebuffer attachments and vice
+     * versa.
+     */
+    CoImageUsageHint usageHint;
 } CoImageCreateConfig;
 
 

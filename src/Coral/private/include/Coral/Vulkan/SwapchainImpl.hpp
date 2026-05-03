@@ -17,86 +17,86 @@ namespace Coral::Vulkan
 {
 
 class SwapchainImpl : public Coral::Swapchain
-	                , public Resource
-	                , public std::enable_shared_from_this<SwapchainImpl>
+                    , public Resource
+                    , public std::enable_shared_from_this<SwapchainImpl>
 {
 public:
 
-	using Resource::Resource;
+    using Resource::Resource;
 
-	virtual ~SwapchainImpl();
+    virtual ~SwapchainImpl();
 
-	std::optional<Coral::Swapchain::CreateError> init(const Coral::Swapchain::CreateConfig& config);
+    std::optional<Coral::Swapchain::CreateError> init(const Coral::Swapchain::CreateConfig& config);
 
-	void* nativeWindowHandle() override;
+    void* nativeWindowHandle() override;
 
-	SwapchainImageInfo acquireNextSwapchainImage(FencePtr fence) override;
+    SwapchainImageInfo acquireNextSwapchainImage(FencePtr fence) override;
 
-	SwapchainImageInfo currentSwapchainImage() const override;
+    SwapchainImageInfo currentSwapchainImage() const override;
 
-	uint32_t currentSwapchainImageIndex() const override;
+    uint32_t currentSwapchainImageIndex() const override;
 
-	uint32_t swapchainImageCount() const override;
+    uint32_t swapchainImageCount() const override;
 
-	Framebuffer::Layout framebufferLayout() const override;
+    Framebuffer::Layout framebufferLayout() const override;
 
-	CoExtent swapchainExtent() const override;
+    CoExtent swapchainExtent() const override;
 
-	VkSurfaceKHR getVkSurface();
+    VkSurfaceKHR getVkSurface();
 
-	VkSwapchainKHR getVkSwapchain();
+    VkSwapchainKHR getVkSwapchain();
 
-	const Coral::Swapchain::CreateConfig& config() const { return mConfig; };
+    const Coral::Swapchain::CreateConfig& config() const { return mConfig; };
 
-	void present(CommandQueueImpl& commandQueue, const std::vector<SemaphorePtr>& waitSemaphores);
+    void present(CommandQueueImpl& commandQueue, const std::vector<SemaphorePtr>& waitSemaphores);
 
 private:
 
-	bool initSwapchain(const Coral::Swapchain::CreateConfig& config);
+    bool initSwapchain(const Coral::Swapchain::CreateConfig& config);
 
-	void* mNativeWindowHandle{ nullptr };
+    void* mNativeWindowHandle{ nullptr };
 
-	VkSurfaceKHR mSurface{ VK_NULL_HANDLE };
+    VkSurfaceKHR mSurface{ VK_NULL_HANDLE };
 
-	VkSwapchainKHR mSwapchain{ VK_NULL_HANDLE };
+    VkSwapchainKHR mSwapchain{ VK_NULL_HANDLE };
 
-	VkSurfaceFormatKHR mSurfaceFormat{};
+    VkSurfaceFormatKHR mSurfaceFormat{};
 
-	uint32_t mSwapchainImageCount{ 0 };
+    uint32_t mSwapchainImageCount{ 0 };
 
-	uint32_t mCurrentSwapchainIndex{ 0 };
+    uint32_t mCurrentSwapchainIndex{ 0 };
 
-	VkExtent2D mSwapchainExtent{ 0, 0 };
+    VkExtent2D mSwapchainExtent{ 0, 0 };
 
-	/// Semaphores to be signaled once the swapchain image has been acquired (one for each swapchain image).
-	std::vector<Coral::SemaphorePtr> mImageAcquiredSemaphore;
-	
-	/// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL after acquisition
-	/// (one for each swapchain image).
-	std::vector<Coral::CommandBufferPtr> mTransitionToColorAttachment;
+    /// Semaphores to be signaled once the swapchain image has been acquired (one for each swapchain image).
+    std::vector<Coral::SemaphorePtr> mImageAcquiredSemaphore;
+    
+    /// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL after acquisition
+    /// (one for each swapchain image).
+    std::vector<Coral::CommandBufferPtr> mTransitionToColorAttachment;
 
-	/// Semaphores to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
-	/// to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (one for each swapchain image).
-	std::vector<Coral::SemaphorePtr> mImageReadySemaphore;
+    /// Semaphores to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
+    /// to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (one for each swapchain image).
+    std::vector<Coral::SemaphorePtr> mImageReadySemaphore;
 
-	/// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
-	std::vector<Coral::CommandBufferPtr> mTransitionToPresent;
+    /// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+    std::vector<Coral::CommandBufferPtr> mTransitionToPresent;
 
-	/// Semaphores to be signaled once the swapchain image memory layout has transitioned to
-	/// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
-	std::vector<Coral::SemaphorePtr> mImagePresentableSemaphore;
+    /// Semaphores to be signaled once the swapchain image memory layout has transitioned to
+    /// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+    std::vector<Coral::SemaphorePtr> mImagePresentableSemaphore;
 
-	/// Swapchain framebuffers  (one for each swapchain image).
-	std::vector<Coral::FramebufferPtr> mFramebuffers;
+    /// Swapchain framebuffers  (one for each swapchain image).
+    std::vector<Coral::FramebufferPtr> mFramebuffers;
 
-	/// The swapchain image
-	std::vector<Coral::ImagePtr> mSwapchainImages;
+    /// The swapchain image
+    std::vector<Coral::ImagePtr> mSwapchainImages;
 
-	Coral::ImagePtr mSwapchainDepthImage;
+    Coral::ImagePtr mSwapchainDepthImage;
 
-	Coral::Swapchain::CreateConfig mConfig{};
+    Coral::Swapchain::CreateConfig mConfig{};
 
-	mutable std::mutex mThreadProtection;
+    mutable std::mutex mThreadProtection;
 
 }; // class Surface
 

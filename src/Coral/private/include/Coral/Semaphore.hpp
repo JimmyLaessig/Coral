@@ -11,14 +11,14 @@ namespace Coral
 class CORAL_API Semaphore
 {
 public:
-	using CreateConfig = CoSemaphoreCreateConfig;
+    using CreateConfig = CoSemaphoreCreateConfig;
 
-	enum class CreateError
-	{
-		INTERNAL_ERROR
-	};
+    enum class CreateError
+    {
+        INTERNAL_ERROR
+    };
 
-	virtual ~Semaphore() = default;
+    virtual ~Semaphore() = default;
 
 };
 
@@ -26,7 +26,7 @@ public:
 
 struct CoSemaphore_T
 {
-	std::shared_ptr<Coral::Semaphore> impl;
+    std::shared_ptr<Coral::Semaphore> impl;
 };
 
 

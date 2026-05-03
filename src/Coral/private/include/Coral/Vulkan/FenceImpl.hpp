@@ -11,26 +11,26 @@ namespace Coral::Vulkan
 {
 
 class FenceImpl : public Coral::Fence
-	            , public Resource
-	            , std::enable_shared_from_this<FenceImpl>
+                , public Resource
+                , std::enable_shared_from_this<FenceImpl>
 {
 public:
 
-	using Resource::Resource;
+    using Resource::Resource;
 
-	virtual ~FenceImpl();
+    virtual ~FenceImpl();
 
-	std::optional<Coral::Fence::CreateError> init();
+    std::optional<Coral::Fence::CreateError> init();
 
-	bool wait() override;
+    bool wait() override;
 
-	void reset() override;
+    void reset() override;
 
-	VkFence getVkFence();
+    VkFence getVkFence();
 
 private:
 
-	VkFence mFence{ VK_NULL_HANDLE };
+    VkFence mFence{ VK_NULL_HANDLE };
 
 };
 

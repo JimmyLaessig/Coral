@@ -15,50 +15,50 @@ namespace Coral::Vulkan
 {
 
 class ShaderModuleImpl : public Coral::ShaderModule
-	                   , public Resource
-	                   , public std::enable_shared_from_this<ShaderModuleImpl>
+                       , public Resource
+                       , public std::enable_shared_from_this<ShaderModuleImpl>
 {
 public:
 
-	using Resource::Resource;
+    using Resource::Resource;
 
-	virtual ~ShaderModuleImpl();
+    virtual ~ShaderModuleImpl();
 
-	std::optional<ShaderModule::CreateError> init(const Coral::ShaderModule::CreateConfig& config);
+    std::optional<ShaderModule::CreateError> init(const Coral::ShaderModule::CreateConfig& config);
 
-	ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
+    ContextImpl& contextImpl() { return static_cast<ContextImpl&>(context()); }
 
-	CoShaderStage shaderStage() const override;
+    CoShaderStage shaderStage() const override;
 
-	const std::string& name() const override;
+    const std::string& name() const override;
 
-	const std::string& entryPoint() const override;
+    const std::string& entryPoint() const override;
 
-	const AttributeLayout& inputAttributeLayout() const override;
+    const AttributeLayout& inputAttributeLayout() const override;
 
-	const AttributeLayout& outputAttributeLayout() const override;
+    const AttributeLayout& outputAttributeLayout() const override;
 
-	const DescriptorLayout& descriptorLayout() const override;
+    const DescriptorLayout& descriptorLayout() const override;
 
-	VkShaderModule getVkShaderModule();
+    VkShaderModule getVkShaderModule();
 
 private:
 
-	bool reflect(std::span<const std::byte> spirvCode);
+    bool reflect(std::span<const std::byte> spirvCode);
 
-	std::string mName;
+    std::string mName;
 
-	AttributeLayout mInputAttributeLayout;
+    AttributeLayout mInputAttributeLayout;
 
-	AttributeLayout mOutputAttributeLayout;
+    AttributeLayout mOutputAttributeLayout;
 
-	DescriptorLayout mDescriptorLayout;
+    DescriptorLayout mDescriptorLayout;
 
-	std::string mEntryPoint;
+    std::string mEntryPoint;
 
-	CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
+    CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
 
-	VkShaderModule mShaderModule{ VK_NULL_HANDLE };
+    VkShaderModule mShaderModule{ VK_NULL_HANDLE };
 };
 
 } // namespace Coral::Vulkan

@@ -12,8 +12,14 @@
 /// Configuration to create a CommandBuffer
 typedef struct 
 {
-	/// The name of the CommandBuffer
-	const char* name;
+    /// The name of the CommandBuffer
+    const char* name;
+
+    /// Flag indicating if the CommandBuffer should retain references to resources used in commands submitted to it. If
+    /// enabled, submitted resources are allowed to be destroyed after CommandBuffer recording. Their lifetime is
+    /// automatically extended until the CommandBuffer execution has finished. Note, that this does not replace any 
+    /// coDestroy* call and resources must still be destroyed properly to prevent memory leaks.
+    bool retainReferences;
 } CoCommandBufferCreateConfig;
 
 
@@ -22,8 +28,8 @@ struct CoCommandBuffer_T;
 typedef CoCommandBuffer_T* CoCommandBuffer;
 
 CORAL_API CoResult coCommandQueueCreateCommandBuffer(CoCommandQueue queue, 
-	                                                 const CoCommandBufferCreateConfig* pConfig, 
-	                                                 CoCommandBuffer* pCommandBuffer);
+                                                     const CoCommandBufferCreateConfig* pConfig, 
+                                                     CoCommandBuffer* pCommandBuffer);
 
 CORAL_API void coDestroyCommandBuffer(CoCommandBuffer buffer);
 
@@ -40,48 +46,48 @@ CORAL_API CoResult coCommandBufferEnd(CoCommandBuffer commandBuffer);
 
 typedef enum 
 {
-	Triangles, 
-	Lines, 
-	Points,
+    Triangles, 
+    Lines, 
+    Points,
 } CoPrimitiveType;
 
 typedef enum
 {
-	COLOR,
-	DEPTH,
-	COLOR_AND_DEPTH
+    COLOR,
+    DEPTH,
+    COLOR_AND_DEPTH
 } CoBlitAttachment;
 
 ///
 typedef struct 
 {
-	/// The index of the attachment to clear
-	uint32_t attachment;
-	/// The clear operation
-	CoClearOp clearOp;
-	/// The color
-	float color[4];
+    /// The index of the attachment to clear
+    uint32_t attachment;
+    /// The clear operation
+    CoClearOp clearOp;
+    /// The color
+    float color[4];
 } CoClearColor;
 
 
 ///
 typedef struct
 {
-	CoClearOp clearOp;
-	float depth;
-	uint8_t stencil;
+    CoClearOp clearOp;
+    float depth;
+    uint8_t stencil;
 } CoClearDepthStencil;
 
 
 typedef struct 
 {
-	CoFramebuffer framebuffer;
+    CoFramebuffer framebuffer;
 
-	CoClearColor* pClearColors;
-	
-	uint32_t clearColorsCount;
+    CoClearColor* pClearColors;
+    
+    uint32_t clearColorsCount;
 
-	CoClearDepthStencil* clearDepthStencil;
+    CoClearDepthStencil* clearDepthStencil;
 
 } CoBeginRenderPassInfo;
 
@@ -92,69 +98,69 @@ CORAL_API CoResult coCommandBufferEndRenderPass(CoCommandBuffer commandBuffer);
 
 typedef struct 
 {
-	/// Source buffer to copy data from
-	CoBuffer source;
+    /// Source buffer to copy data from
+    CoBuffer source;
 
-	/// Destination buffer to copy data to
-	CoBuffer dest;
+    /// Destination buffer to copy data to
+    CoBuffer dest;
 
-	/// Starting offset from the start of the source buffer (in bytes)
-	size_t sourceOffset;
+    /// Starting offset from the start of the source buffer (in bytes)
+    size_t sourceOffset;
 
-	/// Starting offset from the start of the destination buffer (in bytes)
-	size_t destOffset;
+    /// Starting offset from the start of the destination buffer (in bytes)
+    size_t destOffset;
 
-	/// Number of bytes to copy
-	size_t size;
+    /// Number of bytes to copy
+    size_t size;
 } CoCopyBufferInfo;
 
 typedef struct 
 {
-	CoBuffer source;
+    CoBuffer source;
 
-	CoImage dest;
+    CoImage dest;
 } CoCopyImageInfo;
 
 typedef struct
 {
-	/// The number of vertices to draw
-	uint32_t indexCount;
+    /// The number of vertices to draw
+    uint32_t indexCount;
 
-	/// The base index within the index buffer
-	uint32_t firstIndex;
+    /// The base index within the index buffer
+    uint32_t firstIndex;
 } CoDrawIndexInfo;
 
 
 typedef struct
 {
-	CoRectangle viewport;
-	float minDepth;
-	float maxDepth;
+    CoRectangle viewport;
+    float minDepth;
+    float maxDepth;
 } CoViewportInfo;
 
 
 typedef struct
 {
-	/// The buffer to update
-	CoBuffer buffer;
-	/// Byte offset to the begin of the buffer
-	uint32_t offset;
-	/// The data to be put into the buffer
-	const CoByte* pData;
-	// Number of bytes in pData
-	uint32_t dataCount;
+    /// The buffer to update
+    CoBuffer buffer;
+    /// Byte offset to the begin of the buffer
+    uint32_t offset;
+    /// The data to be put into the buffer
+    const CoByte* pData;
+    // Number of bytes in pData
+    uint32_t dataCount;
 } CoUpdateBufferDataInfo;
 
 
 typedef struct 
 {
-	/// The image to update
-	CoImage image;
+    /// The image to update
+    CoImage image;
 
-	/// The data to be put into the image
-	const CoByte* pData;
+    /// The data to be put into the image
+    const CoByte* pData;
 
-	uint32_t dataCount;
+    uint32_t dataCount;
 } CoUpdateImageDataInfo;
 
 
@@ -209,28 +215,28 @@ CORAL_API CoResult coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, uin
 
 typedef struct
 {
-	/// The command buffers to execute in batch. 
-	/**
-	 * The order of command buffers in the list dictates the order of
-	 * submission and beginning of execution, but are allowed to proceed
-	 * independently after that and complete out of order.
-	 *
-	 * \note: The caller must ensure that the waitSemaphores are submitted as signalSemaphores of a command buffer
-	 * submission. Otherwise, execution will not start.
-	 */
-	CoCommandBuffer* pCommandBuffers;
+    /// The command buffers to execute in batch. 
+    /**
+     * The order of command buffers in the list dictates the order of
+     * submission and beginning of execution, but are allowed to proceed
+     * independently after that and complete out of order.
+     *
+     * \note: The caller must ensure that the waitSemaphores are submitted as signalSemaphores of a command buffer
+     * submission. Otherwise, execution will not start.
+     */
+    CoCommandBuffer* pCommandBuffers;
 
-	uint32_t commandBufferCount;
+    uint32_t commandBufferCount;
 
-	/// List of semaphores to wait for before execution of the command buffer can start.
-	CoSemaphore* pWaitSemaphores;
+    /// List of semaphores to wait for before execution of the command buffer can start.
+    CoSemaphore* pWaitSemaphores;
 
-	uint32_t waitSemaphoreCount;
+    uint32_t waitSemaphoreCount;
 
-	/// List of semaphores to signal once execution of the command buffer has finished.
-	CoSemaphore* pSignalSemaphores;
+    /// List of semaphores to signal once execution of the command buffer has finished.
+    CoSemaphore* pSignalSemaphores;
 
-	uint32_t signalSemaphoreCount;
+    uint32_t signalSemaphoreCount;
 } CoCommandBufferSubmitInfo;
 
 

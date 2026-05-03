@@ -11,23 +11,23 @@ namespace Coral::Vulkan
 {
 
 class SemaphoreImpl : public Coral::Semaphore
-	                , public Resource
-	                , public std::enable_shared_from_this<SemaphoreImpl>
+                    , public Resource
+                    , public std::enable_shared_from_this<SemaphoreImpl>
 {
 public:
-	using Resource::Resource;
+    using Resource::Resource;
 
-	virtual ~SemaphoreImpl();
+    virtual ~SemaphoreImpl();
 
-	std::optional<Coral::Semaphore::CreateError> init();
+    std::optional<Coral::Semaphore::CreateError> init();
 
-	VkSemaphore getVkSemaphore();
+    VkSemaphore getVkSemaphore();
 
-	const VkSemaphore getVkSemaphore() const;
+    const VkSemaphore getVkSemaphore() const;
 
 private:
 
-	VkSemaphore mSemaphore{ VK_NULL_HANDLE };
+    VkSemaphore mSemaphore{ VK_NULL_HANDLE };
 
 };
 
