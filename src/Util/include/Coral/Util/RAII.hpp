@@ -1,3 +1,6 @@
+#ifndef CORAL_UTIL_RAII_HPP
+#define CORAL_UTIL_RAII_HPP
+
 #include <memory>
 
 #include <Coral/Coral.h>
@@ -85,3 +88,5 @@ auto destroyPipelineState = [](CoPipelineState pipelineState)
 using PipelineStatePtr = std::unique_ptr<CoPipelineState_T, decltype(destroyPipelineState)>;
 
 } // namespace Coral
+
+#endif // !CORAL_UTIL_RAII_HPP

@@ -27,15 +27,12 @@ else()
 endif()
 
 include(cmake/ConfigureTarget.cmake)
+include(cmake/TargetEmbedFiles.cmake)
 
 set(CORAL_RESOURCE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/resources)
 
 add_subdirectory(deps)
 add_subdirectory(src)
-
-if(CORAL_BUILD_EXAMPLES)
-    add_subdirectory(examples)
-endif()
 
 if(CORAL_BUILD_TESTS)
     add_subdirectory(test)

@@ -2,38 +2,37 @@
 # Name of the Coral Unit tests
 ###############################################################################
 
-set(CORAL_UNIT_TESTS_TARGET_NAME CoralUnitTests)
+set(TARGET_NAME CoralUnitTests)
 
-set(CORAL_UNIT_TESTS_SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(CORAL_UNIT_TESTS_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
-set(CORAL_UNIT_TESTS_SHADER_DIR ${CORAL_UNIT_TESTS_SRC_DIR}/Shaders)
-set(CORAL_UNIT_TESTS_GENERATED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/${CORAL_UNIT_TESTS_TARGET_NAME}/generated/include)
+set(SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
+set(CORAL_UNIT_TESTS_SHADER_DIR ${SOURCE_DIR}/Shaders)
+set(CORAL_UNIT_TESTS_GENERATED_INCLUDE_DIR ${CMAKE_CURRENT_BINARY_DIR}/${TARGET_NAME}/generated/include)
 
 ###############################################################################
 # Create the executable
 ###############################################################################
 
-add_executable(${CORAL_UNIT_TESTS_TARGET_NAME})
+add_executable(${TARGET_NAME})
 
 ###############################################################################
 # Add the target source files
 ###############################################################################
 
-set(CORAL_UNIT_TESTS_INCLUDES
-    ${CORAL_RESOURCE_DIRECTORY}/include/Cube.hpp)
+set(HEADERS 
+    ${SOURCE_DIR}/Catch.hpp)
 
-set(CORAL_UNIT_TESTS_SOURCES
-    ${CORAL_UNIT_TESTS_SRC_DIR}/Catch.hpp
-    ${CORAL_UNIT_TESTS_SRC_DIR}/Catch.cpp
-    ${CORAL_UNIT_TESTS_SRC_DIR}/ContextTests.cpp
-    ${CORAL_UNIT_TESTS_SRC_DIR}/BufferTests.cpp
-    ${CORAL_UNIT_TESTS_SRC_DIR}/UniformBlockBuilderTests.cpp)
+set(SOURCES
+    ${SOURCE_DIR}/Catch.hpp
+    ${SOURCE_DIR}/Catch.cpp
+    ${SOURCE_DIR}/ContextTests.cpp
+    ${SOURCE_DIR}/BufferTests.cpp
+    ${SOURCE_DIR}/UniformBlockBuilderTests.cpp)
 
 ##############################################################################
 # Add the target shader files
 ###############################################################################
 
-#target_compile_shader(${CORAL_UNIT_TESTS_TARGET_NAME} 
+#target_compile_shader(${TARGET_NAME} 
 #    NAME UniformColorVertexShader
 #    NAMESPACE Shaders
 #    INPUT ${CORAL_UNIT_TESTS_SHADER_DIR}/UniformColor.hlsl
@@ -43,7 +42,7 @@ set(CORAL_UNIT_TESTS_SOURCES
 #    LANGUAGE HLSL
 #    WORKING_DIRECTORY ${CORAL_UNIT_TESTS_SHADER_DIR})
 
-#target_compile_shader(${CORAL_UNIT_TESTS_TARGET_NAME} 
+#target_compile_shader(${TARGET_NAME} 
 #    NAME UniformColorFragmentShader
 #    NAMESPACE Shaders
 #    INPUT ${CORAL_UNIT_TESTS_SHADER_DIR}/UniformColor.hlsl
@@ -62,39 +61,44 @@ set(CORAL_UNIT_TESTS_SOURCES
 ###############################################################################
 
 source_group("include/generated/Shaders" FILES ${CORAL_UNIT_TESTS_GENERATED_SHADER_HEADERS})
-source_group("include" FILES ${CORAL_UNIT_TESTS_INCLUDES})
-source_group("src" FILES ${CORAL_UNIT_TESTS_SOURCES})
+source_group("src" FILES ${SOURCES})
 source_group("Shaders" FILES ${CORAL_UNIT_TESTS_SHADER_SOURCES})
 
 ###############################################################################
 # Configure the target
 ###############################################################################
 
-coral_configure_target(${CORAL_UNIT_TESTS_TARGET_NAME}
-    SOURCES
-        ${CORAL_UNIT_TESTS_SOURCES}
-    PRIVATE_HEADERS 
-        ${CORAL_UNIT_TESTS_INCLUDES}
-        ${CORAL_UNIT_TESTS_GENERATED_SHADER_HEADERS}
-    PRIVATE_DEPENDENCIES
+target_sources(${TARGET_NAME} PRIVATE
+    FILE_SET private_headers
+    TYPE HEADERS
+    FILES ${HEADERS}
+    BASE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_sources(${TARGET_NAME} PRIVATE ${SOURCES})
+
+target_link_libraries(${TARGET_NAME} PRIVATE
         glm::glm
         stb
         Coral
-        Catch2::Catch2WithMain)
+        Catch2::Catch2WithMain
+        CoralResources)
+
+coral_configure_target(${TARGET_NAME})
+
 
 ###############################################################################
 # Copy the resource files
 ###############################################################################
 
-set(CORAL_UNIT_TESTS_RESOURCES "${CORAL_RESOURCE_DIRECTORY}/uvtest.png")
+#set(CORAL_UNIT_TESTS_RESOURCES "${CORAL_RESOURCE_DIRECTORY}/uvtest.png")
 
-add_custom_command(TARGET ${CORAL_UNIT_TESTS_TARGET_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/resources/)
+#add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+#    COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/resources/)
 
-foreach(FILE ${CORAL_UNIT_TESTS_RESOURCES})
-    add_custom_command(TARGET ${CORAL_UNIT_TESTS_TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FILE} ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/resources/)
-endforeach()
+#foreach(FILE ${CORAL_UNIT_TESTS_RESOURCES})
+#    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
+#        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${FILE} ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/resources/)
+#endforeach()
 
 ###############################################################################
 # Copy the shared library files
@@ -102,7 +106,7 @@ endforeach()
 
 get_target_property(CORAL_TARGET_TYPE Coral TYPE)
 if(${CORAL_TARGET_TYPE} STREQUAL "SHARED_LIBRARY")
-    add_custom_command(TARGET ${CORAL_UNIT_TESTS_TARGET_NAME} POST_BUILD
+    add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different $<TARGET_FILE:Coral> ${CMAKE_CURRENT_BINARY_DIR}/$<CONFIG>/)
 endif()
 
@@ -112,4 +116,4 @@ endif()
 
 include(CTest)
 include(Catch)
-catch_discover_tests(${CORAL_UNIT_TESTS_TARGET_NAME})
+catch_discover_tests(${TARGET_NAME})
