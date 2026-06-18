@@ -1,7 +1,5 @@
-#ifndef CORAL_UNIFORMBLOCKBUILDER_HPP
-#define CORAL_UNIFORMBLOCKBUILDER_HPP
-
-#include <CoralUtil/System.hpp>
+#ifndef CORAL_UTIL_UNIFORMBLOCKBUILDER_HPP
+#define CORAL_UTIL_UNIFORMBLOCKBUILDER_HPP
 
 #include <Coral/ShaderModule.h>
 
@@ -324,9 +322,9 @@ private:
     std::unordered_map<std::string_view, uint32_t> mNameToIndexLookUp;
 
     std::vector<std::byte> mData;
-};
+
+}; // class UniformBlockBuilder
 
 } // Coral
 
-
-#endif // !CORAL_UNIFORMBLOCKBUILDER_HPP
+#endif // !CORAL_UTIL_UNIFORMBLOCKBUILDER_HPP

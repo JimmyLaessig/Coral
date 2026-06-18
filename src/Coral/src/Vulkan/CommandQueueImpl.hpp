@@ -1,0 +1,59 @@
+#ifndef CORAL_VULKANCOMMANDQUEUEIMPL_HPP
+#define CORAL_VULKANCOMMANDQUEUEIMPL_HPP
+
+#include <Coral/CommandQueue.h>
+
+#include "Fwd.hpp"
+#include "Resource.hpp"
+#include "Vulkan.hpp"
+
+#include <mutex>
+#include <thread>
+#include <unordered_map>
+
+namespace Coral::Vulkan
+{
+
+class CommandQueueImpl : public Coral::CommandQueue,
+                         public Resource
+{
+public:
+
+    CommandQueueImpl(ContextImpl& context, VkQueue queue, uint32_t index, uint32_t mQueueFamilyIndex);
+
+    virtual ~CommandQueueImpl();
+
+    std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError> createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config) override;
+
+    bool submit(const Coral::CommandBufferSubmitInfo& info, FencePtr fence) override;
+
+    bool submit(const Coral::PresentInfo& info) override;
+
+    bool waitIdle() override;
+
+    uint32_t getQueueIndex() { return mQueueIndex; }
+
+    VkCommandPool getVkCommandPool();
+
+    VkQueue getVkQueue();
+
+private:
+
+    void awaitRetainTasks();
+
+    std::mutex mQueueProtection;
+
+    VkQueue mQueue{ VK_NULL_HANDLE };
+
+    uint32_t mQueueIndex{ 0 };
+
+    uint32_t mQueueFamilyIndex{ 0 };
+
+    std::unordered_map<std::thread::id, VkCommandPool> mCommandPools;
+
+    std::atomic<size_t> mResourcesInFlight{ 0 };
+};
+
+} // namespace Coral::Vulkan
+
+#endif // !CORAL_VULKAN_COMMANDQUEUEIMPL_HPP
