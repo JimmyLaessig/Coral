@@ -209,8 +209,7 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
     {
         for (auto binding : std::span{ set->bindings, set->binding_count })
         {    
-            auto& descriptorBinding      = mDescriptorLayout.emplace_back();
-            //descriptorBinding.set      = set->set;
+            auto& descriptorBinding   = mDescriptorLayout.emplace_back();
             descriptorBinding.binding = binding->binding;
 
             switch (binding->descriptor_type)
@@ -289,7 +288,7 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
 
         auto& description    = mOutputAttributeLayout.emplace_back();
         description.location = variable->location;
-        description.name     = variable->name;
+        description.name     = variable->name ? variable->name : "";
         description.format   = *format;
     }
 

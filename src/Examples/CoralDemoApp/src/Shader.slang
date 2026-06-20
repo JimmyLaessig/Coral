@@ -1,20 +1,23 @@
 // ------------------------------------------------------------
 // Uniforms
 // ------------------------------------------------------------
-Texture2D baseColorTexture;
-SamplerState baseColorSampler;
 
-cbuffer LightingParams : register(b0)
-{
-    float3 lightDirection;   // normalized
-    float3 lightColor;
-}
-
-cbuffer TransformParams : register(b1)
+struct Matrices 
 {
     float4x4 modelViewProjectionMatrix;
     float3x3 normalMatrix;
-}
+};
+
+struct LightData
+{
+    float4 lightDirection;
+    float4 lightColor;
+};
+
+ConstantBuffer<Matrices> matrices   : register(b0);
+ConstantBuffer<LightData> lightData : register(b1);
+
+Sampler2D baseColorTexture    : register(t2);
 
 // ------------------------------------------------------------
 // Vertex Input / Output
@@ -36,11 +39,12 @@ struct VSOutput
 // ------------------------------------------------------------
 // Vertex Shader
 // ------------------------------------------------------------
+[shader("vertex")]
 VSOutput vsMain(VSInput input)
 {
     VSOutput output;
-    output.position = mul(modelViewProjectionMatrix, float4(input.position, 1.0));
-    output.normal   = mul(normalMatrix, input.normal);
+    output.position = mul(matrices.modelViewProjectionMatrix, float4(input.position, 1.0));
+    output.normal   = mul(matrices.normalMatrix, input.normal);
     output.uv       = input.uv;
     return output;
 }
@@ -48,15 +52,16 @@ VSOutput vsMain(VSInput input)
 // ------------------------------------------------------------
 // Fragment Shader
 // ------------------------------------------------------------
+[shader("fragment")]
 float4 psMain(VSOutput input) : SV_Target
 {
     float3 N = normalize(input.normal);
-    float3 L = normalize(lightDirection);
+    float3 L = normalize(lightData.lightDirection.xyz);
 
-    float NdotL = max(dot(N, L), 0.0);
+    float NdotL = max(dot(N, L), 0.f);
 
-    float3 baseColor = baseColorTexture.Sample(baseColorSampler, input.uv).rgb;
-    float3 litColor  = baseColor * lightColor * NdotL;
+    float3 baseColor = baseColorTexture.Sample(input.uv).rgb;
+    float3 litColor  = baseColor * lightData.lightColor.xyz * NdotL;
 
-    return float4(litColor, 1.0);
+    return float4(litColor, 1.f);
 }
