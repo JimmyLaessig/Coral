@@ -124,7 +124,7 @@ file(WRITE  \"${_output_file}\" \"\${_template}\")
     )
 
     if(NOT _res EQUAL 0)
-        message(FATAL_ERROR "coral_embed: Failed to generate header at configure time.")
+        message(FATAL_ERROR "target_embed_files: Failed to generate header at configure time.")
     endif()
 
     ###########################################################################
