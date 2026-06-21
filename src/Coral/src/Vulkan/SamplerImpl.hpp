@@ -3,13 +3,15 @@
 
 #include "Sampler.hpp"
 
-#include "Fwd.hpp"
 #include "Resource.hpp"
 #include "Vulkan.hpp"
 
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Sampler interface using the Vulkan backend
+ */
 class SamplerImpl : public Coral::Sampler
                   , public Resource
                   , public std::enable_shared_from_this<SamplerImpl>
@@ -42,7 +44,8 @@ private:
     CoWrapMode mWrapMode{ CO_WRAP_MODE_REPEAT };
 
     VkSampler mSampler{ VK_NULL_HANDLE };
-};
+
+}; // class SamplerImpl
 
 } // namespace Coral::Vulkan
 

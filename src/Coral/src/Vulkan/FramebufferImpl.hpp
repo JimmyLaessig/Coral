@@ -10,10 +10,12 @@
 #include <optional>
 #include <map>
 
-
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Framebuffer interface using the Vulkan backend
+ */
 class FramebufferImpl : public Coral::Framebuffer
                       , public Resource
                       , public std::enable_shared_from_this<FramebufferImpl>
@@ -42,7 +44,8 @@ private:
 
     uint32_t mWidth;
     uint32_t mHeight;
-};
+
+}; // class FramebufferImpl
 
 } // namespace Coral::Vulkan
 

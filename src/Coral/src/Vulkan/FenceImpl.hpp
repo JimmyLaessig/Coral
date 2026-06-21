@@ -10,6 +10,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Fence interface using the Vulkan backend
+ */
 class FenceImpl : public Coral::Fence
                 , public Resource
                 , std::enable_shared_from_this<FenceImpl>
@@ -32,7 +35,7 @@ private:
 
     VkFence mFence{ VK_NULL_HANDLE };
 
-};
+}; // class FenceImpl
 
 } // namespace Coral::Vulkan
 

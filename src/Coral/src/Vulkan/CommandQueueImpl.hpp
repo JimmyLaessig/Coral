@@ -14,6 +14,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the CommandQueue interface using the Vulkan backend
+ */
 class CommandQueueImpl : public Coral::CommandQueue,
                          public Resource
 {
@@ -52,7 +55,8 @@ private:
     std::unordered_map<std::thread::id, VkCommandPool> mCommandPools;
 
     std::atomic<size_t> mResourcesInFlight{ 0 };
-};
+
+}; // class CommandQueueImpl
 
 } // namespace Coral::Vulkan
 

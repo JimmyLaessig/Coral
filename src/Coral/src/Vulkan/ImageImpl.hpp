@@ -9,8 +9,9 @@
 
 namespace Coral::Vulkan
 {
-/// Representation of a multidimensional array of pixel data which can be used for for texturing or render attachments
-/**
+/*!
+ * Implemntaion of the Image interface using the Vulkan backend
+ *
  * Vulkan memory model allows for very fine-grained performance-oriented design for image memory layout. Ideally, for
  * the most suitable memory layout is chosen for each task. In pratice, this micro optimization is a complex task and
  * keeping track of the memory layout can be a heavy burden on the programmer and is often causes of rendering issues
@@ -84,7 +85,8 @@ private:
     std::vector<VkImageLayout> mCurrentLayout;
 
     bool mIsOwner{ false };
-};
+
+}; // class ImageImpl
 
 } // namespace Coral::Vulkan
 

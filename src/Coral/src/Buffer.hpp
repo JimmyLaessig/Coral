@@ -9,6 +9,9 @@
 namespace Coral
 {
 
+/*!
+ *
+ */
 class Buffer
 {
 public:
@@ -24,30 +27,43 @@ public:
 
     virtual ~Buffer() = default;
 
-    /// Get the size of the buffer in bytes
+    /*!
+     * \brief Get the size of the buffer in bytes
+     */
     virtual size_t size() const = 0;
 
-    /// Get the type of the buffer
+    /*! 
+     * \brief Get the type of the buffer
+     */ 
     virtual CoBufferType type() const = 0;
 
-    /// Map the buffer memory to CPU-accessible memory.
-    /** 
-     * This function only returns a valid pointer if the buffer was created with the `cpuVisible` option enabled. 
-     * The memory CPU <-> GPU memory synchronization functions `map` and `unmap` should not be called whilst the buffer
-     * is in use by a command buffer.
+    /*! 
+     * \brief Map the buffer memory to CPU-accessible memory. 
+     * 
+     * This function only returns a valid pointer if the buffer was created with the \p cpuVisible option enabled. The
+     * memory CPU <-> GPU memory synchronization functions \ref map and \ref unmap should not be called whilst the
+     * buffer is in use by a command buffer.
+     * 
+     * \return Returns a pointer to the start of the mapped memory
      */
     virtual std::byte* map() = 0;
 
-    /// Unmap the buffer memory, mapped previously by `map()`.
-    /*
-     * Updates to the buffer's CPU data are only synchronized with the buffer's GPU data once `unmap` is called.
+    /*!
+     * \brief Unmap the buffer memory, mapped previously by \ref map.
+     * 
+     * Updates to the buffer's CPU data are only synchronized with the buffer's GPU data once \ref unmap is called.
+     * 
+     * \return True of the buffer was unmapped successfully, false otherwise.
      */
     virtual bool unmap() = 0;
 
-};
+}; // class Buffer
 
 } // namespace Coral
 
+/*!
+ * 
+ */
 struct CoBuffer_T
 {
     std::shared_ptr<Coral::Buffer> impl;

@@ -6,6 +6,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Base class of a Vulkan Resource
+ */
 class Resource
 {
 public:
@@ -18,7 +21,7 @@ private:
 
     ContextImpl& mContext;
 
-};
+};  // class Resource
 
 } // namespace Coral::Vulkan
 

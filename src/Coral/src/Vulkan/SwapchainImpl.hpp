@@ -7,15 +7,16 @@
 #include "Resource.hpp"
 #include "Vulkan.hpp"
 
-#include <array>
 #include <memory>
 
 #include <mutex>
 
-
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Swapchain interface using the Vulkan backend
+ */
 class SwapchainImpl : public Coral::Swapchain
                     , public Resource
                     , public std::enable_shared_from_this<SwapchainImpl>
@@ -68,28 +69,28 @@ private:
 
     VkExtent2D mSwapchainExtent{ 0, 0 };
 
-    /// Semaphores to be signaled once the swapchain image has been acquired (one for each swapchain image).
+    // Semaphores to be signaled once the swapchain image has been acquired (one for each swapchain image).
     std::vector<Coral::SemaphorePtr> mImageAcquiredSemaphore;
     
-    /// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL after acquisition
-    /// (one for each swapchain image).
+    // Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL after acquisition
+    // (one for each swapchain image).
     std::vector<Coral::CommandBufferPtr> mTransitionToColorAttachment;
 
-    /// Semaphores to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
-    /// to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (one for each swapchain image).
+    // Semaphores to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
+    // to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (one for each swapchain image).
     std::vector<Coral::SemaphorePtr> mImageReadySemaphore;
 
-    /// Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+    // Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
     std::vector<Coral::CommandBufferPtr> mTransitionToPresent;
 
-    /// Semaphores to be signaled once the swapchain image memory layout has transitioned to
-    /// VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+    // Semaphores to be signaled once the swapchain image memory layout has transitioned to
+    // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
     std::vector<Coral::SemaphorePtr> mImagePresentableSemaphore;
 
-    /// Swapchain framebuffers  (one for each swapchain image).
+    // Swapchain framebuffers  (one for each swapchain image).
     std::vector<Coral::FramebufferPtr> mFramebuffers;
 
-    /// The swapchain image
+    // The swapchain image
     std::vector<Coral::ImagePtr> mSwapchainImages;
 
     Coral::ImagePtr mSwapchainDepthImage;
@@ -98,7 +99,7 @@ private:
 
     mutable std::mutex mThreadProtection;
 
-}; // class Surface
+}; // class SwapchainImpl
 
 } // namespace Coral::Vulkan
 

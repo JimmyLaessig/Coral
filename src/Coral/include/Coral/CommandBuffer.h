@@ -9,17 +9,24 @@
 
 #include <Coral/Framebuffer.h>
 
-/// Configuration to create a CommandBuffer
+/*!
+ * Structure specifying the parameters of a newly created CommandBuffer object
+ */
 typedef struct 
 {
-    /// The name of the CommandBuffer
+    /*!
+     * The name of the CommandBuffer
+     */
     const char* name;
 
-    /// Flag indicating if the CommandBuffer should retain references to resources used in commands submitted to it. If
-    /// enabled, submitted resources are allowed to be destroyed after CommandBuffer recording. Their lifetime is
-    /// automatically extended until the CommandBuffer execution has finished. Note, that this does not replace any 
-    /// coDestroy* call and resources must still be destroyed properly to prevent memory leaks.
+    /*!
+     * Flag indicating if the CommandBuffer should retain references to resources used in commands submitted to it. If
+     * enabled, submitted resources are allowed to be destroyed after CommandBuffer recording. Their lifetime is
+     * automatically extended until the CommandBuffer execution has finished. Note, that this does not replace any
+     * coDestroy* call and resources must still be destroyed properly to prevent memory leaks.
+     */
     bool retainReferences;
+
 } CoCommandBufferCreateConfig;
 
 
@@ -27,20 +34,33 @@ struct CoCommandBuffer_T;
 
 typedef CoCommandBuffer_T* CoCommandBuffer;
 
+/*!
+ * \brief Create a CommandBuffer object
+ * \param context Handle to a CoCommandQueue object that creates the CommandBuffer object.
+ * \param pConfig Pointer to a CoCommandBufferCreateConfig instance containing parameters affecting the CommandBuffer
+ *                creation.
+ * \param[out] pCommandBuffer Pointer to a CoCommandBuffer handle in which the resulting CommandBuffer object is 
+ *                            returned.
+ */
 CORAL_API CoResult coCommandQueueCreateCommandBuffer(CoCommandQueue queue, 
                                                      const CoCommandBufferCreateConfig* pConfig, 
                                                      CoCommandBuffer* pCommandBuffer);
 
+/*!
+ * \brief Destroy the CommandBuffer object
+ * \param buffer Handle to the CoCommandBuffer object to destroy
+ */
 CORAL_API void coDestroyCommandBuffer(CoCommandBuffer buffer);
 
-
-/// Begin command recording
+/*!
+ * \brief Begin command recording
+ * \param commandBuffer Handle to the CoCommandBuffer object
+ */
 CORAL_API CoResult coCommandBufferBegin(CoCommandBuffer commandBuffer);
 
-/// End command recording
-/**
- * Command buffers can only be scheduled for execution the command buffer
- * is no longer in recording state
+/*!
+ * \brief End command recording 
+ * \param commandBuffer Handle to the CoCommandBuffer object
  */
 CORAL_API CoResult coCommandBufferEnd(CoCommandBuffer commandBuffer);
 
@@ -58,15 +78,26 @@ typedef enum
     COLOR_AND_DEPTH
 } CoBlitAttachment;
 
-///
+/*!
+ * Structure containing the clear color of a Framebuffer attachment
+ */
 typedef struct 
 {
-    /// The index of the attachment to clear
+    /*!
+     * The index of the attachment to clear
+     */
     uint32_t attachment;
-    /// The clear operation
+
+    /*!
+     * The clear operation
+     */
     CoClearOp clearOp;
-    /// The color
+
+    /*!
+     * The color
+     */
     float color[4];
+
 } CoClearColor;
 
 
@@ -78,22 +109,45 @@ typedef struct
     uint8_t stencil;
 } CoClearDepthStencil;
 
-
+/*!
+ * Structure containing the render pass begin information
+ */
 typedef struct 
 {
+    /*!
+     * The FrameBuffer containing the attachments that are used within the render pass
+     */
     CoFramebuffer framebuffer;
 
+    /*!
+     * Pointer to an array of \ref CoClearColor structures containing clear values for each attachment.  
+     */
     CoClearColor* pClearColors;
     
+    /*!
+     * The number of elements in \ref pClearColors
+     */
     uint32_t clearColorsCount;
 
+    /*!
+     * Pointer to a CoClearDepthStencil structure containing the clear value for the depth-stencil 
+     * attachment.
+     */
     CoClearDepthStencil* clearDepthStencil;
 
 } CoBeginRenderPassInfo;
 
+/*!
+ * \brief Begin a new render pass
+ * \param commandBuffer Handle to the CoCommandBuffer object
+ * \param beginInfo Pointer to a CoBeginRenderPassInfo instance containing parameters of the render pass.
+ */
+CORAL_API CoResult coCommandBufferBeginRenderPass(CoCommandBuffer commandBuffer, const CoBeginRenderPassInfo* pBeginInfo);
 
-CORAL_API CoResult coCommandBufferBeginRenderPass(CoCommandBuffer commandBuffer, const CoBeginRenderPassInfo* beginInfo);
-
+/*!
+ * \brief End the render pass
+ * \param commandBuffer Handle to the CoCommandBuffer object
+ */
 CORAL_API CoResult coCommandBufferEndRenderPass(CoCommandBuffer commandBuffer);
 
 typedef struct 
@@ -213,10 +267,14 @@ CORAL_API CoResult coCommandBufferBindSampler(CoCommandBuffer commandBuffer, CoS
  */
 CORAL_API CoResult coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, uint32_t firstIndex, uint32_t indexCount);
 
+/*!
+ * Structure containing the CommandBuffer submit information
+ */
 typedef struct
 {
-    /// The command buffers to execute in batch. 
-    /**
+    /*!
+     * The command buffers to execute in batch.  
+     * 
      * The order of command buffers in the list dictates the order of
      * submission and beginning of execution, but are allowed to proceed
      * independently after that and complete out of order.
@@ -226,20 +284,38 @@ typedef struct
      */
     CoCommandBuffer* pCommandBuffers;
 
+    /*!
+     * The number of elements in \ref pCommandBuffers
+     */
     uint32_t commandBufferCount;
 
-    /// List of semaphores to wait for before execution of the command buffer can start.
+    /*! 
+     * Pointer to an array of \ref CoSemaphore objects to wait for before execution of the command buffer can start.
+     */
     CoSemaphore* pWaitSemaphores;
 
+    /*!
+     * The number of elements in \ref pWaitSemaphores
+     */
     uint32_t waitSemaphoreCount;
 
-    /// List of semaphores to signal once execution of the command buffer has finished.
+    /*!
+     * Pointer to an array of \ref CoSemaphore objects to signal once execution of the command buffer has finished.
+     */
     CoSemaphore* pSignalSemaphores;
 
+    /*!
+     * The number of elements in \ref pWaitSemaphores
+     */
     uint32_t signalSemaphoreCount;
+
 } CoCommandBufferSubmitInfo;
 
-
-CORAL_API CoResult coCommandQueueSubmit(CoCommandQueue queue, const CoCommandBufferSubmitInfo* info, CoFence fence);
+/*!
+ * \brief Submit the CommandBuffers for execution
+ * \param Handle to a CoCommandQueue object
+ * \param Pointer to a 
+ */
+CORAL_API CoResult coCommandQueueSubmit(CoCommandQueue queue, const CoCommandBufferSubmitInfo* pInfo, CoFence fence);
 
 #endif // !CORAL_COMMANDBUFFER_H
