@@ -14,6 +14,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the ShaderModule interface using the Vulkan backend
+ */
 class ShaderModuleImpl : public Coral::ShaderModule
                        , public Resource
                        , public std::enable_shared_from_this<ShaderModuleImpl>
@@ -59,7 +62,8 @@ private:
     CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
 
     VkShaderModule mShaderModule{ VK_NULL_HANDLE };
-};
+
+}; // class ShaderModuleImpl
 
 } // namespace Coral::Vulkan
 

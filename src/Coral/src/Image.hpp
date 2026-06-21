@@ -3,23 +3,25 @@
 
 #include <Coral/Image.h>
 
-#include <cstddef>
 #include <cstdint>
 
 #include <memory>
 
-
 namespace Coral
 {
 
-///
+/*
+ * Representation of a multidimensional array of pixel data which can be used for for texturing or render attachments
+ */
 class CORAL_API Image
 {
 public:
 
     using CreateConfig = CoImageCreateConfig;
 
-    /// Error codes for Image creation
+    /*!
+     * Error codes for Image creation
+     */ 
     enum class CreateError
     {
         INTERNAL_ERROR
@@ -27,16 +29,28 @@ public:
 
     virtual ~Image() = default;
 
-    /// The width of the Image
+    /*!
+     * \brief Get the width of the Image
+     * \return The width of the Image in pixels
+     */
     virtual uint32_t width() const = 0;
 
-    /// The height of the Image
+    /*!
+     * \brief Get the height of the Image
+     * \return The height of the Image in pixels
+     */
     virtual uint32_t height() const = 0;
 
-    /// Get the pixel format of the Image
+    /*!
+     * \brief Get the format of the Image
+     * \return The pixel format of the Image
+     */
     virtual CoPixelFormat format() const = 0;
 
-    /// Get the number of mipmap levels
+    /*!
+     * \brief Get the number of mipmap levels
+     * \return The number of mipmap levels in the Image
+     */
     virtual uint32_t getMipLevels() const = 0;
 
     /// Flag indicating if the Image is presentable, e.g. it is part of a swapchain.

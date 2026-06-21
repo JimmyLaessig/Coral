@@ -9,6 +9,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Buffer interface using the Vulkan backend
+ */
 class BufferImpl : public Coral::Buffer,
                    public std::enable_shared_from_this<BufferImpl>,
                    public Resource
@@ -45,7 +48,7 @@ private:
 
     std::byte* mMapped{ nullptr };
 
-};
+}; // class BufferImpl
 
 } // namespace Coral::Vulkan
 

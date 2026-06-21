@@ -10,6 +10,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Semaphore interface using the Vulkan backend
+ */
 class SemaphoreImpl : public Coral::Semaphore
                     , public Resource
                     , public std::enable_shared_from_this<SemaphoreImpl>
@@ -29,7 +32,7 @@ private:
 
     VkSemaphore mSemaphore{ VK_NULL_HANDLE };
 
-};
+}; // class SemaphoreImpl
 
 } // namespace Coral::Vulkan
 

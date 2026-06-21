@@ -46,27 +46,44 @@ struct PresentInfo
 };
 
 
-/// A Command Queue executes submitted work
+/*!
+ * A Command Queue executes submitted work
+ */
 class CORAL_API CommandQueue
 {
 public:
 
     virtual ~CommandQueue() = default;
 
+    /*!
+     * \brief Create a CommandBuffer
+     * \param config Structure containing the creation parameters
+     * \return The created CommandBuffer or the error code if created failed
+     */
     virtual std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError> createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config) = 0;
 
-    /// Submit a sequence of command buffers to a queue
+    /*!
+     * \brief Submit a sequence of command buffers to a queue
+     */
     virtual bool submit(const CommandBufferSubmitInfo& info, FencePtr fence) = 0;
 
-    /// Wait until the queue is idle.
+    /*!
+     * \brief Wait until the queue is idle.
+     */
     virtual bool waitIdle() = 0;
 
-    /// Present the last rendered image to the screen.
+    /*!
+     * \brief Present the last rendered image to the screen.
+     */
     virtual bool submit(const PresentInfo& info) = 0;
-};
+
+}; // class CommandQueue
 
 } // namespace Coral
 
+/*!
+ *
+ */
 struct CoCommandQueue_T
 {
     // CommandQueues are owned by the Context

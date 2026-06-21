@@ -14,6 +14,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the CommandBuffer interface using the Vulkan backend
+ */
 class CommandBufferImpl : public Coral::CommandBuffer,
                           public std::enable_shared_from_this<CommandBufferImpl>,
                           public Resource
@@ -89,7 +92,8 @@ private:
     std::unordered_map<uint32_t, std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>> mCachedDescriptorInfos;
 
     std::vector<VkWriteDescriptorSet> mDescriptorWrites;
-};
+
+}; // class CommandBufferImpl
 
 } // namespace Coral::Vulkan
 

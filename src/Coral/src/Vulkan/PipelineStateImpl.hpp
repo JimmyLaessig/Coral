@@ -14,6 +14,9 @@
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the PipelineState interface using the Vulkan backend
+ */
 class PipelineStateImpl : public Coral::PipelineState
                         , public Resource
                         , public std::enable_shared_from_this<PipelineStateImpl>
@@ -51,7 +54,8 @@ private:
     CoPolygonMode mPolygonMode;
 
     std::optional<CoStencilTestMode> mStencilTestMode;
-};
+
+}; // class PipelineStateImpl
 
 } // namespace Coral::Vulkan
 

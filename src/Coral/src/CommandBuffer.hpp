@@ -55,14 +55,7 @@ struct CopyImageInfo
 };
 
 
-struct DrawIndexInfo
-{
-    /// The number of vertices to draw
-    uint32_t indexCount{ 0 };
 
-    /// The base index within the index buffer
-    uint32_t firstIndex{ 0 };
-};
 
 
 
@@ -88,33 +81,42 @@ struct UpdateImageDataInfo
     std::span<const std::byte> data;
 };
 
-
+/*!
+ *
+ */
 class CORAL_API CommandBuffer
 {
 public:
 
     using CreateConfig = CoCommandBufferCreateConfig;
 
-    /// Error codes for CommandBuffer creation
+    /*!
+     * Error codes for CommandBuffer creation
+     */
     enum class CreateError
     {
-        /// CommandBuffer creation failed due to an internal error.
+        // CommandBuffer creation failed due to an internal error.
         INTERNAL_ERROR,
     };
 
     virtual ~CommandBuffer() = default;
 
-    /// Begin command recording
+    /*!
+     * \brief Begin command recording
+     * \return Returns true if successful, false otherwise.
+     */
     virtual bool begin() = 0;
 
-    /// End command recording
     /**
+     * \brief End command recording 
+     * 
      * Command buffers can only be scheduled for execution the command buffer
      * is no longer in recording state
+     * 
+     * \return Returns true if successful, false otherwise.
      */
     virtual bool end() = 0;
 
-    /// Clear the color attachments of the bound framebuffer
     virtual bool cmdClearImage(Coral::ImagePtr image, const CoClearColor& clearColor) = 0;
 
     virtual bool cmdBeginRenderPass(const BeginRenderPassInfo& info) = 0;
@@ -131,8 +133,8 @@ public:
 
     virtual bool cmdGenerateMipMaps(ImagePtr image) = 0;
 
-    /// Bind the vertex buffer
-    /**
+    /*!
+     * \brief Bind the vertex buffer
      * \param buffer The buffer containing the vertex attribute data
      * \param binding Index of the vertex input whose state is updated by the command
      * \param offset The offset from the base address of the buffer to the first element in bytes
@@ -141,33 +143,68 @@ public:
      */
     virtual bool cmdBindVertexBuffer(Coral::BufferPtr buffer, uint32_t binding, size_t offset, size_t stride) = 0;
 
-    /// Bind the index buffer
-    /**
+    /*!
+     * \brief  Bind the index buffer 
      * \param buffer The buffer containing the vertex indices
      * \param format The format of the indices contained in the buffer
      * \param offset The offset from the base address of the buffer to the first element in bytes
      */
     virtual bool cmdBindIndexBuffer(Coral::BufferPtr buffer, CoIndexFormat format, size_t offset) = 0;
 
-    /// Bind the graphics pipeline to the command buffer
+    /*!
+     * \brief Bind the graphics pipeline to the command buffer
+     * \brief pipeline The pipeline to bind
+     */
     virtual bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) = 0;
 
-    /// Draw the primitives with indexed vertices
-    virtual bool cmdDrawIndexed(const DrawIndexInfo& info) = 0;
+    /*!
+     * \brief Draw the primitives with indexed vertices
+     * \param indexCount The number of vertices to draw
+     * \param firstIndex The base index within the index buffer
+     */
+    virtual bool cmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex) = 0;
 
+    /*!
+     * \brief Set the viewport
+     * \param info Structure containing the viewport
+     */
     virtual bool cmdSetViewport(const CoViewportInfo& info) = 0;
-
+    
+    /*!
+     * \brief Bind the image at the given binding
+     * \param buffer The Buffer to bind
+     * \param binding The binding index
+     */
     virtual void cmdBindDescriptor(Coral::BufferPtr buffer, uint32_t binding) = 0;
 
+    /*!
+     * \brief Bind the image at the given binding
+     * \param sampler The Sampler to bind
+     * \param binding The binding index
+     */
     virtual void cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding) = 0;
 
+    /*!
+     * \brief Bind the image at the given binding
+     * \param image The image to bind
+     * \param binding The binding index
+     */
     virtual void cmdBindDescriptor(Coral::ImagePtr image, uint32_t binding) = 0;
 
-    virtual bool cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr dest) = 0;
-};
+    /*!
+     * \brief Blit the content of \p source to \p dest
+     * \param source The source image
+     * \param target The destination image
+     */
+    virtual bool cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr target) = 0;
+
+}; // class CommandBuffer
 
 } // namespace Coral
 
+/*!
+ *
+ */
 struct CoCommandBuffer_T
 {
     std::shared_ptr<Coral::CommandBuffer> impl;

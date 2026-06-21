@@ -19,6 +19,9 @@ class BufferPool;
 namespace Coral::Vulkan
 {
 
+/*!
+ * Implementation of the Context interface using the Vulkan backend
+ */
 class ContextImpl : public Coral::Context
 {
 public:
@@ -111,7 +114,8 @@ private:
     std::unique_ptr<BufferPool> mStagingBufferPool;
 
     VkPhysicalDeviceProperties mProperties;
-};
+
+}; // class ContextImpl
 
 } // namespace Coral::Vulkan
 
