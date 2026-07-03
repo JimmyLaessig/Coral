@@ -306,7 +306,7 @@ CommandBufferImpl::cmdBindPipeline(Coral::PipelineStatePtr pipelineState)
 
 
 bool
-CommandBufferImpl::cmdDrawIndexed(const DrawIndexInfo& info)
+CommandBufferImpl::cmdDrawIndexed(const CoDrawIndexedInfo& info)
 {
     cmdBindCachedDescriptors();
     vkCmdDrawIndexed(mCommandBuffer, info.indexCount, 1, info.firstIndex, 0, 0);

@@ -6,3 +6,5 @@ CPMAddPackage(
   GIT_TAG 1.0.1
   GITHUB_REPOSITORY g-truc/glm
 )
+
+target_compile_definitions(glm INTERFACE GLM_ENABLE_EXPERIMENTAL)

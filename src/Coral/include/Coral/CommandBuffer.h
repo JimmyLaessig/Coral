@@ -175,14 +175,22 @@ typedef struct
     CoImage dest;
 } CoCopyImageInfo;
 
+/*!
+ * Parameters for the cmdDrawIndexed command
+ */
 typedef struct
 {
-    /// The number of vertices to draw
+    /*!
+     * The number of vertices to draw
+     */
     uint32_t indexCount;
 
-    /// The base index within the index buffer
+    /*!
+     * The base index within the index buffer
+     */
     uint32_t firstIndex;
-} CoDrawIndexInfo;
+
+} CoDrawIndexedInfo;
 
 
 typedef struct
@@ -265,7 +273,7 @@ CORAL_API CoResult coCommandBufferBindSampler(CoCommandBuffer commandBuffer, CoS
  * \param firstIndex
  * \param indexCount
  */
-CORAL_API CoResult coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, uint32_t firstIndex, uint32_t indexCount);
+CORAL_API CoResult coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, const CoDrawIndexedInfo* info);
 
 /*!
  * Structure containing the CommandBuffer submit information

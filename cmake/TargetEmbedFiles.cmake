@@ -27,6 +27,8 @@ set(_multiValueArgs FILES BASE_DIRS)
 
 cmake_parse_arguments("" "${_options}" "${_oneValueArgs}" "${_multiValueArgs}" ${ARGN} )
 
+set(_output_files)
+
 foreach(_input_file ${_FILES})
 
     get_filename_component(_input_file "${_input_file}" ABSOLUTE)
@@ -42,6 +44,10 @@ foreach(_input_file ${_FILES})
     ###########################################################################
 
     set(_output_file "${_OUTPUT_DIR}/${_name}.hpp")
+
+    list(APPEND _output_files ${_output_file})
+
+    message(STATUS "Embedding ${_input_file} -> ${_output_file}")
 
     ###########################################################################
     # Construct include guard at configure time
@@ -72,7 +78,7 @@ constexpr std::array<uint8_t, \${_length}> ${_name} = {
 
 } // namespace ${_NAMESPACE}
 
-#endif // ${_include_guard}
+#endif // !${_include_guard}
 ")
 
     ###########################################################################
@@ -107,7 +113,7 @@ file(WRITE  \"${_output_file}\" \"\${_template}\")
             -DOUTPUT="${_output_file}"
             -P "${_script_file}"
         DEPENDS "${_input_file}" ${_script_file}
-        COMMENT "Embedding binary ${_input_file} → ${_output_file}"
+        COMMENT "Embedding ${_input_file} → ${_output_file}"
         VERBATIM)
 
     ###########################################################################
@@ -130,7 +136,6 @@ file(WRITE  \"${_output_file}\" \"\${_template}\")
     ###########################################################################
     # 3. Add the generated header file to the target via target_sources
     ###########################################################################
-
     target_sources(${TARGET_NAME} ${VISIBILITY}
         FILE_SET ${_FILE_SET}
         TYPE HEADERS
