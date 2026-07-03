@@ -8,7 +8,7 @@
 namespace Coral
 {
 
-auto destroyContext = [](CoContext context)
+inline auto destroyContext = [](CoContext context)
 {
     coDestroyContext(context);
 };
@@ -16,7 +16,7 @@ auto destroyContext = [](CoContext context)
 using ContextPtr = std::unique_ptr<CoContext_T, decltype(destroyContext)>;
 
 
-auto destroySwapchain = [](CoSwapchain swapchain)
+inline auto destroySwapchain = [](CoSwapchain swapchain)
 {
     coDestroySwapchain(swapchain);
 };
@@ -24,7 +24,7 @@ auto destroySwapchain = [](CoSwapchain swapchain)
 using SwapchainPtr = std::unique_ptr<CoSwapchain_T, decltype(destroySwapchain)>;
 
 
-auto destroyBuffer = [](CoBuffer buffer)
+inline auto destroyBuffer = [](CoBuffer buffer)
 {
     coDestroyBuffer(buffer);
 };
@@ -32,7 +32,7 @@ auto destroyBuffer = [](CoBuffer buffer)
 using BufferPtr = std::unique_ptr<CoBuffer_T, decltype(destroyBuffer)>;
 
 
-auto destroyCommandBuffer = [](CoCommandBuffer buffer)
+inline auto destroyCommandBuffer = [](CoCommandBuffer buffer)
 {
     coDestroyCommandBuffer(buffer);
 };
@@ -40,7 +40,7 @@ auto destroyCommandBuffer = [](CoCommandBuffer buffer)
 using CommandBufferPtr = std::unique_ptr<CoCommandBuffer_T, decltype(destroyCommandBuffer)>;
 
 
-auto destroyFence = [](CoFence fence)
+inline auto destroyFence = [](CoFence fence)
 {
     coDestroyFence(fence);
 };
@@ -48,7 +48,7 @@ auto destroyFence = [](CoFence fence)
 using FencePtr = std::unique_ptr<CoFence_T, decltype(destroyFence)>;
 
 
-auto destroySemaphore = [](CoSemaphore semaphore)
+inline auto destroySemaphore = [](CoSemaphore semaphore)
 {
     coDestroySemaphore(semaphore);
 };
@@ -56,7 +56,7 @@ auto destroySemaphore = [](CoSemaphore semaphore)
 using SemaphorePtr = std::unique_ptr<CoSemaphore_T, decltype(destroySemaphore)>;
 
 
-auto destroyImage = [](CoImage image)
+inline auto destroyImage = [](CoImage image)
 {
     coDestroyImage(image);
 };
@@ -64,7 +64,7 @@ auto destroyImage = [](CoImage image)
 using ImagePtr = std::unique_ptr<CoImage_T, decltype(destroyImage)>;
 
 
-auto destroySampler = [](CoSampler sampler)
+inline auto destroySampler = [](CoSampler sampler)
 {
     coDestroySampler(sampler);
 };
@@ -72,7 +72,7 @@ auto destroySampler = [](CoSampler sampler)
 using SamplerPtr = std::unique_ptr<CoSampler_T, decltype(destroySampler)>;
 
 
-auto destroyShaderModule = [](CoShaderModule shaderModule)
+inline auto destroyShaderModule = [](CoShaderModule shaderModule)
 {
     coDestroyShaderModule(shaderModule);
 };
@@ -80,7 +80,7 @@ auto destroyShaderModule = [](CoShaderModule shaderModule)
 using ShaderModulePtr = std::unique_ptr<CoShaderModule_T, decltype(destroyShaderModule)>;
 
 
-auto destroyPipelineState = [](CoPipelineState pipelineState)
+inline auto destroyPipelineState = [](CoPipelineState pipelineState)
 {
     coDestroyPipelineState(pipelineState);
 };

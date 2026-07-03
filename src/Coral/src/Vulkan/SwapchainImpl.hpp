@@ -33,8 +33,6 @@ public:
 
     SwapchainImageInfo acquireNextSwapchainImage(FencePtr fence) override;
 
-    SwapchainImageInfo currentSwapchainImage() const override;
-
     uint32_t currentSwapchainImageIndex() const override;
 
     uint32_t swapchainImageCount() const override;
@@ -93,11 +91,22 @@ private:
     // The swapchain image
     std::vector<Coral::ImagePtr> mSwapchainImages;
 
+    struct CurrentSwapchainImageInfo
+    {
+        uint32_t index{ 0 };
+        Coral::ImagePtr image{ nullptr };
+        Coral::FramebufferPtr framebuffer{ nullptr };
+        Coral::SemaphorePtr imageReadySemaphore{ nullptr };
+        CoExtent extent{ 0, 0 };
+    };
+
     Coral::ImagePtr mSwapchainDepthImage;
 
     Coral::Swapchain::CreateConfig mConfig{};
 
     mutable std::mutex mThreadProtection;
+
+    SwapchainImageInfo mCurrentSwapchainImageInfo;
 
 }; // class SwapchainImpl
 

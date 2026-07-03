@@ -162,7 +162,7 @@ public:
      * \param indexCount The number of vertices to draw
      * \param firstIndex The base index within the index buffer
      */
-    virtual bool cmdDrawIndexed(uint32_t indexCount, uint32_t firstIndex) = 0;
+    virtual bool cmdDrawIndexed(const CoDrawIndexedInfo& info) = 0;
 
     /*!
      * \brief Set the viewport

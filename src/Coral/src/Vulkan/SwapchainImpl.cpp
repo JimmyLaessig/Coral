@@ -3,8 +3,6 @@
 #include "CommandBufferImpl.hpp"
 #include "CommandQueueImpl.hpp"
 #include "ContextImpl.hpp"
-#include "FenceImpl.hpp"
-#include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
 #include "SemaphoreImpl.hpp"
 #include "VulkanFormat.hpp"
@@ -108,12 +106,11 @@ SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
     mImageReadySemaphore.clear();
     mTransitionToPresent.clear();
     mImagePresentableSemaphore.clear();
-    mSwapchainImages.clear();
     mFramebuffers.clear();
+    mSwapchainImages.clear();
     mSwapchainDepthImage.reset();
 
     auto surfaceFormat = chooseSwapchainFormat(context().getVkPhysicalDevice(), mSurface, convert(config.format));
-
     if (!surfaceFormat)
     {
         return false;
@@ -168,7 +165,6 @@ SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
         return false;
     }
 
-
     // Create the depth buffer
     if (config.depthFormat)
     {
@@ -210,21 +206,12 @@ SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
 
         mSwapchainImages.push_back(image);
 
-        // Create the framebuffer 
-        Coral::ColorAttachment colorAttachment;
-
         Coral::Framebuffer::CreateConfig framebufferConfig{};
         framebufferConfig.colorAttachments = { { mSwapchainImages[i], 0 } };
         framebufferConfig.depthAttachment  = mSwapchainDepthImage;
 
-        auto framebuffer = context().createFramebuffer(framebufferConfig);
-        if (!framebuffer.has_value())
-        {
-            return false;
-        }
-
-        mFramebuffers.push_back(framebuffer.value());
-
+        // Create the framebuffer for this swapchain image
+        mFramebuffers.push_back(context().createFramebuffer(framebufferConfig).value());
         // Create the imageAcquiredSemaphore
         mImageAcquiredSemaphore.push_back(context().createSemaphore({}).value());
         // Create the imageReadySemaphore
@@ -283,6 +270,8 @@ SwapchainImpl::nativeWindowHandle()
 Coral::SwapchainImageInfo
 SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
 {
+    std::lock_guard lock(mThreadProtection);
+
     // Dynamic rendering requires manual image layout transition for presentable swapchain images. Before
     // rendering, we must transition the image to a supported layout (VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL).
     // Once rendering is done, the image layout must transition to 'VK_IMAGE_LAYOUT_PRESENT_SRC_KHR' in order to
@@ -290,7 +279,19 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
 
     auto commandQueue = context().getGraphicsQueue();
 
-    auto imageAcquiredSemaphore     = mImageAcquiredSemaphore[mCurrentSwapchainIndex];
+    // Choose an acquire-semaphore from the pool in round-robin order. We cannot index the pool by
+    // mCurrentSwapchainIndex before calling vkAcquireNextImageKHR because the call updates the
+    // swapchain image index and the semaphore passed to vkAcquireNextImageKHR must match the one
+    // we later wait on when submitting transition work. Use a rotating counter so each acquire
+    // uses a distinct semaphore from the pool.
+    size_t acquireSemaphoreIndex = 0;
+    if (!mImageAcquiredSemaphore.empty())
+    {
+        static size_t sAcquireCounter = 0;
+        acquireSemaphoreIndex = sAcquireCounter++ % mImageAcquiredSemaphore.size();
+    }
+
+    auto imageAcquiredSemaphore     = mImageAcquiredSemaphore[acquireSemaphoreIndex];
     auto imageAcquiredSemaphoreImpl = std::static_pointer_cast<SemaphoreImpl>(imageAcquiredSemaphore);
 
     // Acquire the next swapchain image and signal the `imageAcquiredSemaphore` semaphore that the layout can be
@@ -427,17 +428,17 @@ SwapchainImpl::present(CommandQueueImpl& commandQueue, const std::vector<Semapho
 }
 
 
-Coral::SwapchainImageInfo
-SwapchainImpl::currentSwapchainImage() const
-{
-    std::lock_guard lock(mThreadProtection);
-    return
-    {
-        mSwapchainImages[mCurrentSwapchainIndex],
-        mFramebuffers[mCurrentSwapchainIndex],
-        mImageReadySemaphore[mCurrentSwapchainIndex],
-    };
-}
+//Coral::SwapchainImageInfo
+//SwapchainImpl::currentSwapchainImage() const
+//{
+//    std::lock_guard lock(mThreadProtection);
+//    return
+//    {
+//        mSwapchainImages[mCurrentSwapchainIndex],
+//        mFramebuffers[mCurrentSwapchainIndex],
+//        mImageReadySemaphore[mCurrentSwapchainIndex],
+//    };
+//}
 
 
 uint32_t

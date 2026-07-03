@@ -49,7 +49,7 @@ public:
 
     bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) override;
 
-    bool cmdDrawIndexed(const DrawIndexInfo& info) override;
+    bool cmdDrawIndexed(const CoDrawIndexedInfo& info) override;
 
     bool cmdSetViewport(const CoViewportInfo& info) override;
 

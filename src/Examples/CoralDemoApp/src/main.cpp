@@ -742,7 +742,10 @@ int main()
 
         coCommandBufferBindIndexBuffer(commandBuffer.get(), indices.get(), indexFormat, 0);
 
-        coCommandBufferDrawIndexed(commandBuffer.get(), 0, static_cast<uint32_t>(Cube::Indices.size()));
+        CoDrawIndexedInfo drawInfo{};
+        drawInfo.firstIndex = 0;
+        drawInfo.indexCount = static_cast<uint32_t>(Cube::Indices.size());
+        coCommandBufferDrawIndexed(commandBuffer.get(), &drawInfo);
 
         ImGui_ImplCoral_NewFrame(context.get());
 
@@ -758,10 +761,10 @@ int main()
         submitInfo.pCommandBuffers    = &cb;
         submitInfo.commandBufferCount = 1;
         submitInfo.pWaitSemaphores    = &info.imageAcquiredSemaphore;
-        submitInfo.waitSemaphoreCount = 0;
+        submitInfo.waitSemaphoreCount = 1;
 
         submitInfo.pSignalSemaphores    = &renderFinishedSemaphorePtr;
-        submitInfo.signalSemaphoreCount = 0;
+        submitInfo.signalSemaphoreCount = 1;
 
         if (coCommandQueueSubmit(queue, &submitInfo, nullptr) != CO_SUCCESS)
         {
@@ -772,8 +775,8 @@ int main()
 
         CoPresentInfo presentInfo{};
         presentInfo.swapchain          = swapchain.get();
-        presentInfo.pWaitSemaphores    = &info.imageAcquiredSemaphore;
-        presentInfo.waitSemaphoreCount = 1;
+        presentInfo.pWaitSemaphores    = nullptr;// &info.imageAcquiredSemaphore;
+        presentInfo.waitSemaphoreCount = 0;
         
         if (coCommandQueuePresent(queue, &presentInfo) != CO_SUCCESS)
         {

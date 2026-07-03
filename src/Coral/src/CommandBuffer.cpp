@@ -168,9 +168,9 @@ coCommandBufferBindSampler(CoCommandBuffer commandBuffer, CoSampler sampler, uin
 
 
 CoResult
-coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, uint32_t firstIndex, uint32_t indexCount)
+coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, const CoDrawIndexedInfo* info)
 {
-    return commandBuffer->impl->cmdDrawIndexed({ indexCount, firstIndex }) ? CO_SUCCESS : CO_FAILED;
+    return commandBuffer->impl->cmdDrawIndexed(*info) ? CO_SUCCESS : CO_FAILED;
 }
 
 
