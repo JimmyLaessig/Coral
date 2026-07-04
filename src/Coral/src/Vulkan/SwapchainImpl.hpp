@@ -37,8 +37,6 @@ public:
 
     uint32_t swapchainImageCount() const override;
 
-    Framebuffer::Layout framebufferLayout() const override;
-
     CoExtent swapchainExtent() const override;
 
     VkSurfaceKHR getVkSurface();

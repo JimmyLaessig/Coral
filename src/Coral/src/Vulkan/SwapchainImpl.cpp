@@ -463,11 +463,3 @@ SwapchainImpl::swapchainExtent() const
     std::lock_guard lock(mThreadProtection);
     return { mSwapchainImages.front()->width(), mSwapchainImages.front()->height()};
 }
-
-
-Coral::Framebuffer::Layout
-SwapchainImpl::framebufferLayout() const
-{
-    std::lock_guard lock(mThreadProtection);
-    return mFramebuffers.front()->layout();
-}
