@@ -267,7 +267,7 @@ SwapchainImpl::nativeWindowHandle()
 }
 
 
-Coral::SwapchainImageInfo
+Coral::AcquiredImageInfo
 SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
 {
     std::lock_guard lock(mThreadProtection);
@@ -279,19 +279,7 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
 
     auto commandQueue = context().getGraphicsQueue();
 
-    // Choose an acquire-semaphore from the pool in round-robin order. We cannot index the pool by
-    // mCurrentSwapchainIndex before calling vkAcquireNextImageKHR because the call updates the
-    // swapchain image index and the semaphore passed to vkAcquireNextImageKHR must match the one
-    // we later wait on when submitting transition work. Use a rotating counter so each acquire
-    // uses a distinct semaphore from the pool.
-    size_t acquireSemaphoreIndex = 0;
-    if (!mImageAcquiredSemaphore.empty())
-    {
-        static size_t sAcquireCounter = 0;
-        acquireSemaphoreIndex = sAcquireCounter++ % mImageAcquiredSemaphore.size();
-    }
-
-    auto imageAcquiredSemaphore     = mImageAcquiredSemaphore[acquireSemaphoreIndex];
+    auto imageAcquiredSemaphore     = mImageAcquiredSemaphore[mCurrentSwapchainIndex];
     auto imageAcquiredSemaphoreImpl = std::static_pointer_cast<SemaphoreImpl>(imageAcquiredSemaphore);
 
     // Acquire the next swapchain image and signal the `imageAcquiredSemaphore` semaphore that the layout can be
@@ -330,12 +318,12 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
     // buffer was created from the correct command queue.
     mTransitionToColorAttachment[mCurrentSwapchainIndex] = commandBuffer;
 
-    auto imageReadySemaphore     = mImageReadySemaphore[mCurrentSwapchainIndex];
-    auto imageReadySemaphoreImpl = std::static_pointer_cast<SemaphoreImpl>(imageReadySemaphore);
+    auto imageReadySemaphore = std::static_pointer_cast<SemaphoreImpl>(mImageReadySemaphore.at(mCurrentSwapchainIndex));
+    auto image               = std::static_pointer_cast<ImageImpl>(mSwapchainImages.at(mCurrentSwapchainIndex));
+    auto framebuffer         = mFramebuffers.at(mCurrentSwapchainIndex);
 
     commandBuffer->begin();
 
-    auto image = std::static_pointer_cast<ImageImpl>(mSwapchainImages[mCurrentSwapchainIndex]);
     ImageImpl::cmdTransitionImageLayout(commandBufferImpl->getVkCommandBuffer(), 
                                         *image, 
                                         image->getPreferredImageLayout(), 
@@ -359,10 +347,11 @@ SwapchainImpl::acquireNextSwapchainImage(Coral::FencePtr fence)
     info.signalSemaphores = { imageReadySemaphore };
     commandQueue->submit(info, fence);
 
-    return {
-        mSwapchainImages[mCurrentSwapchainIndex],
-        mFramebuffers[mCurrentSwapchainIndex],
-        mImageReadySemaphore[mCurrentSwapchainIndex],
+    return AcquiredImageInfo
+    {
+        .index               = mCurrentSwapchainIndex,
+        .framebuffer         = framebuffer,
+        .imageReadySemaphore = imageReadySemaphore,
     };
 }
 

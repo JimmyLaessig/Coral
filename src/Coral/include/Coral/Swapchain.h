@@ -42,7 +42,7 @@ CORAL_API CoResult coContextCreateSwapchain(CoContext context, const CoSwapchain
 CORAL_API void coDestroySwapchain(CoSwapchain swapchain);
 
 /*!
- * Structure containing information about a swapchain image
+ * Structure containing information about the acquired swapchain image
  */
 typedef struct
 {
@@ -63,7 +63,7 @@ typedef struct
      */
     uint32_t index;
 
-} CoSwapchainImageInfo;
+} CoAcquiredImageInfo;
 
 /*!
  * \brief Get the number of images in the swapchain
@@ -76,8 +76,8 @@ CORAL_API uint32_t coSwapchainGetImageCount(const CoSwapchain swapchain);
  * \brief Acquire the next swapchain image 
  * \param swapchain Valid handle to a CoSwapchain object
  * \param fence Optional handle to a CoFence object to be signaled once the image is acquired.
- * \param info Pointer to a CoSwapchainImageInfo structure in which the next swapchain image info is returned
+ * \param info Pointer to a CoAcquiredImageInfo structure in which the next swapchain image info is returned
  */
-CORAL_API CoResult coSwapchainAcquireNextImage(CoSwapchain swapchain, CoFence fence, CoSwapchainImageInfo* pInfo);
+CORAL_API CoResult coSwapchainAcquireNextImage(CoSwapchain swapchain, CoFence fence, CoAcquiredImageInfo* pInfo);
 
 #endif // !CORAL_SWAPCHAIN_H

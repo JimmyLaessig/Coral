@@ -16,7 +16,7 @@ ImGui_ImplCoral_Init(ImGui_ImplCoral_InitInfo* initInfo)
             auto& contextImpl = static_cast<Coral::Vulkan::ContextImpl&>(*initInfo->context->impl);
 
             return Coral::Vulkan::ImGui_ImplCoral_Init(contextImpl, 
-                                                       initInfo->framebufferSignature, 
+                                                       initInfo->framebufferLayout, 
                                                        initInfo->swapchainImageCount) ? CO_SUCCESS : CO_FAILED;
         }
     }

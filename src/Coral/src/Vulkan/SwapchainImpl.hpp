@@ -31,7 +31,7 @@ public:
 
     void* nativeWindowHandle() override;
 
-    SwapchainImageInfo acquireNextSwapchainImage(FencePtr fence) override;
+    AcquiredImageInfo acquireNextSwapchainImage(FencePtr fence) override;
 
     uint32_t currentSwapchainImageIndex() const override;
 
@@ -89,22 +89,11 @@ private:
     // The swapchain image
     std::vector<Coral::ImagePtr> mSwapchainImages;
 
-    struct CurrentSwapchainImageInfo
-    {
-        uint32_t index{ 0 };
-        Coral::ImagePtr image{ nullptr };
-        Coral::FramebufferPtr framebuffer{ nullptr };
-        Coral::SemaphorePtr imageReadySemaphore{ nullptr };
-        CoExtent extent{ 0, 0 };
-    };
-
     Coral::ImagePtr mSwapchainDepthImage;
 
     Coral::Swapchain::CreateConfig mConfig{};
 
     mutable std::mutex mThreadProtection;
-
-    SwapchainImageInfo mCurrentSwapchainImageInfo;
 
 }; // class SwapchainImpl
 

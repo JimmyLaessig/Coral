@@ -9,7 +9,7 @@
 typedef struct  
 {
     CoContext context;
-    CoFramebufferLayout framebufferSignature;
+    CoFramebufferLayout framebufferLayout;
     uint32_t swapchainImageCount;
 
 } ImGui_ImplCoral_InitInfo;

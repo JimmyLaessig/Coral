@@ -37,7 +37,7 @@ coDestroySwapchain(CoSwapchain swapchain)
 
 
 CoResult
-coSwapchainAcquireNextImage(const CoSwapchain swapchain, CoFence fence, CoSwapchainImageInfo* pInfo)
+coSwapchainAcquireNextImage(const CoSwapchain swapchain, CoFence fence, CoAcquiredImageInfo* pInfo)
 {
     auto result = swapchain->impl->acquireNextSwapchainImage(fence ? fence->impl : nullptr);
 
@@ -46,12 +46,15 @@ coSwapchainAcquireNextImage(const CoSwapchain swapchain, CoFence fence, CoSwapch
     // Update the cached swapchain image data if the image has changed since the last acquire.
     // This happens when the swapchain is recreated due to a window resize or other event that
     // invalidates the swapchain.
-    if (!data.image || data.image->impl != result.image)
+    if (!data.framebuffer || data.framebuffer->impl != result.framebuffer)
     {
-        data.image.reset(new CoImage_T{ result.image });
         data.framebuffer.reset(new CoFramebuffer_T{ result.framebuffer });
         data.semaphore.reset(new CoSemaphore_T{ result.imageReadySemaphore });
     }
+
+    pInfo->framebuffer            = data.framebuffer.get();
+    pInfo->imageAcquiredSemaphore = data.semaphore.get();
+    pInfo->index                  = result.index;
 
     return CO_SUCCESS;
 }
