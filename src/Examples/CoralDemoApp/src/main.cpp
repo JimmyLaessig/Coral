@@ -531,7 +531,7 @@ int main()
 
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
-    std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGB8_SRGB, 0 } };
+    std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
     CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
 
     ImGui_ImplCoral_InitInfo initInfo{};
