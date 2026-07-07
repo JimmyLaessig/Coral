@@ -113,10 +113,10 @@ convert(VkFormat format)
         case VK_FORMAT_R8G8_SINT:           return CO_PIXEL_FORMAT_RG8_I;
         case VK_FORMAT_R8_SINT:             return CO_PIXEL_FORMAT_R8_I;
 
-        case VK_FORMAT_R8G8B8A8_UINT:       return CO_PIXEL_FORMAT_RGBA8_UI;
-        case VK_FORMAT_R8G8B8_UINT:         return CO_PIXEL_FORMAT_RGB8_UI;
-        case VK_FORMAT_R8G8_UINT:           return CO_PIXEL_FORMAT_RG8_UI;
-        case VK_FORMAT_R8_UINT:             return CO_PIXEL_FORMAT_R8_UI;
+        case VK_FORMAT_R8G8B8A8_UNORM:       return CO_PIXEL_FORMAT_RGBA8_UI;
+        case VK_FORMAT_R8G8B8_UNORM:         return CO_PIXEL_FORMAT_RGB8_UI;
+        case VK_FORMAT_R8G8_UNORM:           return CO_PIXEL_FORMAT_RG8_UI;
+        case VK_FORMAT_R8_UNORM:             return CO_PIXEL_FORMAT_R8_UI;
                                             
         case VK_FORMAT_R8G8B8A8_SRGB:       return CO_PIXEL_FORMAT_RGBA8_SRGB;
         case VK_FORMAT_R8G8B8_SRGB:         return CO_PIXEL_FORMAT_RGB8_SRGB;
