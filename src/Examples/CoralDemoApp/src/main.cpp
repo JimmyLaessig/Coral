@@ -531,10 +531,15 @@ int main()
 
     ImGui_ImplGlfw_InitForVulkan(window, true);
 
+    std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
+    CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
+
     ImGui_ImplCoral_InitInfo initInfo{};
     initInfo.context             = context.get();
     initInfo.swapchainImageCount = coSwapchainGetImageCount(swapchain.get());
-    coSwapchainGetFramebufferLayout(swapchain.get(), &initInfo.framebufferSignature);
+    initInfo.framebufferLayout.colorAttachmentCount   = colorAttachmentInfos.size();
+    initInfo.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
+    initInfo.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
 
     if (ImGui_ImplCoral_Init(&initInfo) != CO_SUCCESS)
     {
@@ -586,7 +591,7 @@ int main()
     pipelineStateConfig.vertexShaderModule     = vertexShader.get();
     pipelineStateConfig.fragmentShaderModule = fragmentShader.get();
 
-    pipelineStateConfig.polygonMode                    = CO_POLYGON_MODE_SOLID;
+    pipelineStateConfig.polygonMode                 = CO_POLYGON_MODE_SOLID;
     pipelineStateConfig.topology                    = CO_TOPOLOGY_TRIANGLE_LIST;
     pipelineStateConfig.faceCullingMode.cullMode    = CO_CULL_MODE_BACK;
     pipelineStateConfig.faceCullingMode.orientation = CO_FRONT_FACE_ORIENTATION_CCW;    
@@ -599,7 +604,10 @@ int main()
     pipelineStateConfig.blendMode.blendOp    = CO_BLEND_OP_ADD;
     pipelineStateConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
     pipelineStateConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
-    coSwapchainGetFramebufferLayout(swapchain.get(), &pipelineStateConfig.framebufferLayout);
+
+    pipelineStateConfig.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
+    pipelineStateConfig.framebufferLayout.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
+    pipelineStateConfig.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
 
     Coral::PipelineStatePtr pipelineState;
     if (coContextCreatePipelineState(context.get(), &pipelineStateConfig, std::out_ptr(pipelineState)) != CO_SUCCESS)
@@ -629,7 +637,7 @@ int main()
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
-        CoSwapchainImageInfo info{};
+        CoAcquiredImageInfo info{};
         if (coSwapchainAcquireNextImage(swapchain.get(), nullptr, &info) != CO_SUCCESS)
         {
             return EXIT_FAILURE;
@@ -775,7 +783,7 @@ int main()
 
         CoPresentInfo presentInfo{};
         presentInfo.swapchain          = swapchain.get();
-        presentInfo.pWaitSemaphores    = nullptr;// &info.imageAcquiredSemaphore;
+        presentInfo.pWaitSemaphores    = &renderFinishedSemaphorePtr;
         presentInfo.waitSemaphoreCount = 0;
         
         if (coCommandQueuePresent(queue, &presentInfo) != CO_SUCCESS)

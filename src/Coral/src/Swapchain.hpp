@@ -2,8 +2,11 @@
 #define CORAL_SWAPCHAIN_HPP
 
 #include <Coral/Swapchain.h>
+#include <Coral/Image.h>
+
 #include "CoralFwd.hpp"
 #include "Framebuffer.hpp"
+#include "Image.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -12,27 +15,33 @@
 namespace Coral
 {
 
-struct SwapchainImageInfo
+/*!
+ *
+ */
+struct AcquiredImageInfo
 {
-    /// The current swapchain image
-    Coral::ImagePtr image{ nullptr };
+    /*!
+     * The index of the current swapchain image
+     */
+    uint32_t index{ 0 };
 
-    /// The framebuffer used to render to this swapchain image
+    /*!
+     * The framebuffer used to render to this swapchain image
+     */
     Coral::FramebufferPtr framebuffer{ nullptr };
 
-    /// Semaphore that is signaled once the image is ready for use
-    /**
-     * Command buffers that render to the current framebuffer must wait for this semaphore before beginning rendering.
+    /*!
+     * Semaphore that is signaled once the image is ready for use 
+     * Command buffers that render to the current framebuffer must wait for this semaphore before
+     * beginning rendering.
      */
     Coral::SemaphorePtr imageReadySemaphore{ nullptr };
 
-    /// The extent of the current swapchain image
-    /**
-     * The swapchain extent remains the same untik the window is changed
-     */
-    CoExtent extent{ 0, 0 };
-};
+}; // struct AcquiredImageInfo
 
+/*!
+ *
+ */
 class Swapchain
 {
 
@@ -49,9 +58,7 @@ public:
 
     virtual void* nativeWindowHandle() = 0;
 
-    virtual SwapchainImageInfo acquireNextSwapchainImage(FencePtr fence) = 0;
-
-    virtual SwapchainImageInfo currentSwapchainImage() const = 0;
+    virtual AcquiredImageInfo acquireNextSwapchainImage(FencePtr fence) = 0;
 
     virtual uint32_t currentSwapchainImageIndex() const = 0;
 
@@ -59,17 +66,15 @@ public:
 
     virtual CoExtent swapchainExtent() const = 0;
 
-    virtual Framebuffer::Layout framebufferLayout() const = 0;
-};
+}; // class Swapchain
 
 } // namespace Coral
 
-struct SwapchainImageData
+struct AcquiredImageInfoStorage
 {
-    std::unique_ptr<CoFramebuffer_T> framebuffer{ nullptr };
-    std::unique_ptr<CoImage_T> image{ nullptr };
-    std::unique_ptr<CoSemaphore_T> semaphore{ nullptr };
-};
+    std::unique_ptr<CoFramebuffer_T> framebuffer;
+    std::unique_ptr<CoSemaphore_T> semaphore;
+}; // struct AcquiredImageInfoStorage
 
 struct CoSwapchain_T
 {
@@ -77,7 +82,8 @@ struct CoSwapchain_T
 
     std::shared_ptr<Coral::Swapchain> impl;
 
-    std::vector<SwapchainImageData> mData;
-};
+    std::vector<AcquiredImageInfoStorage> mData;
+
+}; // struct CoSwapchain_T
 
 #endif // !CORAL_SWAPCHAIN_HPP

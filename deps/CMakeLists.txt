@@ -16,8 +16,6 @@ include(stb.cmake)
 include(vk-bootstrap.cmake)
 include(vma.cmake)
 include(volk.cmake)
-include(vulkan-headers.cmake)
-#include(csl.cmake)
 include(slang.cmake)
 # Put all third-party dependencies into a separate folders to cleanup the IDE project explorer.
 
