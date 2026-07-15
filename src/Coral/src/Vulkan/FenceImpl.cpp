@@ -13,9 +13,14 @@ FenceImpl::~FenceImpl()
 
 
 std::optional<Coral::Fence::CreateError>
-FenceImpl::init()
+FenceImpl::init(const Fence::CreateConfig& config)
 {
     VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+    
+    if (config.createSignaled)
+    {
+        createInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    }
 
     if (vkCreateFence(context().getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
     {

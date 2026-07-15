@@ -6,7 +6,7 @@
 
 typedef struct
 {
-
+    bool createSignaled;
 } CoFenceCreateConfig;
 
 

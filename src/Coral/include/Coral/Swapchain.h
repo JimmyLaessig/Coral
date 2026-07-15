@@ -75,9 +75,12 @@ CORAL_API uint32_t coSwapchainGetImageCount(const CoSwapchain swapchain);
 /*!
  * \brief Acquire the next swapchain image 
  * \param swapchain Valid handle to a CoSwapchain object
- * \param fence Optional handle to a CoFence object to be signaled once the image is acquired.
- * \param info Pointer to a CoAcquiredImageInfo structure in which the next swapchain image info is returned
+ * \param signalSemaphore Optional handle to a CoSemaphore object to be signaled once the image
+ *        is acquired.
+ * \param signalFence Optional handle to a CoFence object to be signaled once the image is acquired.
+ * \param info Pointer to a CoAcquiredImageInfo structure in which the framebuffer of the next
+ *        swapchain image info is returned
  */
-CORAL_API CoResult coSwapchainAcquireNextImage(CoSwapchain swapchain, CoFence fence, CoAcquiredImageInfo* pInfo);
+CORAL_API CoResult coSwapchainAcquireNextImage(CoSwapchain swapchain, CoSemaphore signalSemaphore,  CoFence signalFence, CoAcquiredImageInfo* pInfo);
 
 #endif // !CORAL_SWAPCHAIN_H

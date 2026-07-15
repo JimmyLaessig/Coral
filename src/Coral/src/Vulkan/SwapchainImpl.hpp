@@ -31,7 +31,7 @@ public:
 
     void* nativeWindowHandle() override;
 
-    AcquiredImageInfo acquireNextSwapchainImage(FencePtr fence) override;
+    AcquiredImageInfo acquireNextSwapchainImage(SemaphorePtr signalSemaphore, FencePtr signalFence) override;
 
     uint32_t currentSwapchainImageIndex() const override;
 
@@ -65,35 +65,36 @@ private:
 
     VkExtent2D mSwapchainExtent{ 0, 0 };
 
-    // Semaphores to be signaled once the swapchain image has been acquired (one for each swapchain image).
+    // The swapchain images
+    std::vector<Coral::ImagePtr> mSwapchainImages;
+
+    // The depth-stencil image used as depth attachment for the swapchain image framebuffers
+    Coral::ImagePtr mSwapchainDepthImage;
+
+    // The swapchain framebuffers
+    std::vector<Coral::FramebufferPtr> mFramebuffers;
+
+    // Fences to be signaled once the swapchain image has been acquired
+    std::vector<Coral::FencePtr> mCurrentImageFences;
+
+    // Semaphores to be signaled once the swapchain image has been acquired and the image layout
+    // transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL can start
     std::vector<Coral::SemaphorePtr> mImageAcquiredSemaphore;
-    
-    // Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL after acquisition
-    // (one for each swapchain image).
+
+    // Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    // after acquisition.
     std::vector<Coral::CommandBufferPtr> mTransitionToColorAttachment;
 
-    // Semaphores to be signaled once the swapchain image has been acquired and it's memory layout is transitioned
-    // to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL (one for each swapchain image).
-    std::vector<Coral::SemaphorePtr> mImageReadySemaphore;
-
-    // Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+    // Commandbuffers to perform layout transition to VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
     std::vector<Coral::CommandBufferPtr> mTransitionToPresent;
 
     // Semaphores to be signaled once the swapchain image memory layout has transitioned to
-    // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR (one for each swapchain image).
+    // VK_IMAGE_LAYOUT_PRESENT_SRC_KHR.
     std::vector<Coral::SemaphorePtr> mImagePresentableSemaphore;
-
-    // Swapchain framebuffers  (one for each swapchain image).
-    std::vector<Coral::FramebufferPtr> mFramebuffers;
-
-    // The swapchain image
-    std::vector<Coral::ImagePtr> mSwapchainImages;
-
-    Coral::ImagePtr mSwapchainDepthImage;
 
     Coral::Swapchain::CreateConfig mConfig{};
 
-    mutable std::mutex mThreadProtection;
+    mutable std::recursive_mutex mThreadProtection;
 
 }; // class SwapchainImpl
 
