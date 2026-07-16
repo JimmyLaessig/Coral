@@ -307,11 +307,11 @@ createBuffer(CoContext context, const std::array<T, S>& elements,CoBufferType ty
         return nullptr;
     }
 
-coCommandQueueSubmit(queue, &submitInfo, fence.get());
+    coCommandQueueSubmit(queue, &submitInfo, fence.get());
 
-coFenceWait(fence.get());
+    coFenceWait(fence.get(), UINT64_MAX);
 
-return buffer;
+    return buffer;
 }
 
 
@@ -413,7 +413,7 @@ createTexture(CoContext context, std::span<const uint8_t> buffer)
     }
 
     coCommandQueueSubmit(queue, &submitInfo, fence.get());
-    coFenceWait(fence.get());
+    coFenceWait(fence.get(), UINT64_MAX);
     
     CoSamplerCreateConfig samplerConfig{};
     samplerConfig.wrapMode     = CO_WRAP_MODE_CLAMP_TO_EDGE;
@@ -428,6 +428,63 @@ createTexture(CoContext context, std::span<const uint8_t> buffer)
     }
     
     return { std::move(image), std::move(sampler) };
+}
+
+// Update the displayed frame time every second
+float displayedFrameTimeUpdateInterval = 1.f;
+float timeSinceLastFrameTimeUpdate     = displayedFrameTimeUpdateInterval;
+float displayedFrameTime               = 0;
+
+
+void
+renderPerformanceOverlay(float deltaT, float& rotationPerSecond)
+{
+    timeSinceLastFrameTimeUpdate += deltaT;
+    if (timeSinceLastFrameTimeUpdate > displayedFrameTimeUpdateInterval)
+    {
+        timeSinceLastFrameTimeUpdate -= displayedFrameTimeUpdateInterval;
+        displayedFrameTime = deltaT;
+    }
+
+    auto& io = ImGui::GetIO();
+
+    ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10, 10), 0, ImVec2(1, 0));
+    if (ImGui::Begin("Perf. Overlay", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing))
+    {
+        if (ImGui::BeginTable("Perf. Overlay Table", 3, ImGuiTableFlags_SizingStretchProp))
+        {
+            ImGui::TableNextRow();
+
+            ImGui::TableNextColumn();
+            ImGui::Text("FPS");
+
+            ImGui::TableNextColumn();
+            ImGui::Text(":");
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%d", static_cast<int>(1.f / displayedFrameTime));
+
+            ImGui::TableNextRow();
+
+            ImGui::TableNextColumn();
+            ImGui::Text("Frame time (ms)");
+
+            ImGui::TableNextColumn();
+            ImGui::Text(":");
+
+            ImGui::TableNextColumn();
+            ImGui::Text("%.2f", displayedFrameTime * 1000);
+
+            ImGui::EndTable();
+
+            ImGui::Text("Rotation speed");
+            ImGui::PushID("rotationPerSecond");
+            ImGui::SliderFloat("", &rotationPerSecond, -1.f, 1.f);
+            ImGui::PopID();
+        }
+    }
+
+    ImGui::End();
 }
 
 } // namespace
@@ -466,29 +523,17 @@ int main()
     swapchainConfig.depthFormat         = &depthFormat;
     swapchainConfig.format              = CO_PIXEL_FORMAT_RGBA8_SRGB;
     swapchainConfig.minImageCount       = 2;
-    
+
     Coral::SwapchainPtr swapchain;
     if (coContextCreateSwapchain(context.get(), &swapchainConfig, std::out_ptr(swapchain)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
     }
 
-    CoFenceCreateConfig fenceConfig{};
-    Coral::FencePtr fence;
-    if (coContextCreateFence(context.get(), &fenceConfig, std::out_ptr(fence)) != CO_SUCCESS)
-    {
-        return EXIT_FAILURE;
-    }
+    auto swapchainImageCount = coSwapchainGetImageCount(swapchain.get());
 
     CoCommandQueue queue{ nullptr };
     if (coContextGetGraphicsQueue(context.get(), &queue) != CO_SUCCESS)
-    {
-        return EXIT_FAILURE;
-    }
-
-    CoSemaphoreCreateConfig semaphoreConfig{};
-    Coral::SemaphorePtr renderFinishedSemaphore;
-    if (coContextCreateSemaphore(context.get(), &semaphoreConfig, std::out_ptr(renderFinishedSemaphore)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
     }
@@ -620,10 +665,37 @@ int main()
     auto rotation          = 0.f;
     auto rotationPerSecond = 0.25f;
 
-    // Update the displayed frame time every second
-    float displayedFrameTimeUpdateInterval = 1.f;
-    float timeSinceLastFrameTimeUpdate     = displayedFrameTimeUpdateInterval;
-    float displayedFrameTime               = 0;
+
+    std::vector<Coral::SemaphorePtr> imageReadySemaphores(swapchainImageCount);
+    std::vector<Coral::SemaphorePtr> renderFinishedSemaphores(swapchainImageCount);
+    std::vector<Coral::FencePtr> currentFrameFences(swapchainImageCount);
+
+    for (const auto& [imageReadySemaphore, 
+                      renderFinishedSemaphore, 
+                      currentFrameFence] : std::views::zip(imageReadySemaphores, 
+                                                           renderFinishedSemaphores, 
+                                                           currentFrameFences))
+    {
+        CoSemaphoreCreateConfig semaphoreConfig{};
+        if (coContextCreateSemaphore(context.get(), &semaphoreConfig, std::out_ptr(imageReadySemaphore)) != CO_SUCCESS)
+        {
+            return EXIT_FAILURE;
+        }
+   
+        if (coContextCreateSemaphore(context.get(), &semaphoreConfig, std::out_ptr(renderFinishedSemaphore)) != CO_SUCCESS)
+        {
+            return EXIT_FAILURE;
+        }
+
+        CoFenceCreateConfig fenceConfig{};
+        fenceConfig.createSignaled = true;
+        if (coContextCreateFence(context.get(), &fenceConfig, std::out_ptr(currentFrameFence)) != CO_SUCCESS)
+        {
+            return EXIT_FAILURE;
+        }
+    }
+
+    uint32_t currentFrameIndex = 0;
 
     // Start the game loop
     while (!glfwWindowShouldClose(window))
@@ -637,8 +709,19 @@ int main()
         {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
         }
+
+        auto imageReadySemaphore     = imageReadySemaphores[currentFrameIndex].get();
+        auto renderFinishedSemaphore = renderFinishedSemaphores[currentFrameIndex].get();
+        //auto currentFrameFence       = currentFrameFences[currentFrameIndex].get();
+
+        //coFenceWait(currentFrameFence);
+        //coFenceReset(currentFrameFence);
+
         CoAcquiredImageInfo info{};
-        if (coSwapchainAcquireNextImage(swapchain.get(), nullptr, &info) != CO_SUCCESS)
+        if (coSwapchainAcquireNextImage(swapchain.get(), 
+                                        imageReadySemaphore,
+                                        nullptr, 
+                                        &info) != CO_SUCCESS)
         {
             return EXIT_FAILURE;
         }
@@ -652,50 +735,7 @@ int main()
 
         float deltaT = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count() / 1e+9f;
 
-        timeSinceLastFrameTimeUpdate  += deltaT;
-        if (timeSinceLastFrameTimeUpdate > displayedFrameTimeUpdateInterval)
-        {
-            timeSinceLastFrameTimeUpdate -= displayedFrameTimeUpdateInterval;
-            displayedFrameTime = deltaT;
-        }
-
-        ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x - 10, 10), 0, ImVec2(1, 0));
-        if (ImGui::Begin("Perf. Overlay", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoFocusOnAppearing))
-        {
-            if (ImGui::BeginTable("Perf. Overlay Table", 3, ImGuiTableFlags_SizingStretchProp))
-            {
-                ImGui::TableNextRow();
-
-                ImGui::TableNextColumn();
-                ImGui::Text("FPS");
-
-                ImGui::TableNextColumn();
-                ImGui::Text(":");
-
-                ImGui::TableNextColumn();
-                ImGui::Text("%d", static_cast<int>(1.f / displayedFrameTime));
-
-                ImGui::TableNextRow();
-
-                ImGui::TableNextColumn();
-                ImGui::Text("Frame time (ms)");
-
-                ImGui::TableNextColumn();
-                ImGui::Text(":");
-
-                ImGui::TableNextColumn();
-                ImGui::Text("%.2f", displayedFrameTime * 1000);
-
-                ImGui::EndTable();
-            
-                ImGui::Text("Rotation speed");
-                ImGui::PushID("rotationPerSecond");
-                ImGui::SliderFloat("", &rotationPerSecond, -1.f, 1.f);
-                ImGui::PopID();
-            }
-        }
-
-        ImGui::End();
+        renderPerformanceOverlay(deltaT, rotationPerSecond);
 
         rotation += (rotationPerSecond * 360.f) * deltaT;
 
@@ -703,7 +743,6 @@ int main()
 
         projectionMatrix = glm::perspective(fov, static_cast<float>(width) / height, nearPlane, farPlane);
 
-        ImGuiIO& io = ImGui::GetIO();
         ImGui::Render();
 
         matrices.set("modelViewProjectionMatrix", projectionMatrix * viewMatrix * modelMatrix);
@@ -762,16 +801,14 @@ int main()
         coCommandBufferEndRenderPass(commandBuffer.get());
         coCommandBufferEnd(commandBuffer.get());
 
-        auto renderFinishedSemaphorePtr = renderFinishedSemaphore.get();
-
         CoCommandBufferSubmitInfo submitInfo{};
         auto cb                       = commandBuffer.get();
         submitInfo.pCommandBuffers    = &cb;
         submitInfo.commandBufferCount = 1;
-        submitInfo.pWaitSemaphores    = &info.imageAcquiredSemaphore;
+        submitInfo.pWaitSemaphores    = &imageReadySemaphore;
         submitInfo.waitSemaphoreCount = 1;
 
-        submitInfo.pSignalSemaphores    = &renderFinishedSemaphorePtr;
+        submitInfo.pSignalSemaphores    = &renderFinishedSemaphore;
         submitInfo.signalSemaphoreCount = 1;
 
         if (coCommandQueueSubmit(queue, &submitInfo, nullptr) != CO_SUCCESS)
@@ -779,13 +816,11 @@ int main()
             return EXIT_FAILURE;
         }
 
-        coCommandQueueWaitIdle(queue);
-
         CoPresentInfo presentInfo{};
         presentInfo.swapchain          = swapchain.get();
-        presentInfo.pWaitSemaphores    = &renderFinishedSemaphorePtr;
-        presentInfo.waitSemaphoreCount = 0;
-        
+        presentInfo.pWaitSemaphores    = &renderFinishedSemaphore;
+        presentInfo.waitSemaphoreCount = 1;
+
         if (coCommandQueuePresent(queue, &presentInfo) != CO_SUCCESS)
         {
             return EXIT_FAILURE;
@@ -795,6 +830,8 @@ int main()
         {
             return EXIT_FAILURE;
         }
+
+        currentFrameIndex = (currentFrameIndex + 1) % coSwapchainGetImageCount(swapchain.get());
     }
 
     ImGui_ImplCoral_Shutdown(context.get());

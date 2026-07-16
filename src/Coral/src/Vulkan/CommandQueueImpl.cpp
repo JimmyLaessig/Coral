@@ -84,18 +84,12 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
     // decrement the count. Idling the command queue must wait until the in-flight staging buffer count is 0.
 
     // If an external fence is used, reuse this fence, otherwise create a temporary fence object.
-    VkFence vkFence = fence ? std::static_pointer_cast<Coral::Vulkan::FenceImpl>(fence)->getVkFence() : VK_NULL_HANDLE;
-    bool ownsFence = false;
-    if (!retainedResources.empty() && !vkFence)
+    if (!retainedResources.empty() && !fence)
     {
-        VkFenceCreateInfo info{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
-        if (vkCreateFence(context().getVkDevice(), &info, nullptr, &vkFence) != VK_SUCCESS)
-        {
-            // TODO: FATAL ERROR
-            return false;
-        }
-        ownsFence = true;
+        fence = context().createFence({}).value();
     }
+
+    auto fenceImpl = std::static_pointer_cast<Vulkan::FenceImpl>(fence);
 
     VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
     submitInfo.pNext                = nullptr;
@@ -107,7 +101,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
     submitInfo.waitSemaphoreCount   = static_cast<uint32_t>(waitSemaphores.size());
     submitInfo.pWaitDstStageMask    = waitFlags.data();
 
-    if (vkQueueSubmit(mQueue, 1, &submitInfo, vkFence) != VK_SUCCESS)
+    if (vkQueueSubmit(mQueue, 1, &submitInfo, fenceImpl ? fenceImpl->getVkFence() : VK_NULL_HANDLE) != VK_SUCCESS)
     {
         return false;
     }
@@ -119,10 +113,10 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
         mResourcesInFlight += retainedResources.size();
 
         // Transfer ownership of the staging buffers to the async task
-        auto task = [stagingBuffers = std::move(retainedResources), fence = vkFence, ownsFence = ownsFence, this]() mutable
+        auto task = [stagingBuffers = std::move(retainedResources), fence = fence, this]() mutable
         {
             // Wait until the fence is signaled
-            vkWaitForFences(context().getVkDevice(), 1, &fence, VK_TRUE, UINT64_MAX);
+            fence->wait(UINT64_MAX);
 
             auto count = stagingBuffers.size();
             // Clear all staging buffers (this reduces the use count of the shared ptr which effectively  returns
@@ -130,11 +124,6 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
             stagingBuffers.clear();
             // Decrement the count of in-flight staging buffers
             mResourcesInFlight -= count;
-
-            if (ownsFence)
-            {
-                vkDestroyFence(context().getVkDevice(), fence, nullptr);
-            }
         };
 
         auto future = std::async(std::launch::async, std::move(task));

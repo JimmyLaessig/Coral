@@ -24,6 +24,8 @@ typedef enum
     CO_ERROR_INVALID_DEPTH_STENCIL_ATTACHMENT,
     // An internal error occurred
     CO_ERROR_INTERNAL,
+    // A timeout occurred
+    CO_ERROR_TIMEOUT
 
 } CoResult;
 

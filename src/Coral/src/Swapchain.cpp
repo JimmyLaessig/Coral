@@ -8,7 +8,7 @@ using namespace Coral;
 CoSwapchain_T::CoSwapchain_T(std::shared_ptr<Coral::Swapchain> impl)
     : impl(impl)
 {
-    mData.resize(impl->swapchainImageCount());
+    mFramebuffers.resize(impl->swapchainImageCount());
 }
 
 
@@ -20,11 +20,9 @@ coContextCreateSwapchain(CoContext context, const CoSwapchainCreateConfig* pConf
     {
         *pSwapchain = new CoSwapchain_T(impl.value());
 
-        (*pSwapchain)->mData.resize(impl.value()->swapchainImageCount());
-
         return CO_SUCCESS;
     }
-    
+
     return static_cast<CoResult>(impl.error());
 }
 
@@ -37,23 +35,22 @@ coDestroySwapchain(CoSwapchain swapchain)
 
 
 CoResult
-coSwapchainAcquireNextImage(const CoSwapchain swapchain, CoFence fence, CoAcquiredImageInfo* pInfo)
+coSwapchainAcquireNextImage(const CoSwapchain swapchain, CoSemaphore signalSemaphore, CoFence signalFence, CoAcquiredImageInfo* pInfo)
 {
-    auto result = swapchain->impl->acquireNextSwapchainImage(fence ? fence->impl : nullptr);
+    auto result = swapchain->impl->acquireNextSwapchainImage(signalSemaphore ? signalSemaphore->impl : nullptr, 
+                                                             signalFence ? signalFence->impl : nullptr);
 
-    auto& data = swapchain->mData[result.index];
+    auto& framebuffer = swapchain->mFramebuffers[result.index];
 
-    // Update the cached swapchain image data if the image has changed since the last acquire.
+    // Update the cached swapchain image framebuffer if the image has changed since the last acquire.
     // This happens when the swapchain is recreated due to a window resize or other event that
     // invalidates the swapchain.
-    if (!data.framebuffer || data.framebuffer->impl != result.framebuffer)
+    if (!framebuffer || framebuffer->impl != result.framebuffer)
     {
-        data.framebuffer.reset(new CoFramebuffer_T{ result.framebuffer });
-        data.semaphore.reset(new CoSemaphore_T{ result.imageReadySemaphore });
+        framebuffer.reset(new CoFramebuffer_T{ result.framebuffer });
     }
 
-    pInfo->framebuffer            = data.framebuffer.get();
-    pInfo->imageAcquiredSemaphore = data.semaphore.get();
+    pInfo->framebuffer            = framebuffer.get();
     pInfo->index                  = result.index;
 
     return CO_SUCCESS;
@@ -65,23 +62,3 @@ coSwapchainGetImageCount(const CoSwapchain swapchain)
 {
     return swapchain->impl->swapchainImageCount();
 }
-
-
-//void
-//coSwapchainGetCurrentSwapchainImageInfo(const CoSwapchain swapchain, CoSwapchainImageInfo* pInfo)
-//{
-//    auto index    = swapchain->impl->currentSwapchainImageIndex();
-//    auto infoImpl = swapchain->impl->currentSwapchainImage();
-//    
-//    auto& data = swapchain->mData[index];
-//    if (!data.framebuffer || data.framebuffer->impl != infoImpl.framebuffer)
-//    {
-//        swapchain->mData[index].framebuffer.reset(new CoFramebuffer_T{ infoImpl.framebuffer });
-//        swapchain->mData[index].semaphore.reset(new CoSemaphore_T{ infoImpl.imageReadySemaphore });
-//        swapchain->mData[index].image.reset(new CoImage_T{ infoImpl.image });
-//    }
-//
-//    pInfo->framebuffer            = swapchain->mData[index].framebuffer.get();
-//    pInfo->imageAcquiredSemaphore = swapchain->mData[index].semaphore.get();
-//    pInfo->index                  = swapchain->impl->currentSwapchainImageIndex();
-//}

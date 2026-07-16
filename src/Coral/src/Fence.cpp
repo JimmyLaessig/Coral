@@ -4,7 +4,6 @@
 #include "Context.hpp"
 
 #include <memory>
-#include <mutex>
 
 using namespace Coral;
 
@@ -31,16 +30,14 @@ coDestroyFence(CoFence fence)
 
 
 CoResult
-coFenceWait(CoFence fence)
+coFenceWait(CoFence fence, uint64_t timeout)
 {
-    return fence->impl->wait() ? CO_SUCCESS : CO_FAILED;
+    return static_cast<CoResult>(fence->impl->wait(timeout));
 }
 
 
-CoResult
+void
 coFenceReset(CoFence fence)
 {
     fence->impl->reset();
-    return CO_SUCCESS;
 }
-

@@ -304,7 +304,7 @@ ContextImpl::createBuffer(const Coral::Buffer::CreateConfig& config)
 std::expected<Coral::FencePtr, Coral::Fence::CreateError>
 ContextImpl::createFence(const Coral::Fence::CreateConfig& config)
 {
-    return create<Coral::Fence, FenceImpl, Coral::Fence::CreateError>();
+    return create<Coral::Fence, FenceImpl, Coral::Fence::CreateError>(config);
 }
 
 

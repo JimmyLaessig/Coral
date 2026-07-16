@@ -13,9 +13,14 @@ FenceImpl::~FenceImpl()
 
 
 std::optional<Coral::Fence::CreateError>
-FenceImpl::init()
+FenceImpl::init(const Fence::CreateConfig& config)
 {
     VkFenceCreateInfo createInfo{ VK_STRUCTURE_TYPE_FENCE_CREATE_INFO };
+    
+    if (config.createSignaled)
+    {
+        createInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+    }
 
     if (vkCreateFence(context().getVkDevice(), &createInfo, nullptr, &mFence) != VK_SUCCESS)
     {
@@ -33,10 +38,19 @@ FenceImpl::getVkFence()
 }
 
 
-bool
-FenceImpl::wait()
+Coral::Fence::WaitResult
+FenceImpl::wait(uint64_t timeout)
 {
-    return vkWaitForFences(context().getVkDevice(), 1, &mFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+    auto result = vkWaitForFences(context().getVkDevice(), 1, &mFence, VK_TRUE, timeout);
+    if (result == VK_SUCCESS)
+    {
+        return Coral::Fence::WaitResult::SUCCESS;
+    }
+    else if (result == VK_TIMEOUT)
+    {
+        return Coral::Fence::WaitResult::TIMEOUT;
+    }
+    return Coral::Fence::WaitResult::INTERNAL_ERROR;
 }
 
 
