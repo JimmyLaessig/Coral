@@ -15,14 +15,21 @@ public:
 
     using CreateConfig = CoFenceCreateConfig;
 
-    enum CreateError
+    enum class CreateError
     {
         INTERNAL_ERROR = CO_ERROR_INTERNAL,
     };
 
     virtual ~Fence() = default;
 
-    virtual bool wait() = 0;
+    enum class WaitResult
+    {
+        SUCCESS        = CO_SUCCESS,
+        TIMEOUT        = CO_ERROR_TIMEOUT,
+        INTERNAL_ERROR = CO_ERROR_INTERNAL,
+    };
+
+    virtual WaitResult wait(uint64_t timeout) = 0;
 
     virtual void reset() = 0;
 };

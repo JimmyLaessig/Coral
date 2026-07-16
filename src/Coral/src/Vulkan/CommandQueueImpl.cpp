@@ -116,7 +116,7 @@ CommandQueueImpl::submit(const Coral::CommandBufferSubmitInfo& info, Coral::Fenc
         auto task = [stagingBuffers = std::move(retainedResources), fence = fence, this]() mutable
         {
             // Wait until the fence is signaled
-            fence->wait();
+            fence->wait(UINT64_MAX);
 
             auto count = stagingBuffers.size();
             // Clear all staging buffers (this reduces the use count of the shared ptr which effectively  returns

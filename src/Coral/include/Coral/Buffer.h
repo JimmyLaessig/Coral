@@ -55,7 +55,7 @@ typedef CoBuffer_T* CoBuffer;
 /*! 
  * \brief Create a new buffer object
  * \param context Handle to a CoContext object that creates the buffer object.
- * \param pConfig Pointer to a CoBufferCreateConfig instance containing parameters affecting the framebuffer creation.
+ * \param pConfig Pointer to a CoBufferCreateConfig instance containing parameters affecting the buffer creation.
  * \param[out] pBuffer Pointer to a CoBuffer handle in which the resulting buffer object is returned.
  * \return Returns CO_SUCESS if buffer creation succeeded. Otherwise one of the CO_BUFFER_CREATION_ERROR_* values is
  *         returned.

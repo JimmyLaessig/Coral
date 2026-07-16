@@ -25,7 +25,7 @@ public:
 
     std::optional<Coral::Fence::CreateError> init(const Fence::CreateConfig& config);
 
-    bool wait() override;
+    Fence::WaitResult wait(uint64_t timeout) override;
 
     void reset() override;
 

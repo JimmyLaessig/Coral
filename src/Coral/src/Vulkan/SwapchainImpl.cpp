@@ -286,7 +286,7 @@ SwapchainImpl::acquireNextSwapchainImage(SemaphorePtr signalSemaphore, Coral::Fe
     // swapchain image. This ensures that previous frame rendering to the swapchain image has
     // finished before we acquire this image again for the current frame.
     auto fence = std::static_pointer_cast<FenceImpl>(mCurrentImageFences[mCurrentSwapchainIndex]);
-    fence->wait();
+    fence->wait(UINT64_MAX);
     fence->reset();
 
     auto imageAcquiredSemaphore = std::static_pointer_cast<SemaphoreImpl>(mImageAcquiredSemaphore[mCurrentSwapchainIndex]);

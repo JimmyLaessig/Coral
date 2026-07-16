@@ -38,10 +38,19 @@ FenceImpl::getVkFence()
 }
 
 
-bool
-FenceImpl::wait()
+Coral::Fence::WaitResult
+FenceImpl::wait(uint64_t timeout)
 {
-    return vkWaitForFences(context().getVkDevice(), 1, &mFence, VK_TRUE, UINT64_MAX) == VK_SUCCESS;
+    auto result = vkWaitForFences(context().getVkDevice(), 1, &mFence, VK_TRUE, timeout);
+    if (result == VK_SUCCESS)
+    {
+        return Coral::Fence::WaitResult::SUCCESS;
+    }
+    else if (result == VK_TIMEOUT)
+    {
+        return Coral::Fence::WaitResult::TIMEOUT;
+    }
+    return Coral::Fence::WaitResult::INTERNAL_ERROR;
 }
 
 

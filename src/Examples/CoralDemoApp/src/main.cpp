@@ -309,7 +309,7 @@ createBuffer(CoContext context, const std::array<T, S>& elements,CoBufferType ty
 
     coCommandQueueSubmit(queue, &submitInfo, fence.get());
 
-    coFenceWait(fence.get());
+    coFenceWait(fence.get(), UINT64_MAX);
 
     return buffer;
 }
@@ -413,7 +413,7 @@ createTexture(CoContext context, std::span<const uint8_t> buffer)
     }
 
     coCommandQueueSubmit(queue, &submitInfo, fence.get());
-    coFenceWait(fence.get());
+    coFenceWait(fence.get(), UINT64_MAX);
     
     CoSamplerCreateConfig samplerConfig{};
     samplerConfig.wrapMode     = CO_WRAP_MODE_CLAMP_TO_EDGE;
