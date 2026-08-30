@@ -18,15 +18,28 @@ add_executable(${TARGET_NAME})
 ###############################################################################
 
 set(HEADERS
+    ${SOURCE_DIR}/CoralDemoApp.hpp
+    ${SOURCE_DIR}/DrawIndexed.hpp
+    ${SOURCE_DIR}/DrawInstanced.hpp
+    ${SOURCE_DIR}/DrawIndirect.hpp
+    ${SOURCE_DIR}/FlyCamera.hpp
+    ${SOURCE_DIR}/Util.hpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h
     ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.h
     ${imgui_SOURCE_DIR}/imgui_internal.h
-    ${imgui_SOURCE_DIR}/imgui.h
-    ${GENERATED_HEADER_DIR}/Shader_slang.hpp)
+    ${imgui_SOURCE_DIR}/imgui.h)
 
-set(SOURCES 
+set(SOURCES
     ${SOURCE_DIR}/main.cpp
-    ${SOURCE_DIR}/Shader.slang
+    ${SOURCE_DIR}/DrawIndexed.cpp
+    ${SOURCE_DIR}/DrawInstanced.cpp
+    ${SOURCE_DIR}/DrawIndirect.cpp
+    ${SOURCE_DIR}/Util.cpp
+    ${SOURCE_DIR}/FlyCamera.cpp
+    ${SOURCE_DIR}/CoralDemoApp.cpp
+    ${SOURCE_DIR}/DefaultShader.slang
+    ${SOURCE_DIR}/InstancedShader.slang
+    ${SOURCE_DIR}/IndirectShader.slang
     ${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_win32.cpp
     ${imgui_SOURCE_DIR}/imgui_tables.cpp
@@ -46,7 +59,10 @@ source_group("src" FILES ${SOURCES})
 
 target_embed_files(${TARGET_NAME} PRIVATE
     FILE_SET private_headers
-    FILES "${SOURCE_DIR}/Shader.slang"
+    FILES 
+        "${SOURCE_DIR}/DefaultShader.slang"
+        "${SOURCE_DIR}/InstancedShader.slang"
+        "${SOURCE_DIR}/IndirectShader.slang"
     OUTPUT_DIR ${GENERATED_HEADER_DIR}
     BASE_DIRS ${GENERATED_HEADER_DIR}
     NAMESPACE Shaders)
@@ -59,7 +75,7 @@ target_sources(${TARGET_NAME} PRIVATE
 target_sources(${TARGET_NAME} PRIVATE
     FILE_SET  private_headers
     TYPE      HEADERS
-    BASE_DIRS ${imgui_SOURCE_DIR} ${GENERATED_HEADER_DIR}
+    BASE_DIRS ${SOURCE_DIR} ${imgui_SOURCE_DIR} ${GENERATED_HEADER_DIR}
     FILES     ${HEADERS})
 
 target_link_libraries(${TARGET_NAME} PRIVATE

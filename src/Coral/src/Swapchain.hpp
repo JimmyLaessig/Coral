@@ -40,7 +40,19 @@ class Swapchain
 
 public:
 
-    using CreateConfig = CoSwapchainCreateConfig;
+    struct CreateConfig
+    {
+        /// Pointer to the native window handle
+        void* nativeWindowHandle;
+        /// The pixel format of the swapchain images
+        CoPixelFormat format;
+        /// Pointer to the pixel format of the depth-stencil image. If nullptr, no depth-stencil image is created
+        std::optional<CoPixelFormat> depthFormat;
+        /// Minimum number of images in the swapchain
+        uint32_t minImageCount;
+        /// Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
+        bool lockToVSync;
+    };
 
     enum class CreateError
     {

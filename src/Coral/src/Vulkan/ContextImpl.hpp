@@ -60,7 +60,7 @@ public:
 
     VkInstance getVkInstance() { return mInstance; }
 
-    VkDevice getVkDevice() { return mDevice; }
+    VkDevice getVkDevice() const { return mDevice; }
 
     VkPhysicalDevice getVkPhysicalDevice() { return mPhysicalDevice; }
 
@@ -113,7 +113,7 @@ private:
 
     std::unique_ptr<BufferPool> mStagingBufferPool;
 
-    VkPhysicalDeviceProperties mProperties;
+    VkPhysicalDeviceProperties mProperties{};
 
 }; // class ContextImpl
 

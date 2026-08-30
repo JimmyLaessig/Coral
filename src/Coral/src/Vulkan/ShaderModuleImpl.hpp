@@ -37,29 +37,25 @@ public:
 
     const std::string& entryPoint() const override;
 
-    const AttributeLayout& inputAttributeLayout() const override;
+    const CoDescriptorLayout& descriptorLayout() const override;
 
-    const AttributeLayout& outputAttributeLayout() const override;
-
-    const DescriptorLayout& descriptorLayout() const override;
+    const CoAttributeLayout& attributeLayout() const override;
 
     VkShaderModule getVkShaderModule();
 
 private:
 
-    bool reflect(std::span<const std::byte> spirvCode);
+    bool reflect(std::span<const uint32_t> spirvCode);
 
     std::string mName;
-
-    AttributeLayout mInputAttributeLayout;
-
-    AttributeLayout mOutputAttributeLayout;
-
-    DescriptorLayout mDescriptorLayout;
 
     std::string mEntryPoint;
 
     CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
+
+    CoDescriptorLayout mDescriptorLayout;
+
+    CoAttributeLayout mAttributeLayout;
 
     VkShaderModule mShaderModule{ VK_NULL_HANDLE };
 

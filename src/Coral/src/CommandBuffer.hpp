@@ -158,11 +158,37 @@ public:
     virtual bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) = 0;
 
     /*!
+     * \brief Draw the primitives
+     * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+     * \param pInfo Pointer to a CoDrawInfo containing parameters for drawing
+     */
+    virtual bool cmdDraw(const CoDrawInfo& info) = 0;
+
+    /*!
+     * \brief Draw the primitives with indirect parameters
+     * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+     * \param buffer Buffer containing the draw parameters
+     * \param offset The offset from the base address of the buffer to the first set of draw parameters in bytes
+     * \param drawCount The number of draws to execute.
+     * \param stride The byte stride between successive sets of draw parameters. If zero, the elements are assumed to be tightly packed.
+     */
+    virtual bool cmdDrawIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) = 0;
+
+    /*!
      * \brief Draw the primitives with indexed vertices
-     * \param indexCount The number of vertices to draw
-     * \param firstIndex The base index within the index buffer
+     * \param pInfo Pointer to a CoDrawIndexedInfo containing parameters for indexed drawing
      */
     virtual bool cmdDrawIndexed(const CoDrawIndexedInfo& info) = 0;
+
+    /*!
+     * \brief Draw the primitives with indirect parameters and indexed vertices
+     * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+     * \param buffer Buffer containing the draw parameters
+     * \param offset The offset from the base address of the buffer to the first set of draw parameters in bytes
+     * \param drawCount The number of draws to execute.
+     * \param stride The byte stride between successive sets of draw parameters. If zero, the elements are assumed to be tightly packed.
+     */
+    virtual bool cmdDrawIndexedIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) = 0;
 
     /*!
      * \brief Set the viewport
@@ -179,10 +205,18 @@ public:
 
     /*!
      * \brief Bind the image at the given binding
-     * \param sampler The Sampler to bind
+     * \param sampler The sampler to bind
      * \param binding The binding index
      */
     virtual void cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding) = 0;
+
+    /*!
+     * \brief Bind the sampler and image at the given binding
+     * \param image The image to bind
+     * \param sampler The sampler to bind
+     * \param binding The binding index
+     */
+    virtual void cmdBindDescriptor(Coral::ImagePtr image, Coral::SamplerPtr sampler, uint32_t binding) = 0;
 
     /*!
      * \brief Bind the image at the given binding

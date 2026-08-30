@@ -79,7 +79,7 @@ typedef enum
 } CoBlitAttachment;
 
 /*!
- * Structure containing the clear color of a Framebuffer attachment
+ * Structure specifying the clear color of a Framebuffer attachment
  */
 typedef struct 
 {
@@ -110,7 +110,7 @@ typedef struct
 } CoClearDepthStencil;
 
 /*!
- * Structure containing the render pass begin information
+ * Structure specifying the render pass begin information
  */
 typedef struct 
 {
@@ -174,24 +174,6 @@ typedef struct
 
     CoImage dest;
 } CoCopyImageInfo;
-
-/*!
- * Parameters for the cmdDrawIndexed command
- */
-typedef struct
-{
-    /*!
-     * The number of vertices to draw
-     */
-    uint32_t indexCount;
-
-    /*!
-     * The base index within the index buffer
-     */
-    uint32_t firstIndex;
-
-} CoDrawIndexedInfo;
-
 
 typedef struct
 {
@@ -258,22 +240,139 @@ CORAL_API CoResult coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, Co
 ///
 CORAL_API CoResult coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* info);
 
-///
-CORAL_API CoResult coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding);
+typedef struct
+{
+    CoBuffer buffer;
 
-///
-CORAL_API CoResult coCommandBufferBindImage(CoCommandBuffer commandBuffer, CoImage image, uint32_t binding);
+} CoBufferDescriptor;
 
-///
-CORAL_API CoResult coCommandBufferBindSampler(CoCommandBuffer commandBuffer, CoSampler sampler, uint32_t binding);
+typedef struct
+{
+    CoImage image;
 
-/// Draw the primitives with indexed vertices
-/**
+} CoImageDescriptor;
+
+typedef struct
+{
+    CoSampler sampler;
+
+} CoSamplerDescriptor;
+
+typedef struct
+{
+    CoImage image;
+    CoSampler sampler;
+
+} CoCombinedImageSamplerDescriptor;
+
+typedef struct
+{
+    union
+    {
+        CoBuffer buffer;
+        CoImage image;
+        CoSampler sampler;
+        CoCombinedImageSamplerDescriptor combinedImageSampler;
+    };
+
+    CoDescriptorType type;
+
+} CoDescriptor;
+
+/*!
+ * \brief Bind the descriptor at the given location
  * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
- * \param firstIndex
- * \param indexCount
+ * \param pDescriptor Pointer to a CoDescriptor structure containing the descriptor to bind
+ * \param binding The binding index
  */
-CORAL_API CoResult coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, const CoDrawIndexedInfo* info);
+CORAL_API CoResult coCommandBufferBindDescriptor(CoCommandBuffer commandBuffer, const CoDescriptor* pDescriptor, uint32_t binding);
+
+/*!
+ * Structure specifying the draw parameters for drawing
+ */
+typedef struct
+{
+    /*!
+     * The number of vertices to draw
+     */
+    uint32_t vertexCount;
+    /*!
+     * The number of instances to draw
+     */
+    uint32_t instanceCount;
+    /*!
+     * The base index within the index buffer
+     */
+    uint32_t firstVertex;
+    /*!
+     * The instance id of the first instance to draw
+     */
+    uint32_t firstInstance;
+
+} CoDrawInfo;
+
+/*!
+ * \brief Draw the primitives
+ * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+ * \param pInfo Pointer to a CoDrawInfo containing parameters for drawing
+ */
+CORAL_API CoResult coCommandBufferDraw(CoCommandBuffer commandBuffer, const CoDrawInfo* pInfo);
+
+/*!
+ * \brief Draw the primitives with indirect parameters
+ * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+ * \param buffer Buffer containing the draw parameters
+ * \param offset The offset from the base address of the buffer to the first set of draw parameters in bytes
+ * \param drawCount The number of draws to execute.
+ * \param stride The byte stride between successive sets of draw parameters. If zero, the elements are assumed to be tightly packed.
+ */
+CORAL_API CoResult coCommandBufferDrawIndirect(CoCommandBuffer commandBuffer, CoBuffer buffer, uint64_t offset, uint32_t drawCount, uint32_t stride);
+
+/*!
+ * Structure specifying the draw parameters for indexed drawing
+ */
+typedef struct
+{
+    /*!
+     * The number of vertices to draw
+     */
+    uint32_t indexCount;
+    /*!
+     * The number of instances to draw
+     */
+    uint32_t instanceCount;
+    /*!
+     * The base index within the index buffer
+     */
+    uint32_t firstIndex;
+    /*!
+     * The value added to each index before indexing into the vertex buffer.
+     */
+    uint32_t vertexOffset;
+    /*!
+     * The instance id of the first instance to draw
+     */
+    uint32_t firstInstance;
+
+} CoDrawIndexedInfo;
+
+
+/*!
+ * \brief Draw the primitives with indexed vertices 
+ * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+ * \param pInfo Pointer to a CoDrawIndexedInfo containing parameters for indexed drawing
+ */
+CORAL_API CoResult coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, const CoDrawIndexedInfo* pInfo);
+
+/*!
+ * \brief Draw the primitives with indirect parameters and indexed vertices
+ * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
+ * \param buffer Buffer containing the draw parameters
+ * \param offset The offset from the base address of the buffer to the first set of draw parameters in bytes
+ * \param drawCount The number of draws to execute.
+ * \param stride The byte stride between successive sets of draw parameters. If zero, the elements are assumed to be tightly packed.
+ */
+CORAL_API CoResult coCommandBufferDrawIndexedIndirect(CoCommandBuffer commandBuffer, CoBuffer buffer, uint64_t offset, uint32_t drawCount, uint32_t stride);
 
 /*!
  * Structure containing the CommandBuffer submit information

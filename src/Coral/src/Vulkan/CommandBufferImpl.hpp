@@ -10,6 +10,8 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <unordered_set>
+#include <variant>
 
 namespace Coral::Vulkan
 {
@@ -49,7 +51,13 @@ public:
 
     bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) override;
 
+    bool cmdDraw(const CoDrawInfo& info) override;
+    
+    bool cmdDrawIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
+
     bool cmdDrawIndexed(const CoDrawIndexedInfo& info) override;
+
+    bool cmdDrawIndexedIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
 
     bool cmdSetViewport(const CoViewportInfo& info) override;
 
@@ -64,6 +72,8 @@ public:
     void cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding) override;
 
     void cmdBindDescriptor(Coral::ImagePtr image, uint32_t binding) override;
+
+    void cmdBindDescriptor(Coral::ImagePtr image, Coral::SamplerPtr sampler, uint32_t binding) override;
 
     bool cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr dest) override;
 
@@ -89,7 +99,13 @@ private:
 
     std::unordered_set<ResourcePtr> mRetainedResources;
 
-    std::unordered_map<uint32_t, std::variant<VkDescriptorBufferInfo, VkDescriptorImageInfo>> mCachedDescriptorInfos;
+    struct DescriptorBufferInfo
+    {
+        VkDescriptorBufferInfo bufferInfo;
+        VkDescriptorType descriptorType;
+    };
+
+    std::unordered_map<uint32_t, std::variant<DescriptorBufferInfo, VkDescriptorImageInfo>> mCachedDescriptorInfos;
 
     std::vector<VkWriteDescriptorSet> mDescriptorWrites;
 

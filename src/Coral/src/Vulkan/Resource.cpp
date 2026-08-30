@@ -13,3 +13,10 @@ Resource::context()
 {
     return mContext;
 }
+
+
+const ContextImpl&
+Resource::context() const
+{
+    return mContext;
+}

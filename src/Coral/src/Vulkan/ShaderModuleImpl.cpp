@@ -4,17 +4,118 @@
 
 #include <spirv_reflect.h>
 
-#include <algorithm>
 #include <assert.h>
 #include <optional>
 #include <span>
 #include <string>
 #include <vector>
+#include <ranges>
 
 using namespace Coral::Vulkan;
 
 namespace
 {
+
+void
+destroy(const CoStructMemberInfo& memberInfo);
+
+
+void
+destroy(const CoStructInfo& structInfo)
+{
+    delete structInfo.pTypeName;
+
+    for (auto& member : std::span(structInfo.pMembers, structInfo.memberCount))
+    {
+        destroy(member);
+    }
+
+    delete[] structInfo.pMembers;
+}
+
+
+void
+destroy(const CoStructMemberInfo& memberInfo)
+{
+    delete(memberInfo.pName);
+
+    switch (memberInfo.type)
+    {
+        case CO_STRUCT_MEMBER_TYPE_SCALAR:
+            break;
+        case CO_STRUCT_MEMBER_TYPE_VECTOR:
+            break;
+        case CO_STRUCT_MEMBER_TYPE_MATRIX:
+            break;
+        case CO_STRUCT_MEMBER_TYPE_STRUCT:
+            destroy(memberInfo.structure);
+            break;
+    }
+}
+
+
+void
+destroy(const CoBufferInfo& bufferInfo)
+{
+    destroy(bufferInfo.structure);
+}
+
+
+void
+destroy(const CoDescriptorInfo& info)
+{
+    delete info.pName;
+
+    switch (info.type)
+    {
+    case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+    case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+        destroy(info.buffer);
+        break;
+    case CO_DESCRIPTOR_TYPE_IMAGE:
+        break;
+    case CO_DESCRIPTOR_TYPE_SAMPLER:
+        break;
+    case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+        break;
+    }
+}
+
+
+void
+destroy(const CoAttributeBindingInfo& attr)
+{
+    delete attr.pName;
+}
+
+
+void
+destroy(CoDescriptorLayout& layout)
+{
+    for (auto& descriptor : std::span(layout.pDescriptorInfos, layout.descriptorInfosCount))
+    {
+        destroy(descriptor);
+    }
+    delete[] layout.pDescriptorInfos;
+}
+
+
+void
+destroy(CoAttributeLayout& layout)
+{
+    for (auto& attr : std::span(layout.pInputAttributeBindingInfos, layout.inputAttributeBindingInfoCount))
+    {
+        destroy(attr);
+    }
+    delete[] layout.pInputAttributeBindingInfos;
+
+    for (auto& attr : std::span(layout.pOutputAttributeBindingInfos, layout.outputAttributeBindingInfoCount))
+    {
+        destroy(attr);
+    }
+    delete[] layout.pOutputAttributeBindingInfos;
+}
+
 
 std::optional<CoAttributeFormat>
 convert(SpvReflectFormat format)
@@ -35,107 +136,196 @@ convert(SpvReflectFormat format)
 }
 
 
-void
-insertUniformBlockBindingRecursive(const SpvReflectBlockVariable& variable, const std::string& parentName, Coral::UniformBlockDefinition& result)
+const char*
+copy(const char* src)
 {
-    /*assert(binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    assert(binding.type_description->type_flags & SPV_REFLECT_TYPE_FLAG_STRUCT);*/
-    std::string fullName = parentName + variable.name;
-    
-    auto& traits = variable.type_description->traits;
-
-    constexpr auto BoolFlags        = SPV_REFLECT_TYPE_FLAG_BOOL;
-    constexpr auto IntFlags         = SPV_REFLECT_TYPE_FLAG_INT;
-    constexpr auto FloatFlags       = SPV_REFLECT_TYPE_FLAG_FLOAT;
-    constexpr auto MatrixFlags      = SPV_REFLECT_TYPE_FLAG_MATRIX | SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
-    constexpr auto FloatVectorFlags = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_FLOAT;
-    constexpr auto IntVectorFlags   = SPV_REFLECT_TYPE_FLAG_VECTOR | SPV_REFLECT_TYPE_FLAG_INT;
-    constexpr auto StructFlags      = SPV_REFLECT_TYPE_FLAG_STRUCT | SPV_REFLECT_TYPE_FLAG_EXTERNAL_BLOCK;
-    switch (variable.type_description->type_flags)
+    if (src == nullptr)
     {
-    case BoolFlags:
-        result.members.push_back({ CO_UNIFORM_FORMAT_BOOL, fullName , 1, variable.size, variable.padded_size });
-        break;
-    case IntFlags:
-        result.members.push_back({ CO_UNIFORM_FORMAT_INT32, fullName , 1, variable.size, variable.padded_size });
-        break;
-    case FloatFlags:
-        result.members.push_back({ CO_UNIFORM_FORMAT_FLOAT, fullName , 1, variable.size, variable.padded_size });
-        break;
-    case FloatVectorFlags:
-        switch (traits.numeric.vector.component_count)
-        {
-        case 2:
-            result.members.push_back({ CO_UNIFORM_FORMAT_VEC2F, fullName , 1, variable.size, variable.padded_size });
-            break;
-        case 3:
-            result.members.push_back({ CO_UNIFORM_FORMAT_VEC3F, fullName , 1, variable.size, variable.padded_size });
-            break;
-        case 4:
-            result.members.push_back({ CO_UNIFORM_FORMAT_VEC4F, fullName , 1, variable.size, variable.padded_size });
-            break;
-        default:
-            assert(false);
-        }
-        break;
-    case IntVectorFlags:
-        switch (traits.numeric.vector.component_count)
-        {
-        case 2:
-            result.members.push_back({ CO_UNIFORM_FORMAT_VEC2I, fullName , 1, variable.size, variable.padded_size });
-            break;
-        case 3:
-            result.members.push_back({ CO_UNIFORM_FORMAT_VEC3I, fullName , 1, variable.size, variable.padded_size });
-            break;
-        case 4:
-            result.members.push_back({ CO_UNIFORM_FORMAT_VEC4I, fullName , 1, variable.size, variable.padded_size });
-            break;
-        default:
-            assert(false);
-        }
-        break;
-    case MatrixFlags:
-        if (traits.numeric.matrix.column_count == 4 && traits.numeric.matrix.row_count == 4)
-        {
-            result.members.push_back({ CO_UNIFORM_FORMAT_MAT44F, fullName , 1, variable.size, variable.padded_size });
-        }
-        else if (traits.numeric.matrix.column_count == 3 && traits.numeric.matrix.row_count == 3)
-        {
-            result.members.push_back({ CO_UNIFORM_FORMAT_MAT33F, fullName , 1, variable.size, variable.padded_size });
-        }
-        else
-        {
-            assert(false);
-        }
-        break;
-    case StructFlags:
+        return nullptr;
+    }
+    auto length = std::strlen(src);
+    if (length == 0)
     {
-        for (const auto& member : std::span<SpvReflectBlockVariable>{ variable.members, variable.member_count })
-        {
-            insertUniformBlockBindingRecursive(member, fullName + ".", result);
-        }
-
-        break;
+        return nullptr;
     }
-    default:
+    char* copy = new char[length + 1];
+    std::strcpy(copy, src);
 
-        assert(false);
-    }
+    return copy;
 }
 
 
-Coral::UniformBlockDefinition
-createUniformBlockBinding(const SpvReflectDescriptorBinding& binding)
+CoScalarType
+toScalarType(const SpvReflectTypeDescription& desc)
 {
-    Coral::UniformBlockDefinition result;
-    assert(binding.descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
-    assert(binding.type_description->type_flags & SPV_REFLECT_TYPE_FLAG_STRUCT);
-    for (const auto& member : std::span{ binding.block.members, binding.block.member_count })
+    auto size = desc.traits.numeric.scalar.width / 8;
+    if (desc.type_flags & SPV_REFLECT_TYPE_FLAG_FLOAT)
     {
-        insertUniformBlockBindingRecursive(member, "", result);
+        switch (size)
+        {
+            case 4:  return CO_SCALAR_TYPE_FLOAT32;
+            case 8:  return CO_SCALAR_TYPE_FLOAT64;
+            default: assert(false);
+        }
+    }
+    if (desc.type_flags & SPV_REFLECT_TYPE_FLAG_INT)
+    {
+        if (desc.traits.numeric.scalar.signedness == 1)
+        {
+            switch (size)
+            {
+                case 1:  return CO_SCALAR_TYPE_INT8;
+                case 2:  return CO_SCALAR_TYPE_INT16;
+                case 4:  return CO_SCALAR_TYPE_INT32;
+                case 8:  return CO_SCALAR_TYPE_INT64;
+                default: assert(false);
+            }
+        }
+        else
+        {
+            switch (size)
+            {
+                case 1:  return CO_SCALAR_TYPE_UINT8;
+                case 2:  return CO_SCALAR_TYPE_UINT16;
+                case 4:  return CO_SCALAR_TYPE_UINT32;
+                case 8:  return CO_SCALAR_TYPE_UINT64;
+                default: assert(false);
+            }
+        }
+    }
+    // TODO Parse bool
+    return CO_SCALAR_TYPE_INT32;
+}
+
+
+bool
+reflect(const SpvReflectBlockVariable& variable, CoStructMemberInfo& member)
+{
+    member.pName     = copy(variable.name);
+    member.offset    = variable.offset;
+    member.stride    = variable.padded_size;
+    member.count     = 1;
+    member.typeFlags = CO_STRUCT_MEMBER_TYPE_FLAG_NONE_BIT;
+    auto& traits     = variable.type_description->traits;
+
+    if (SPV_REFLECT_TYPE_FLAG_REF & variable.type_description->type_flags)
+    {
+        member.typeFlags |= CO_STRUCT_MEMBER_TYPE_FLAG_POINTER_BIT;
+    }
+    if (SPV_REFLECT_TYPE_FLAG_STRUCT & variable.type_description->type_flags)
+    {
+        member.type                  = CO_STRUCT_MEMBER_TYPE_STRUCT;
+        member.structure.memberCount = variable.member_count;
+        auto members                 = new CoStructMemberInfo[member.structure.memberCount];
+        member.structure.pMembers    = members;
+
+        for (size_t i = 0; i < member.structure.memberCount; ++i)
+        {
+            if (!reflect(variable.members[i], members[i]))
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+    if (SPV_REFLECT_TYPE_FLAG_MATRIX & variable.type_description->type_flags)
+    {
+        member.type               = CO_STRUCT_MEMBER_TYPE_MATRIX;
+        member.matrix.rowCount    = traits.numeric.matrix.row_count;
+        member.matrix.columnCount = traits.numeric.matrix.column_count;
+        member.matrix.stride      = traits.numeric.matrix.stride;
+        auto elementCount         = member.matrix.rowCount * member.matrix.columnCount;
+        member.matrix.dataType    = ::toScalarType(*variable.type_description);
+        member.matrix.layout      = (variable.decoration_flags & SPV_REFLECT_DECORATION_ROW_MAJOR) ? CO_MATRIX_LAYOUT_ROW_MAJOR 
+                                                                                                   : CO_MATRIX_LAYOUT_COLUMN_MAJOR;
+        return true;
     }
 
-    return result;
+    if (SPV_REFLECT_TYPE_FLAG_VECTOR & variable.type_description->type_flags)
+    {
+        member.type                  = CO_STRUCT_MEMBER_TYPE_VECTOR;
+        member.vector.componentCount = traits.numeric.vector.component_count;
+        member.vector.dataType       = ::toScalarType(*variable.type_description);
+        return true;
+    }
+
+    if (SPV_REFLECT_TYPE_FLAG_BOOL & variable.type_description->type_flags)
+    {
+        member.type            = CO_STRUCT_MEMBER_TYPE_SCALAR;
+        member.scalar.dataType = CO_SCALAR_TYPE_BOOL;
+        return true;
+    }
+
+    if (SPV_REFLECT_TYPE_FLAG_INT & variable.type_description->type_flags)
+    {
+        member.type            = CO_STRUCT_MEMBER_TYPE_SCALAR;
+        member.scalar.dataType = ::toScalarType(*variable.type_description);
+        return true;
+    }
+
+    if (SPV_REFLECT_TYPE_FLAG_FLOAT & variable.type_description->type_flags)
+    {
+        member.type            = CO_STRUCT_MEMBER_TYPE_SCALAR;
+        member.scalar.dataType = ::toScalarType(*variable.type_description);
+        return true;
+    }
+
+    return false;
+}
+
+
+bool
+reflect(const SpvReflectBlockVariable& block, CoBufferInfo& buffer)
+{
+    return reflect(block, buffer.structure);
+}
+
+
+bool
+reflect(const SpvReflectDescriptorBinding& binding, CoDescriptorInfo& info)
+{
+    info.binding = binding.binding;
+    info.pName   = copy(binding.name);
+    switch (binding.descriptor_type)
+    {
+        case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            info.type = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+            return reflect(binding.block, info.buffer);
+        case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            info.type = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            return reflect(binding.block, info.buffer);
+        case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            info.type  = CO_DESCRIPTOR_TYPE_IMAGE;
+            return true;
+        case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+            info.type  = CO_DESCRIPTOR_TYPE_SAMPLER;
+            return true;
+        case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            info.type  = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+            return true;
+      
+        default:
+            assert(false);
+    }
+
+    std::unreachable();
+}
+
+
+bool
+reflect(const SpvReflectInterfaceVariable& variable, CoAttributeBindingInfo& info)
+{
+    auto format = convert(variable.format);
+    if (!format)
+    {
+        // TODO Log unsupported input format
+        return false;
+    }
+    
+    info.format   = *format;
+    info.location = variable.location;
+    info.pName    = copy(variable.name);
+    return true;
 }
 
 } // namespace
@@ -153,20 +343,22 @@ ShaderModuleImpl::~ShaderModuleImpl()
 std::optional<Coral::ShaderModule::CreateError>
 ShaderModuleImpl::init(const ShaderModule::CreateConfig& config)
 {
-    mName        = config.name;
+    mName        = config.pName ? config.pName : "";
     mShaderStage = config.stage;
-    mEntryPoint  = config.entryPoint;
+    mEntryPoint  = config.pEntryPoint ?  config.pEntryPoint : "";
+
+    std::span<const uint32_t> spirvCode(reinterpret_cast<const uint32_t*>(config.pSource), config.sourceCount / sizeof(uint32_t));
 
     VkShaderModuleCreateInfo createInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-    createInfo.pCode    = (uint32_t*)config.source.data();
-    createInfo.codeSize = config.source.size();
+    createInfo.pCode    = spirvCode.data();
+    createInfo.codeSize = config.sourceCount;
 
     if (vkCreateShaderModule(context().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
     {
         return ShaderModule::CreateError::INTERNAL_ERROR;
     }
 
-    if (!reflect(config.source))
+    if (!reflect(spirvCode))
     {
         return ShaderModule::CreateError::INTERNAL_ERROR;
     }
@@ -176,7 +368,7 @@ ShaderModuleImpl::init(const ShaderModule::CreateConfig& config)
 
 
 bool
-ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
+ShaderModuleImpl::reflect(std::span<const uint32_t> spirvCode)
 {
     SpvReflectShaderModule module{};
 
@@ -200,39 +392,22 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
         spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
     }
 
-    if (sets.size() > 1 || sets.size() == 1 && sets.front()->set !=  0)
+    if (!(sets.size() == 1 && sets.front()->set == 0))
     {
         return false;
     }
 
-    for (auto set : sets)
-    {
-        for (auto binding : std::span{ set->bindings, set->binding_count })
-        {    
-            auto& descriptorBinding   = mDescriptorLayout.emplace_back();
-            descriptorBinding.binding = binding->binding;
+    auto set = sets.front();
+    mDescriptorLayout.descriptorInfosCount = set->binding_count;
+    auto descriptorInfos                   = mDescriptorLayout.descriptorInfosCount ? new CoDescriptorInfo[mDescriptorLayout.descriptorInfosCount] : nullptr;
+    mDescriptorLayout.pDescriptorInfos     = descriptorInfos;
 
-            switch (binding->descriptor_type)
-            {
-                case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                    descriptorBinding.name       = binding->type_description->type_name;
-                    descriptorBinding.definition = createUniformBlockBinding(*binding);
-                    break;
-                case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-                    descriptorBinding.name       = binding->name;
-                    descriptorBinding.definition = TextureDefinition{};
-                    break;
-                case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
-                    descriptorBinding.name       = binding->name;
-                    descriptorBinding.definition = SamplerDefinition{};
-                    break;
-                case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-                    descriptorBinding.name       = binding->name;
-                    descriptorBinding.definition = Coral::CombinedTextureSamplerDefinition{};
-                    break;
-                default:
-                    assert(false);
-            }
+    for (auto [a, b] : std::views::zip(std::span(set->bindings, set->binding_count),
+                                       std::span(descriptorInfos, mDescriptorLayout.descriptorInfosCount)))
+    {
+        if (!::reflect(*a, b))
+        {
+            return false;
         }
     }
 
@@ -244,24 +419,24 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
         spvReflectEnumerateInputVariables(&module, &count, inputVariables.data());
     }
 
-    for (auto variable : inputVariables)
+    std::erase_if(inputVariables, [](const SpvReflectInterfaceVariable* v) 
+    { 
+        return v->built_in != -1;
+    });
+
+    mAttributeLayout.inputAttributeBindingInfoCount = static_cast<uint32_t>(inputVariables.size());
+    auto inputAttributeBindingInfos                 = mAttributeLayout.inputAttributeBindingInfoCount ? new CoAttributeBindingInfo[mAttributeLayout.inputAttributeBindingInfoCount] : nullptr;
+    mAttributeLayout.pInputAttributeBindingInfos    = inputAttributeBindingInfos;
+
+    for (auto [a, b] : std::views::zip(inputVariables,
+                                       std::span(inputAttributeBindingInfos,
+                                                 mAttributeLayout.inputAttributeBindingInfoCount)))
     {
-        auto format = convert(variable->format);
-        if (!format)
+        if (!::reflect(*a, b))
         {
-            // TODO Log unsupported input format
-            assert(false);
             return false;
         }
-
-        auto& description    = mInputAttributeLayout.emplace_back();
-        description.location = variable->location;
-        description.name     = variable->name;
-        description.format   = *format;
     }
-
-    std::sort(mInputAttributeLayout.begin(), mInputAttributeLayout.end(), 
-              [](const auto& lhs, const auto& rhs) { return lhs.location < rhs.location; });
 
     std::vector<SpvReflectInterfaceVariable*> outputVariables;
     {
@@ -270,26 +445,17 @@ ShaderModuleImpl::reflect(std::span<const std::byte> spirvCode)
         outputVariables.resize(count);
         spvReflectEnumerateOutputVariables(&module, &count, outputVariables.data());
     }
+    mAttributeLayout.outputAttributeBindingInfoCount = static_cast<uint32_t>(outputVariables.size());
+    auto outputAttributeBindingInfos                 = mAttributeLayout.outputAttributeBindingInfoCount ? new CoAttributeBindingInfo[mAttributeLayout.outputAttributeBindingInfoCount] : nullptr;
+    mAttributeLayout.pOutputAttributeBindingInfos    = outputAttributeBindingInfos;
 
-    for (auto variable : outputVariables)
+    for (auto [a, b] : std::views::zip(inputVariables,
+                                       std::span(outputAttributeBindingInfos, mAttributeLayout.outputAttributeBindingInfoCount)))
     {
-        if (variable->format == SPV_REFLECT_FORMAT_UNDEFINED)
+        if (!::reflect(*a, b))
         {
-            continue;
-        }
-
-        auto format = convert(variable->format);
-        if (!format)
-        {
-            // TODO Log unsupported format
-            assert(false);
             return false;
         }
-
-        auto& description    = mOutputAttributeLayout.emplace_back();
-        description.location = variable->location;
-        description.name     = variable->name ? variable->name : "";
-        description.format   = *format;
     }
 
     return true;
@@ -317,29 +483,22 @@ ShaderModuleImpl::entryPoint() const
 }
 
 
-const Coral::AttributeLayout&
-ShaderModuleImpl::inputAttributeLayout() const
+VkShaderModule
+ShaderModuleImpl::getVkShaderModule()
 {
-    return mInputAttributeLayout;
+    return mShaderModule;
 }
 
 
-const Coral::AttributeLayout&
-ShaderModuleImpl::outputAttributeLayout() const
-{
-    return mOutputAttributeLayout;
-}
-
-
-const Coral::DescriptorLayout&
+const CoDescriptorLayout&
 ShaderModuleImpl::descriptorLayout() const
 {
     return mDescriptorLayout;
 }
 
 
-VkShaderModule
-ShaderModuleImpl::getVkShaderModule()
+const CoAttributeLayout&
+ShaderModuleImpl::attributeLayout() const
 {
-    return mShaderModule;
+    return mAttributeLayout;
 }

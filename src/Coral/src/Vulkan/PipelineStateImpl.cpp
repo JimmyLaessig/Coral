@@ -5,9 +5,7 @@
 #include "ShaderModuleImpl.hpp"
 #include "VulkanFormat.hpp"
 
-#include <array>
 #include <cassert>
-#include <unordered_set>
 #include <vector>
 
 using namespace Coral::Vulkan;
@@ -88,16 +86,12 @@ convert(CoTopology topology)
 {
     switch (topology)
     {
-        case CO_TOPOLOGY_POINT_LIST:
-            return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-        case CO_TOPOLOGY_LINE_LIST:
-            return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
-        case CO_TOPOLOGY_TRIANGLE_LIST:
-            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        default:
-            assert(false);
-            return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        case CO_TOPOLOGY_POINT_LIST:    return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+        case CO_TOPOLOGY_LINE_LIST:     return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+        case CO_TOPOLOGY_TRIANGLE_LIST: return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     }
+
+    std::unreachable();
 }
 
 
@@ -108,21 +102,20 @@ toVkDescriptorType()
     static_assert(false);
 }
 
-template<>
 VkDescriptorType
-toVkDescriptorType<Coral::SamplerDefinition>() { return VK_DESCRIPTOR_TYPE_SAMPLER; }
+convert(CoDescriptorType type)
+{
+    switch (type)
+    {
+        case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        case CO_DESCRIPTOR_TYPE_IMAGE:                  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        case CO_DESCRIPTOR_TYPE_SAMPLER:                return VK_DESCRIPTOR_TYPE_SAMPLER;
+        case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    }
 
-template<>
-VkDescriptorType
-toVkDescriptorType<Coral::TextureDefinition>() { return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE; }
-
-template<>
-VkDescriptorType
-toVkDescriptorType<Coral::CombinedTextureSamplerDefinition>() { return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; }
-
-template<>
-VkDescriptorType
-toVkDescriptorType<Coral::UniformBlockDefinition>() { return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER; }
+    std::unreachable();
+}
 
 } // namespace
 
@@ -250,30 +243,13 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
     colorBlendCreateInfo.logicOp         = VK_LOGIC_OP_COPY;
 
     //-------------------------------------------------------------
-    // Dynamic State
-    //-------------------------------------------------------------
-
-    // The coral API allows to set the viewport and line width via command buffer
-    std::array dynamicStates = {
-
-        VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE,
-        VK_DYNAMIC_STATE_VIEWPORT,
-        VK_DYNAMIC_STATE_SCISSOR
-        /*VK_DYNAMIC_STATE_LINE_WIDTH*/
-    };
-
-    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    dynamicStateCreateInfo.pDynamicStates    = dynamicStates.data();
-    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
-
-    //-------------------------------------------------------------
     // Vertex Input State
     //-------------------------------------------------------------
 
     std::vector<VkVertexInputBindingDescription> bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-
-    for (const auto& info : vertexShader->inputAttributeLayout())
+    auto& vertexShaderLayout = vertexShader->attributeLayout();
+    for (const auto& info : std::span(vertexShaderLayout.pInputAttributeBindingInfos, vertexShaderLayout.inputAttributeBindingInfoCount))
     {
         auto& bindingDescription     = bindingDescriptions.emplace_back();
         bindingDescription.binding   = info.location;
@@ -292,6 +268,26 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
     vertexInputCreateInfo.pVertexBindingDescriptions      = bindingDescriptions.data();
     vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
     vertexInputCreateInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
+
+    //-------------------------------------------------------------
+    // Dynamic State
+    //-------------------------------------------------------------
+
+    // The coral API allows to set the viewport and line width via command buffer
+    std::vector dynamicStates = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR
+        /*VK_DYNAMIC_STATE_LINE_WIDTH*/
+    };
+
+    if (!bindingDescriptions.empty())
+    {
+        dynamicStates.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE);
+    }
+
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
+    dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
+    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
 
     //-------------------------------------------------------------
     // Input Assembly State
@@ -331,9 +327,10 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
     std::unordered_map<uint32_t, size_t> visited;
     for (auto shader : config.shaderModules)
     {
-        auto stage = ::convert(shader->shaderStage());
+        auto stage   = ::convert(shader->shaderStage());
+        auto& layout = shader->descriptorLayout();
 
-        for (const auto& info : shader->descriptorLayout())
+        for (const auto& info : std::span(layout.pDescriptorInfos, layout.descriptorInfosCount))
         {
             if (!visited.emplace(info.binding, bindings.size()).second)
             {
@@ -345,7 +342,7 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
             binding.binding         = info.binding;
             binding.descriptorCount = 1;
             binding.stageFlags      = stage;
-            binding.descriptorType  = std::visit([](auto a) { return toVkDescriptorType<decltype(a)>(); }, info.definition);
+            binding.descriptorType  = ::convert(info.type);
         }
     }
 
@@ -420,4 +417,3 @@ PipelineStateImpl::getVkPipelineLayout()
 {
     return mPipelineLayout;
 }
-

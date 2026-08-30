@@ -57,6 +57,12 @@ public:
      */
     virtual bool unmap() = 0;
 
+    /*!
+     * \brief Get the GPU address of the buffer
+     * \return Return the GPU address of the buffer
+     */
+    virtual uint64_t address() const = 0;
+
 }; // class Buffer
 
 } // namespace Coral

@@ -116,22 +116,6 @@ typedef enum
     CO_ATTRIBUTE_FORMAT_VEC4F  = 7
 } CoAttributeFormat;
 
-typedef enum
-{
-    CO_UNIFORM_FORMAT_BOOL   = 0,
-    CO_UNIFORM_FORMAT_INT32  = 1,
-    CO_UNIFORM_FORMAT_FLOAT  = 2,
-    CO_UNIFORM_FORMAT_VEC2I  = 3,
-    CO_UNIFORM_FORMAT_VEC3I  = 4,
-    CO_UNIFORM_FORMAT_VEC4I  = 5,
-    CO_UNIFORM_FORMAT_VEC2F  = 6,
-    CO_UNIFORM_FORMAT_VEC3F  = 7,
-    CO_UNIFORM_FORMAT_VEC4F  = 8,
-    CO_UNIFORM_FORMAT_MAT33F = 9,
-    CO_UNIFORM_FORMAT_MAT44F = 10,
-} CoUniformFormat;
-
-
 /// Get the size in bytes of the pixel format
 uint32_t coPixelFormatGetSizeInBytes(CoPixelFormat format);
 
@@ -142,7 +126,7 @@ uint32_t coAttributeFormatGetSizeInBytes(CoAttributeFormat format);
 /**
  * Returns the packed size of the uniform format without padding or alignment.
  */
-uint32_t coUniformFormatGetSizeInBytes(CoUniformFormat format);
+//uint32_t coUniformFormatGetSizeInBytes(CoUniformFormat format);
 
 /// Get the size in bytes of the index format
 uint32_t coIndexFormatGetSizeInBytes(CoIndexFormat format);
@@ -153,5 +137,45 @@ typedef enum
     CO_CLEAR_OP_LOAD      = 1,
     CO_CLEAR_OP_DONT_CARE = 2,
 } CoClearOp;
+
+/*!
+ * Enum specifying the type of a buffer
+ */
+typedef enum
+{
+    /*!
+     * The buffer is used as a vertex buffer
+     */
+    CO_BUFFER_TYPE_VERTEX = 0,
+
+    /*!
+     * The buffer is used as an index buffer
+     */
+    CO_BUFFER_TYPE_INDEX = 1,
+    /*!
+     * The buffer is used as uniform buffer
+     */
+    CO_BUFFER_TYPE_UNIFORM = 2,
+    /*!
+     * The buffer is used as storage buffer
+     */
+    CO_BUFFER_TYPE_STORAGE = 3,
+    /*!
+     * The buffer is used as indirect buffer
+     */
+    CO_BUFFER_TYPE_INDIRECT = 4,
+} CoBufferType;
+
+/*!
+ * Enum specifying the type of a descriptor
+ */
+typedef enum
+{
+    CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER         = 0,
+    CO_DESCRIPTOR_TYPE_STORAGE_BUFFER         = 1,
+    CO_DESCRIPTOR_TYPE_IMAGE                  = 2,
+    CO_DESCRIPTOR_TYPE_SAMPLER                = 3,
+    CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = 4,
+} CoDescriptorType;
 
 #endif // !CORAL_TYPES_H

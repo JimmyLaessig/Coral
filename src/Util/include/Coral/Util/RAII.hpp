@@ -31,7 +31,6 @@ inline auto destroyBuffer = [](CoBuffer buffer)
 
 using BufferPtr = std::unique_ptr<CoBuffer_T, decltype(destroyBuffer)>;
 
-
 inline auto destroyCommandBuffer = [](CoCommandBuffer buffer)
 {
     coDestroyCommandBuffer(buffer);
