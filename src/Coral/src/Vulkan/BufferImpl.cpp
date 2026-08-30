@@ -41,7 +41,7 @@ BufferImpl::init(const Coral::Buffer::CreateConfig& config)
     {
         allocCreateInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
     }
-
+    
     VmaAllocationInfo allocInfo{};
     switch (vmaCreateBuffer(context().getVmaAllocator(), &createInfo, &allocCreateInfo, &mBuffer, &mAllocation, &allocInfo))
     {
@@ -113,4 +113,13 @@ BufferImpl::unmap()
     vmaUnmapMemory(context().getVmaAllocator(), mAllocation);
 
     return true;
+}
+
+
+uint64_t
+BufferImpl::address() const
+{
+    VkBufferDeviceAddressInfo addressInfo{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+    addressInfo.buffer = mBuffer;
+    return vkGetBufferDeviceAddress(context().getVkDevice(), &addressInfo);
 }

@@ -81,27 +81,27 @@ coAttributeFormatGetSizeInBytes(CoAttributeFormat format)
 }
 
 
-uint32_t
-coUniformFormatGetSizeInBytes(CoUniformFormat format)
-{
-    //    switch (format)
-    //{
-    //case UniformFormat::BOOL:    return 4;
-    //case UniformFormat::INT32:    return 4;
-    //case UniformFormat::FLOAT:    return 4;
-    //case UniformFormat::VEC2F:    return 8;
-    //case UniformFormat::VEC3F:    return 12;
-    //case UniformFormat::VEC4F:    return 16;
-    //case UniformFormat::VEC2I:    return 8;
-    //case UniformFormat::VEC3I:    return 12;
-    //case UniformFormat::VEC4I:    return 16;
-    //case UniformFormat::MAT33F:    return 36;
-    //case UniformFormat::MAT44F:    return 64;
-    //};
-
-    //std::unreachable();
-    return 0;
-}
+//uint32_t
+//coUniformFormatGetSizeInBytes(CoUniformFormat format)
+//{
+//    //    switch (format)
+//    //{
+//    //case UniformFormat::BOOL:    return 4;
+//    //case UniformFormat::INT32:    return 4;
+//    //case UniformFormat::FLOAT:    return 4;
+//    //case UniformFormat::VEC2F:    return 8;
+//    //case UniformFormat::VEC3F:    return 12;
+//    //case UniformFormat::VEC4F:    return 16;
+//    //case UniformFormat::VEC2I:    return 8;
+//    //case UniformFormat::VEC3I:    return 12;
+//    //case UniformFormat::VEC4I:    return 16;
+//    //case UniformFormat::MAT33F:    return 36;
+//    //case UniformFormat::MAT44F:    return 64;
+//    //};
+//
+//    //std::unreachable();
+//    return 0;
+//}
 
 
 uint32_t

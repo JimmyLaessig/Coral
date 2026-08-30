@@ -9,7 +9,7 @@ using namespace Coral;
 BufferPool::BufferPool(Context& context, CoBufferType bufferType, bool cpuVisible)
     : mContext(context)
     , mBufferType(bufferType)
-    , mCpuVisible(mCpuVisible)
+    , mCpuVisible(cpuVisible)
 {
 }
 

@@ -32,6 +32,8 @@ public:
 
     bool unmap() override;
 
+    uint64_t address() const override;
+
     VkBuffer getVkBuffer();
 
 private:

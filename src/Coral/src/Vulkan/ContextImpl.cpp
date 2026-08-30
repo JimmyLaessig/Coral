@@ -102,11 +102,15 @@ ContextImpl::init(const Context::CreateConfig& config)
 
     // Vulkan 1.0 features
     VkPhysicalDeviceFeatures features10{};
-    features10.fillModeNonSolid = VK_TRUE;
-
+    features10.fillModeNonSolid  = VK_TRUE;
+    features10.shaderInt16       = VK_TRUE;
+    features10.shaderInt64       = VK_TRUE;
+    features10.multiDrawIndirect = VK_TRUE;
+   
     // Vulkan 1.1 features
     VkPhysicalDeviceVulkan11Features features11{};
-
+    features11.shaderDrawParameters = VK_TRUE;
+    features11.storageBuffer16BitAccess = VK_TRUE;
     // Vulkan 1.2 features
     VkPhysicalDeviceVulkan12Features features12{};
     features12.bufferDeviceAddress = VK_TRUE;
@@ -116,7 +120,7 @@ ContextImpl::init(const Context::CreateConfig& config)
     VkPhysicalDeviceVulkan13Features features13{};
     features13.dynamicRendering = VK_TRUE;
     features13.synchronization2 = VK_TRUE;
-
+    
     // use vkbootstrap to select a GPU. 
     // We want a GPU that can write to the surface and supports Vulkan 1.3 with the correct features
     vkb::PhysicalDeviceSelector selector{ instance.value()};
@@ -129,6 +133,7 @@ ContextImpl::init(const Context::CreateConfig& config)
         .defer_surface_initialization()
         .add_required_extension(VK_EXT_NESTED_COMMAND_BUFFER_EXTENSION_NAME)
         .add_required_extension(VK_KHR_PUSH_DESCRIPTOR_EXTENSION_NAME)
+        .add_required_extension(VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME)
         .select();
 
     if (!physicalDevice)
@@ -252,11 +257,10 @@ ContextImpl::init(const Context::CreateConfig& config)
     allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
 
     VmaVulkanFunctions functions{};
-    functions.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
-    functions.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
+    functions.vkGetInstanceProcAddr      = vkGetInstanceProcAddr;
+    functions.vkGetDeviceProcAddr        = vkGetDeviceProcAddr;
     allocatorCreateInfo.pVulkanFunctions = &functions;
-
-    //allocatorCreateInfo.flags                = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
+    allocatorCreateInfo.flags            = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     // Allocate 64 MiB sized memory block chunks. If requested, the allocator 
     // will create larger memory blocks to ensure continuous memory per buffer.
     allocatorCreateInfo.preferredLargeHeapBlockSize = 1024 * 1024 * 64;

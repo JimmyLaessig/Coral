@@ -144,26 +144,44 @@ coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* 
 
 
 CoResult
-coCommandBufferBindUniformBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t binding)
+coCommandBufferBindDescriptor(CoCommandBuffer commandBuffer, const CoDescriptor* pDescriptor, uint32_t binding)
 {
-    commandBuffer->impl->cmdBindDescriptor(buffer->impl, binding);
+    auto impl = commandBuffer->impl;
+
+    switch (pDescriptor->type)
+    {
+        case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+        case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            impl->cmdBindDescriptor(pDescriptor->buffer->impl, binding);
+            return CO_SUCCESS;
+        case CO_DESCRIPTOR_TYPE_IMAGE:
+            impl->cmdBindDescriptor(pDescriptor->image->impl, binding);
+            return CO_SUCCESS;
+        case CO_DESCRIPTOR_TYPE_SAMPLER:
+            impl->cmdBindDescriptor(pDescriptor->sampler->impl, binding);
+            return CO_SUCCESS;
+        case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            impl->cmdBindDescriptor(pDescriptor->combinedImageSampler.image->impl, pDescriptor->combinedImageSampler.sampler->impl, binding);
+            return CO_SUCCESS;
+        default:
+            return CO_FAILED;
+    }
+
     return CO_SUCCESS;
 }
 
 
 CoResult
-coCommandBufferBindImage(CoCommandBuffer commandBuffer, CoImage image, uint32_t binding)
+coCommandBufferDraw(CoCommandBuffer commandBuffer, const CoDrawInfo* info)
 {
-    commandBuffer->impl->cmdBindDescriptor(image->impl, binding);
-    return CO_SUCCESS;
+    return commandBuffer->impl->cmdDraw(*info) ? CO_SUCCESS : CO_FAILED;
 }
 
 
 CoResult
-coCommandBufferBindSampler(CoCommandBuffer commandBuffer, CoSampler sampler, uint32_t binding)
+coCommandBufferDrawIndirect(CoCommandBuffer commandBuffer, CoBuffer buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 {
-    commandBuffer->impl->cmdBindDescriptor(sampler->impl, binding);
-    return CO_SUCCESS;
+    return commandBuffer->impl->cmdDrawIndirect(buffer->impl, offset, drawCount, stride) ? CO_SUCCESS : CO_FAILED;
 }
 
 
@@ -171,6 +189,13 @@ CoResult
 coCommandBufferDrawIndexed(CoCommandBuffer commandBuffer, const CoDrawIndexedInfo* info)
 {
     return commandBuffer->impl->cmdDrawIndexed(*info) ? CO_SUCCESS : CO_FAILED;
+}
+
+
+CoResult
+coCommandBufferDrawIndexedIndirect(CoCommandBuffer commandBuffer, CoBuffer buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
+{
+    return commandBuffer->impl->cmdDrawIndexedIndirect(buffer->impl, offset, drawCount, stride) ? CO_SUCCESS : CO_FAILED;
 }
 
 

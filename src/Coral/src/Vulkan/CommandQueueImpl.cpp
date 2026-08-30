@@ -6,6 +6,7 @@
 #include "SwapchainImpl.hpp"
 
 #include <future>
+#include <unordered_set>
 
 
 using namespace Coral::Vulkan;
@@ -33,15 +34,14 @@ CommandQueueImpl::~CommandQueueImpl()
 std::expected<Coral::CommandBufferPtr, Coral::CommandBuffer::CreateError>
 CommandQueueImpl::createCommandBuffer(const Coral::CommandBuffer::CreateConfig& config)
 {
-    auto cb = new Coral::Vulkan::CommandBufferImpl(*this);
+    auto commandBuffer = std::make_shared<Coral::Vulkan::CommandBufferImpl>(*this);
 
-    if (!cb->init(config))
+    if (!commandBuffer->init(config))
     {
-        delete cb;
         return std::unexpected(Coral::CommandBuffer::CreateError::INTERNAL_ERROR);
     }
 
-    return Coral::CommandBufferPtr(cb);
+    return commandBuffer;
 }
 
 

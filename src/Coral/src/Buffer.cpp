@@ -60,3 +60,10 @@ coBufferUnMap(CoBuffer buffer)
 {
     return buffer->impl->unmap() ? CO_SUCCESS : CO_FAILED;
 }
+
+
+uint64_t
+coBufferGetAddress(const CoBuffer buffer)
+{
+    return buffer->impl->address();
+}

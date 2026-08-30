@@ -9,154 +9,30 @@
 #include <string>
 
 #include <unordered_map>
-
+#include <variant>
 #include <cassert>
-
-template<CoUniformBufferLayout L>
-class Layout
-{
-};
-
-// Traits for std140 memory layout
-/**
- * std140 layout specs: https://registry.khronos.org/OpenGL/specs/gl/glspec45.core.pdf#page=159
- * 
- * 1. If the member is a scalar consuming N basic machine units, the base alignment is N.
- * 2. If the member is a two- or four-component vector with components consuming N basic machine units, the base 
- *    alignment is 2N or 4N, respectively
- * 3. If the member is a three-component vector with components consuming N basic machine units, the base alignment
- *    is 4N.
- * 4. If the member is an array of scalars or vectors, the base alignment and array stride are set to match the
- *    base alignment of a single array element, according to rules (1), (2), and (3), and rounded up to the base
- *    alignment of a vec4. The array may have padding at the end; the base offset of the member following the array
- *    is rounded up to the next multiple of the base alignment.
- * 5. If the member is a column-major matrix with C columns and R rows, the matrix is stored identically to an
- *    array of C column vectors with R components each, according to rule (4).
- * 6. If the member is an array of S column - major matrices with C columns and R rows, the matrix is stored
- *    identically to a row of S * C column vectors with R components each, according to rule(4).
- */
-template<>
-class Layout<CO_UNIFORM_BUFFER_LAYOUT_STD_140>
-{
-public:
-    // Get the memory alignment for the given format
-    static uint32_t alignmentInBytes(CoUniformFormat format)
-    {
-        // We consume 4 machine units (float32, int32)
-        constexpr uint32_t N = 4;
-
-        switch (format)
-        {
-            case CO_UNIFORM_FORMAT_BOOL:    return N;
-            case CO_UNIFORM_FORMAT_INT32:    return N;
-            case CO_UNIFORM_FORMAT_FLOAT:    return N;
-            case CO_UNIFORM_FORMAT_VEC2I:    return N * 2;
-            case CO_UNIFORM_FORMAT_VEC2F:    return N * 2;
-            case CO_UNIFORM_FORMAT_VEC3I:    return N * 4;
-            case CO_UNIFORM_FORMAT_VEC3F:    return N * 4;
-            case CO_UNIFORM_FORMAT_VEC4I:    return N * 4;
-            case CO_UNIFORM_FORMAT_VEC4F:    return N * 4;
-            case CO_UNIFORM_FORMAT_MAT33F:    return N * 4;
-            case CO_UNIFORM_FORMAT_MAT44F:    return N * 4;
-        }
-        assert(false);
-        return 0;
-    }
-
-    // Get the stride between elements in an array with the given format
-    static uint32_t strideInBytes(CoUniformFormat format)
-    {
-        // We consume 4 machine units (float32, int32)
-        constexpr uint32_t N = 4;
-
-        switch (format)
-        {
-            case CO_UNIFORM_FORMAT_BOOL:    return N;
-            case CO_UNIFORM_FORMAT_INT32:    return N;
-            case CO_UNIFORM_FORMAT_FLOAT:    return N;
-            case CO_UNIFORM_FORMAT_VEC2I:    return N * 2;
-            case CO_UNIFORM_FORMAT_VEC2F:    return N * 2;
-            case CO_UNIFORM_FORMAT_VEC3I:    return N * 4;
-            case CO_UNIFORM_FORMAT_VEC3F:    return N * 4;
-            case CO_UNIFORM_FORMAT_VEC4I:    return N * 4;
-            case CO_UNIFORM_FORMAT_VEC4F:    return N * 4;
-            case CO_UNIFORM_FORMAT_MAT33F:    return N * 12;
-            case CO_UNIFORM_FORMAT_MAT44F:    return N * 16;
-        }
-
-        assert(false);
-        return 0;
-    }
-};
-
-
-constexpr uint32_t
-nextMultipleOf(uint32_t n, uint32_t v)
-{
-    return ((v + n - 1) / n) * n;
-}
-
-
-struct MemberLayout
-{
-    // Name of the member
-    std::string name;
-    // Format of the member
-    CoUniformFormat format;
-    // Number of elements if the member is an array
-    uint32_t count;
-    // Distance in bytes between two consecutive array elements in the member
-    uint32_t stride;
-    // Offset to the start of the member in bytes
-    size_t offset{ 0 };
-};
-
-
-std::vector<MemberLayout>
-getMemberLayouts(const CoUniformBlockDefinition& definition)
-{
-    std::vector<MemberLayout> result;
-
-    size_t offset{ 0 };
-    for (size_t i = 0; i < definition.memberCount; ++i)
-    {
-        const auto& member = definition.pMembers[i];
-
-        auto alignment = Layout<CO_UNIFORM_BUFFER_LAYOUT_STD_140>::alignmentInBytes(member.type);
-        auto stride    = Layout<CO_UNIFORM_BUFFER_LAYOUT_STD_140>::strideInBytes(member.type);
-
-        offset = nextMultipleOf(alignment, offset);
-
-        result.push_back({ member.pName, member.type, member.count, stride, offset });
-
-        offset += stride * member.count;
-    }
-
-    return result;
-}
-
 
 namespace Coral
 {
 
+/*!
+ */
 template<typename Vec2F, typename Vec3F, typename Vec4F, typename Vec2I, typename Vec3I, typename Vec4I, typename Mat33F, typename Mat44F>
 class UniformBlockBuilder
 {
 public:
 
-    UniformBlockBuilder(const CoUniformBlockDefinition& definition)
-        : mMembers(getMemberLayouts(definition))
+    UniformBlockBuilder(const CoBufferInfo& info)
+        : mMembers(buildMemberInfos(info))
     {
-        uint32_t bufferSize{ 0 };
-
         if (mMembers.empty())
         {
             return;
         }
 
-        auto& last = mMembers.back();
-        bufferSize = last.offset + last.stride * last.count;
+        assert(info.structure.count > 0);
 
+        auto bufferSize = info.structure.stride * info.structure.count;
         mData.resize(bufferSize, std::byte(0));
 
         for (size_t i = 0; i < mMembers.size(); ++i)
@@ -165,99 +41,31 @@ public:
         }
     }
 
-    template<typename T>
-    constexpr static CoUniformFormat getUniformFormat()
-    {
-        if constexpr (std::same_as<T, float>)
-        {
-            return CO_UNIFORM_FORMAT_FLOAT;
-        }
-
-        if constexpr (std::same_as<T, Vec2F>)
-        {
-            return CO_UNIFORM_FORMAT_VEC2F;
-        }
-
-        if constexpr (std::same_as<T, Vec3F>)
-        {
-            return CO_UNIFORM_FORMAT_VEC3F;
-        }
-
-        if constexpr (std::same_as<T, Vec4F>)
-        {
-            return CO_UNIFORM_FORMAT_VEC4F;
-        }
-
-        if constexpr (std::same_as<T, int>)
-        {
-            return CO_UNIFORM_FORMAT_INT32;
-        }
-
-        if constexpr (std::same_as<T, Vec2I>)
-        {
-            return CO_UNIFORM_FORMAT_VEC2I;
-        }
-
-        if constexpr (std::same_as<T, Vec3I>)
-        {
-            return CO_UNIFORM_FORMAT_VEC3I;
-        }
-
-        if constexpr (std::same_as<T, Vec4I>)
-        {
-            return CO_UNIFORM_FORMAT_VEC4I;
-        }
-
-        if constexpr (std::same_as<T, Mat33F>)
-        {
-            return CO_UNIFORM_FORMAT_MAT33F;
-        }
-
-        if constexpr (std::same_as<T, Mat44F>)
-        {
-            return CO_UNIFORM_FORMAT_MAT44F;
-        }
-
-        if constexpr (std::same_as<T, bool>)
-        {
-            return CO_UNIFORM_FORMAT_BOOL;
-        }
-    }
-
     UniformBlockBuilder() = default;
 
-    //UniformBlockBuilder(const CoUniformBufferDefinition& definition);
-
-    /// Set the value at the given index
-    /*
+    /*!
+     * \brief Set the value at the given index 
      * Fails if the format of the member at the given index does not match the type.
      */
     template<typename T>
     bool set(size_t index, const T& value, uint32_t element = 0)
     {
-        return setValue(index, getUniformFormat<T>(), reinterpret_cast<const std::byte*>(&value), element);
+        return setValue(index, getTypeInfo<T>(), reinterpret_cast<const std::byte*>(&value), element);
     }
-
-    /// Set the value at the given index
-    /*
+ 
+    /*!
+     * \brief Set the value at the given index
      * Fails if the format of the member at the given index does not match the type.
      */
     template<typename T>
     bool set(std::string_view name, const T& value, uint32_t element = 0)
     {
-        return setValue(name, getUniformFormat<T>(), reinterpret_cast<const std::byte*>(&value), element);
+        return setValue(name, getTypeInfo<T>(), reinterpret_cast<const std::byte*>(&value), element);
     }
 
-    /// Set the int value with the given name
-    /*
-     * Fails if the format of the member at the given index is not CO_UNIFORM_FORMAT_INT32.
+    /*!
+     * Get the aligned uniform block data ready for uploading to the GPU
      */
-    bool set(size_t index, int value, uint32_t element = 0)
-    {
-        return setValue(index, CO_UNIFORM_FORMAT_INT32, reinterpret_cast<const std::byte*>(&value), element);
-    }
-
-    /// Get the aligned uniform block data
     const std::span<const std::byte> data() const
     {
         return mData;
@@ -265,7 +73,86 @@ public:
 
 private:
 
-    bool setValue(std::string_view name, CoUniformFormat type, const std::byte* value, uint32_t element)
+    using TypeInfo = std::variant<CoScalarInfo, CoVectorInfo, CoMatrixInfo>;
+
+    template<typename T>
+    constexpr static TypeInfo getTypeInfo();
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<float>()
+    {
+        return CoScalarInfo{ .dataType = CO_SCALAR_TYPE_FLOAT32 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<int>()
+    {
+        return CoScalarInfo{ .dataType = CO_SCALAR_TYPE_INT32 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Vec2F>()
+    {
+        return CoVectorInfo{ .dataType = CO_SCALAR_TYPE_FLOAT32, .componentCount = 2 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Vec3F>()
+    {
+        return CoVectorInfo{ .dataType = CO_SCALAR_TYPE_FLOAT32, .componentCount = 3 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Vec4F>()
+    {
+        return CoVectorInfo{ .dataType = CO_SCALAR_TYPE_FLOAT32, .componentCount = 4 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Vec2I>()
+    {
+        return CoVectorInfo{ .dataType = CO_SCALAR_TYPE_INT32, .componentCount = 2 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Vec3I>()
+    {
+        return CoVectorInfo{ .dataType = CO_SCALAR_TYPE_INT32, .componentCount = 3 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Vec4I>()
+    {
+        return CoVectorInfo{ .dataType = CO_SCALAR_TYPE_INT32, .componentCount = 4 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Mat33F>()
+    {
+        return CoMatrixInfo{ .dataType = CO_SCALAR_TYPE_INT32, .rowCount = 3, .columnCount = 3 };
+    }
+
+    template<>
+    constexpr static TypeInfo getTypeInfo<Mat44F>()
+    {
+        return CoMatrixInfo{ .dataType = CO_SCALAR_TYPE_INT32, .rowCount = 4, .columnCount = 4 };
+    }
+
+    struct MemberInfo
+    {
+        // Name of the member
+        std::string name;
+        // Type of the member
+        TypeInfo type;
+        // Number of elements if the member is an array
+        uint32_t count;
+        // Distance in bytes between two consecutive array elements in the member
+        uint32_t stride;
+        // Offset to the start of the member in bytes
+        size_t offset{ 0 };
+    };
+
+    bool setValue(std::string_view name, const TypeInfo& info, const std::byte* value, uint32_t element)
     {
         auto iter = mNameToIndexLookUp.find(std::string(name));
         if (iter == mNameToIndexLookUp.end())
@@ -273,51 +160,80 @@ private:
             return false;
         }
 
-        return setValue(iter->second, type, value, element);
+        return setValue(iter->second, info, value, element);
     }
 
-    bool setValue(size_t index, CoUniformFormat format, const std::byte* value, uint32_t element)
+    bool setValue(size_t index, const TypeInfo& info, const std::byte* value, uint32_t element)
     {
         if (mMembers.size() <= index ||
-            mMembers[index].format != format ||
+            //mMembers[index].type != info ||
             mMembers[index].count <= element)
         {
             return false;
         }
 
-        return setValueUnchecked(index, format, value, element);
+        return setValueUnchecked(index, value, element);
     }
 
-    bool setValueUnchecked(size_t index, CoUniformFormat format, const std::byte* value, uint32_t element)
+    bool setValueUnchecked(size_t index, const std::byte* value, uint32_t element)
     {
         auto& member = mMembers[index];
 
         auto data = mData.data() + member.offset + element * member.stride;
 
-        if (format == CO_UNIFORM_FORMAT_MAT33F)
+        if (auto matrix = std::get_if<CoMatrixInfo>(&member.type))
         {
-            auto* m = reinterpret_cast<const float*>(value);
-
-            std::array<float, 12> padded =
+            auto colSize = sizeof(float) * matrix->rowCount;
+            for (uint32_t i = 0; i < matrix->columnCount; ++i)
             {
-                m[0], m[1], m[2], 0.f,
-                m[3], m[4], m[5], 0.f,
-                m[6], m[7], m[8], 0.f,
-            };
-
-            std::memcpy(data, padded.data(), member.stride);
-
-            return true;
+                std::memcpy(data, value, colSize);
+                value += colSize;
+                data += matrix->stride;
+            }
         }
         else
         {
             std::memcpy(data, value, member.stride);
         }
-
+        
         return true;
     }
 
-    std::vector<MemberLayout> mMembers;
+    static inline void
+    addMember(const CoStructMemberInfo& member, const std::string& prefix, std::vector<MemberInfo>& result)
+    {
+        if (member.type == CO_STRUCT_MEMBER_TYPE_STRUCT)
+        {
+            for (size_t i = 0; i < member.structure.memberCount; ++i)
+            {
+                const auto& subMember = member.structure.pMembers[i];
+                addMember(subMember, prefix + member.pName + ".", result);
+            }
+        }
+        else
+        {
+            result.push_back({
+                .name = prefix + member.pName,
+                .type = member.type == CO_STRUCT_MEMBER_TYPE_SCALAR ? TypeInfo(member.scalar) :
+                        member.type == CO_STRUCT_MEMBER_TYPE_VECTOR ? TypeInfo(member.vector) :
+                                                                      TypeInfo(member.matrix),
+                .count = member.count,
+                .stride = member.stride,
+                .offset = member.offset });
+        }
+    }
+
+    static inline std::vector<MemberInfo>
+    buildMemberInfos(const CoBufferInfo& bufferInfo)
+    {
+        std::vector<MemberInfo> result;
+
+        addMember(bufferInfo.structure, "", result);
+
+        return result;
+    }
+
+    std::vector<MemberInfo> mMembers;
 
     std::unordered_map<std::string_view, uint32_t> mNameToIndexLookUp;
 

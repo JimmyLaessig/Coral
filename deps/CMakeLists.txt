@@ -5,6 +5,8 @@ file(
    EXPECTED_HASH SHA256=799143bb9c1fbd14dc9a513eaff03ee1a709c6ee16f32456b50443d66dd7affa
 )
 
+set(CPM_SOURCE_CACHE ${CMAKE_BINARY_DIR}/cpm/.cache)
+
 include(${CMAKE_BINARY_DIR}/cmake/get_cpm.cmake)
 
 include(catch2.cmake)

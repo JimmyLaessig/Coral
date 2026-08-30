@@ -17,6 +17,8 @@ public:
 
     ContextImpl& context();
 
+    const ContextImpl& context() const;
+
 private:
 
     ContextImpl& mContext;

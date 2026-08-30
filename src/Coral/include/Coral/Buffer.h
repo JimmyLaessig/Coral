@@ -4,30 +4,6 @@
 #include <Coral/Context.h>
 
 /*!
- * Enum specifying the type of the buffer
- */
-typedef enum
-{
-    /*!
-     * The buffer is used as a vertex buffer
-     */
-    CO_BUFFER_TYPE_VERTEX  = 0,
-
-    /*!
-     * The buffer is used as an index buffer
-     */
-    CO_BUFFER_TYPE_INDEX   = 1,
-    /*!
-     * The buffer is used as uniform buffer
-     */
-    CO_BUFFER_TYPE_UNIFORM = 2,
-    /*!
-     * The buffer is used as storage buffer
-     */
-    CO_BUFFER_TYPE_STORAGE = 3,
-} CoBufferType;
-
-/*!
  * Structure specifying the parameters of a newly created buffer object
  */
 typedef struct
@@ -109,5 +85,12 @@ CORAL_API CoResult coBufferMap(CoBuffer buffer, CoByte** pBytes);
  * \return Returns CO_SUCCESS if the buffer was mapped successfully, otherwise CO_FAILED.
  */
 CORAL_API CoResult coBufferUnMap(CoBuffer buffer);
+
+/*!
+ * \brief Get the GPU address of the buffer
+ * \param buffer Handle to a CoBuffer object
+ * \return Return the GPU address of the buffer
+ */
+CORAL_API uint64_t coBufferGetAddress(const CoBuffer buffer);
 
 #endif // !CORAL_BUFFER_H

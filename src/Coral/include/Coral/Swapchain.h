@@ -52,13 +52,6 @@ typedef struct
     CoFramebuffer framebuffer;
 
     /*!
-     * Semaphore that is signaled once the swapchain image is ready for use
-     * Command buffers that render to the swapchain's framebuffer must wait for this
-     * semaphore before beginning rendering.
-     */
-    CoSemaphore imageAcquiredSemaphore;
-
-    /*!
      * Index of the swapchain image
      */
     uint32_t index;

@@ -20,6 +20,7 @@ target_embed_files(${TARGET_NAME} INTERFACE
 
 set(HEADERS
     ${INCLUDE_DIR}/Coral/Resources/Cube.hpp
+    ${INCLUDE_DIR}/Coral/Resources/Sphere.hpp
     ${GENERATED_INCLUDE_DIR}/Coral/Resources/uvtest.hpp
 )
 

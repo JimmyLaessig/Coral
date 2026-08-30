@@ -15,7 +15,17 @@ CoSwapchain_T::CoSwapchain_T(std::shared_ptr<Coral::Swapchain> impl)
 CoResult
 coContextCreateSwapchain(CoContext context, const CoSwapchainCreateConfig* pConfig, CoSwapchain* pSwapchain)
 {
-    auto impl = context->impl->createSwapchain(*pConfig);
+    Swapchain::CreateConfig config{};
+    config.nativeWindowHandle = pConfig->nativeWindowHandle;
+    config.format             = pConfig->format;
+    config.lockToVSync        = pConfig->lockToVSync;
+    config.minImageCount      = pConfig->minImageCount;
+    if (pConfig->depthFormat)
+    {
+        config.depthFormat = *pConfig->depthFormat;
+    }
+
+    auto impl = context->impl->createSwapchain(config);
     if (impl)
     {
         *pSwapchain = new CoSwapchain_T(impl.value());
