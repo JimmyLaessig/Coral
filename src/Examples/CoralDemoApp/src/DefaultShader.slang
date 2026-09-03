@@ -80,7 +80,7 @@ VSOutput vertexShader(VSInput input)
 
     VSOutput output;
     output.position = mul(modelViewProjectionMatrix, float4(input.position, 1.0));
-    output.normal   = normalize(input.normal);
+    output.normal   = mul(instanceParams.normalMatrix, input.normal);
     output.uv       = input.uv;
     return output;
 }

@@ -11,6 +11,9 @@
 #include "SemaphoreImpl.hpp"
 #include "ShaderModuleImpl.hpp"
 #include "SwapchainImpl.hpp"
+
+#include "DescriptorSetImpl.hpp"
+
 #include "VulkanFormat.hpp"
 
 #include <array>
@@ -250,6 +253,8 @@ ContextImpl::init(const Context::CreateConfig& config)
             return false;
     }
 
+    vkGetPhysicalDeviceProperties(mPhysicalDevice, &mProperties);
+
     VmaAllocatorCreateInfo allocatorCreateInfo{};
     allocatorCreateInfo.device           = mDevice;
     allocatorCreateInfo.instance         = mInstance;
@@ -270,8 +275,7 @@ ContextImpl::init(const Context::CreateConfig& config)
     }
 
     mStagingBufferPool = std::make_unique<BufferPool>(*this, CO_BUFFER_TYPE_STORAGE, true);
-
-    vkGetPhysicalDeviceProperties(mPhysicalDevice, &mProperties);
+    mDescriptorPool    = std::make_unique<DescriptorPool>(*this);
 
     return true;
 }
@@ -361,6 +365,12 @@ ContextImpl::createSwapchain(const Coral::Swapchain::CreateConfig& config)
 }
 
 
+std::expected<Coral::DescriptorSetPtr, Coral::DescriptorSet::CreateError>
+ContextImpl::createDescriptorSet(const Coral::DescriptorSet::CreateConfig& config)
+{
+    return create<Coral::DescriptorSet, DescriptorSetImpl, Coral::DescriptorSet::CreateError>(config);
+}
+
 VmaAllocator 
 ContextImpl::getVmaAllocator()
 {
@@ -379,4 +389,11 @@ BufferImplPtr
 ContextImpl::requestStagingBuffer(size_t bufferSize)
 {
     return std::static_pointer_cast<BufferImpl>(mStagingBufferPool->requestBuffer(bufferSize));
+}
+
+
+DescriptorPool&
+ContextImpl::getDescriptorPool()
+{
+    return *mDescriptorPool;
 }

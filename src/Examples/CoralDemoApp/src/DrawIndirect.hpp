@@ -50,6 +50,7 @@ private:
         Coral::BufferPtr instanceParamsBuffer;
         Coral::BufferPtr drawParamsBuffer;
         std::shared_ptr<const Util::Material> material;
+        Coral::DescriptorSetPtr descriptorSet;
         uint32_t drawCount{ 0 };
     };
 

@@ -41,6 +41,7 @@ private:
         std::shared_ptr<const Util::Mesh> mesh;
         std::shared_ptr<const Util::Material> material;
         uint32_t instanceCount{ 0 };
+        Coral::DescriptorSetPtr descriptorSet;
     };
 
     std::vector<DrawBatch> mDrawBatches;

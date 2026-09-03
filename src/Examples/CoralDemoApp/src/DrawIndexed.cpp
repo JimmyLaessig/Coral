@@ -120,10 +120,57 @@ DrawIndexed::initialize(CoContext context,
 
         for (const auto& r : renderObjects)
         {
+            auto& instanceData = batch.instances.emplace_back();
+
             Util::UniformBlockBuilder builder(instanceParamsInfo->buffer);
             builder.set("instanceParams.modelMatrix", r->modelMatrix);
             builder.set("instanceParams.normalMatrix", glm::inverseTranspose(glm::mat3(r->modelMatrix)));
-            batch.instanceParamsBuffers.push_back(Util::createUniformBuffer(mContext, builder));
+
+            instanceData.instanceParamsBuffer = Util::createUniformBuffer(mContext, builder);
+
+            std::vector<CoDescriptorBinding> descriptorBindings =
+            {
+                CoDescriptorBinding
+                {
+                    .binding = mBindings.cameraParams,
+                    .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .buffer  = mCameraParams,
+                },
+
+                CoDescriptorBinding
+                {
+                    .binding = mBindings.instanceParams,
+                    .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .buffer  = instanceData.instanceParamsBuffer.get(),
+                },
+ 
+                CoDescriptorBinding
+                {
+                    .binding = mBindings.lightParams,
+                    .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                    .buffer  = mLightParams,
+                },
+                CoDescriptorBinding
+                {
+                    .binding              = mBindings.baseColorTexture,
+                    .type                 = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                    .combinedImageSampler = {
+                        .image   = batch.material->mBaseColorTexture.mImage.get(),
+                        .sampler = batch.material->mBaseColorTexture.mSampler.get(),
+                    }
+                }
+            };
+
+            CoDescriptorSetCreateConfig descriptorSetConfig
+            {
+                .pDescriptorBindings    = descriptorBindings.data(),
+                .descriptorBindingCount = static_cast<uint32_t>(descriptorBindings.size()),
+            };
+
+            if (coContextCreateDescriptorSet(mContext, &descriptorSetConfig, std::out_ptr(instanceData.descriptorSet)) != CO_SUCCESS)
+            {
+                return false;
+            }
         }
         mBatches.push_back(std::move(batch));
     }
@@ -185,36 +232,9 @@ DrawIndexed::drawOptimized(CoCommandBuffer commandBuffer)
         coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mNormalBuffer.get(), 1, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
         coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mTexcoordBuffer.get(), 2, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
 
-        CoDescriptor descriptor = {
-            .buffer = mCameraParams,
-            .type   = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        };
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.cameraParams);
-
-        descriptor = {
-            .buffer = mLightParams,
-            .type   = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        };
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.lightParams);
-
-        descriptor =
+        for (const auto& instanceData : batch.instances)
         {
-            .combinedImageSampler = {
-                .image   = batch.material->mBaseColorTexture.mImage.get(),
-                .sampler = batch.material->mBaseColorTexture.mSampler.get(),
-            },
-            .type  = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-        };
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.baseColorTexture);
-
-        for (const auto& instanceParamsBuffer : batch.instanceParamsBuffers)
-        {
-            descriptor =
-            {
-                .buffer = instanceParamsBuffer.get(),
-                .type   = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-            };
-            coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.instanceParams);
+            coCommandBufferBindDescriptorSet(commandBuffer, instanceData.descriptorSet.get(), 0);
 
             CoDrawIndexedInfo drawInfo
             {
@@ -237,44 +257,14 @@ DrawIndexed::draw(CoCommandBuffer commandBuffer)
 
     for (const auto& batch : mBatches)
     {
-        for (const auto& instanceParams : batch.instanceParamsBuffers)
+        for (const auto& instanceData : batch.instances)
         {
-            CoDescriptor descriptor =
-            {
-                .buffer = mCameraParams,
-                .type   = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            };
-            coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.cameraParams);
-
-            descriptor =
-            {
-                .buffer = instanceParams.get(),
-                .type = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-            };
-            coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.instanceParams);
-
-            descriptor =
-            {
-                .buffer = mLightParams,
-                .type  = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-            };
-            coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.lightParams);
-
-            descriptor =
-            {
-                .combinedImageSampler =
-                {
-                    .image   = batch.material->mBaseColorTexture.mImage.get(),
-                    .sampler = batch.material->mBaseColorTexture.mSampler.get(),
-                },
-                .type = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-            };
-            coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.baseColorTexture);
-
             coCommandBufferBindIndexBuffer(commandBuffer, batch.mesh->mIndexBuffer.get(), batch.mesh->mIndexFormat, 0);
             coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mPositionBuffer.get(), 0, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
             coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mNormalBuffer.get(), 1, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
             coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mTexcoordBuffer.get(), 2, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
+
+            coCommandBufferBindDescriptorSet(commandBuffer, instanceData.descriptorSet.get(), 0);
 
             CoDrawIndexedInfo drawInfo
             {

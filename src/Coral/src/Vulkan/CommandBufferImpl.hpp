@@ -9,9 +9,8 @@
 
 #include <memory>
 #include <string>
-#include <vector>
+#include <unordered_map>
 #include <unordered_set>
-#include <variant>
 
 namespace Coral::Vulkan
 {
@@ -51,6 +50,8 @@ public:
 
     bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) override;
 
+    bool cmdBindDescriptorSet(Coral::DescriptorSetPtr descriptorSet, uint32_t index)  override;
+
     bool cmdDraw(const CoDrawInfo& info) override;
     
     bool cmdDrawIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride) override;
@@ -67,14 +68,6 @@ public:
 
     bool cmdGenerateMipMaps(Coral::ImagePtr image) override;
 
-    void cmdBindDescriptor(Coral::BufferPtr buffer, uint32_t binding) override;
-
-    void cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding) override;
-
-    void cmdBindDescriptor(Coral::ImagePtr image, uint32_t binding) override;
-
-    void cmdBindDescriptor(Coral::ImagePtr image, Coral::SamplerPtr sampler, uint32_t binding) override;
-
     bool cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr dest) override;
 
     VkCommandBuffer getVkCommandBuffer();
@@ -83,7 +76,7 @@ public:
 
 private:
 
-    void cmdBindCachedDescriptors();
+    void cmdBindCachedDescriptorSets();
 
     CommandQueueImpl& mCommandQueue;
 
@@ -97,17 +90,9 @@ private:
 
     PipelineStateImplPtr mLastBoundPipelineState{ nullptr };
 
+    std::unordered_map<uint32_t, DescriptorSetImplPtr> mCachedDescriptorSets;
+
     std::unordered_set<ResourcePtr> mRetainedResources;
-
-    struct DescriptorBufferInfo
-    {
-        VkDescriptorBufferInfo bufferInfo;
-        VkDescriptorType descriptorType;
-    };
-
-    std::unordered_map<uint32_t, std::variant<DescriptorBufferInfo, VkDescriptorImageInfo>> mCachedDescriptorInfos;
-
-    std::vector<VkWriteDescriptorSet> mDescriptorWrites;
 
 }; // class CommandBufferImpl
 

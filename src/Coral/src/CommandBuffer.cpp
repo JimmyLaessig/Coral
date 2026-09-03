@@ -7,6 +7,7 @@
 #include "Sampler.hpp"
 #include "Semaphore.hpp"
 
+#include "DescriptorSet.hpp"
 #include <ranges>
 
 using namespace Coral;
@@ -143,31 +144,10 @@ coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* 
 }
 
 
-CoResult
-coCommandBufferBindDescriptor(CoCommandBuffer commandBuffer, const CoDescriptor* pDescriptor, uint32_t binding)
+CoResult 
+coCommandBufferBindDescriptorSet(CoCommandBuffer commandBuffer, CoDescriptorSet descriptorSet, uint32_t index)
 {
-    auto impl = commandBuffer->impl;
-
-    switch (pDescriptor->type)
-    {
-        case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-        case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-            impl->cmdBindDescriptor(pDescriptor->buffer->impl, binding);
-            return CO_SUCCESS;
-        case CO_DESCRIPTOR_TYPE_IMAGE:
-            impl->cmdBindDescriptor(pDescriptor->image->impl, binding);
-            return CO_SUCCESS;
-        case CO_DESCRIPTOR_TYPE_SAMPLER:
-            impl->cmdBindDescriptor(pDescriptor->sampler->impl, binding);
-            return CO_SUCCESS;
-        case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-            impl->cmdBindDescriptor(pDescriptor->combinedImageSampler.image->impl, pDescriptor->combinedImageSampler.sampler->impl, binding);
-            return CO_SUCCESS;
-        default:
-            return CO_FAILED;
-    }
-
-    return CO_SUCCESS;
+    return commandBuffer->impl->cmdBindDescriptorSet(descriptorSet->impl, index) ? CO_SUCCESS : CO_FAILED;
 }
 
 

@@ -146,6 +146,57 @@ DrawIndirect::initialize(CoContext context,
         batch.drawParamsBuffer     = Util::createBuffer(mContext, std::as_bytes(std::span(drawParams)),           CO_BUFFER_TYPE_STORAGE);
         batch.instanceParamsBuffer = Util::createBuffer(mContext, std::as_bytes(std::span(instanceParams)),       CO_BUFFER_TYPE_STORAGE);
 
+        std::vector<CoDescriptorBinding> descriptorBindings =
+        {
+            CoDescriptorBinding
+            {
+                .binding = mBindings.cameraParams,
+                .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .buffer  = mCameraParams,
+            },
+
+            CoDescriptorBinding
+            {
+                .binding = mBindings.drawParams,
+                .type    = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .buffer  = batch.drawParamsBuffer.get(),
+            },
+
+            CoDescriptorBinding
+            {
+                .binding = mBindings.instanceParams,
+                .type    = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                .buffer  = batch.instanceParamsBuffer.get(),
+            },
+
+            CoDescriptorBinding
+            {
+                .binding = mBindings.lightParams,
+                .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                .buffer  = mLightParams,
+            },
+            CoDescriptorBinding
+            {
+                .binding              = mBindings.baseColorTexture,
+                .type                 = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                .combinedImageSampler = {
+                    .image   = batch.material->mBaseColorTexture.mImage.get(),
+                    .sampler = batch.material->mBaseColorTexture.mSampler.get(),
+                }
+            }
+        };
+
+        CoDescriptorSetCreateConfig descriptorSetConfig
+        {
+            .pDescriptorBindings    = descriptorBindings.data(),
+            .descriptorBindingCount = static_cast<uint32_t>(descriptorBindings.size()),
+        };
+
+        if (coContextCreateDescriptorSet(mContext, &descriptorSetConfig, std::out_ptr(batch.descriptorSet)) != CO_SUCCESS)
+        {
+            return false;
+        }
+
         mDrawBatches.push_back(std::move(batch));
     }
 
@@ -209,42 +260,7 @@ DrawIndirect::draw(CoCommandBuffer commandBuffer)
 
     for (auto& batch : mDrawBatches)
     {
-        CoDescriptor descriptor = {
-            .buffer = batch.drawParamsBuffer.get(),
-            .type   = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER
-        };
-
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.drawParams);
-
-        descriptor = {
-            .buffer = batch.instanceParamsBuffer.get(),
-            .type   = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER
-        };
-
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.instanceParams);
-
-        descriptor = {
-            .buffer = mCameraParams,
-            .type   = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        };
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.cameraParams);
-
-        descriptor = {
-            .buffer = mLightParams,
-            .type   = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        };
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.lightParams);
-
-        descriptor =
-        {
-            .combinedImageSampler = {
-                .image   = batch.material->mBaseColorTexture.mImage.get(),
-                .sampler = batch.material->mBaseColorTexture.mSampler.get(),
-        },
-            .type = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-        };
-        coCommandBufferBindDescriptor(commandBuffer, &descriptor, mBindings.baseColorTexture);
-
+        coCommandBufferBindDescriptorSet(commandBuffer, batch.descriptorSet.get(), 0);
         coCommandBufferDrawIndirect(commandBuffer, batch.indirectBuffer.get(), 0, batch.drawCount, sizeof(CoDrawInfo));
     }
 }

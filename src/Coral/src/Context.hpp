@@ -14,6 +14,8 @@
 #include "ShaderModule.hpp"
 #include "Swapchain.hpp"
 
+#include "DescriptorSet.hpp"
+
 #include <expected>
 #include <string_view>
 
@@ -104,6 +106,10 @@ public:
 
     /// Create a new Swapchain object
     virtual std::expected<Coral::SwapchainPtr, Coral::Swapchain::CreateError> createSwapchain(const Coral::Swapchain::CreateConfig& config) = 0;
+    
+    /// Create a new DescriptorSet object
+    virtual std::expected<Coral::DescriptorSetPtr, Coral::DescriptorSet::CreateError> createDescriptorSet(const Coral::DescriptorSet::CreateConfig& config) = 0;
+
 };
 
 } // namespace Coral
