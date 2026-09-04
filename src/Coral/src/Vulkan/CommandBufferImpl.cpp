@@ -2,6 +2,7 @@
 
 #include "BufferImpl.hpp"
 #include "CommandQueueImpl.hpp"
+#include "ContextImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
 #include "PipelineStateImpl.hpp"

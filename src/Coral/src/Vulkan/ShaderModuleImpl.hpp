@@ -2,14 +2,10 @@
 #define CORAL_VULKAN_SHADERMODULEIMPL_HPP
 
 #include "ShaderModule.hpp"
-
-#include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
 
 #include <span>
-#include <string_view>
-#include <vector>
+#include <optional>
 
 namespace Coral::Vulkan
 {

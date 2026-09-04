@@ -275,7 +275,7 @@ ContextImpl::init(const Context::CreateConfig& config)
     }
 
     mStagingBufferPool = std::make_unique<BufferPool>(*this, CO_BUFFER_TYPE_STORAGE, true);
-    mDescriptorPool    = std::make_unique<DescriptorPool>(*this);
+    mDescriptorPool    = std::make_unique<DescriptorSetPool>(*this);
 
     return true;
 }
@@ -392,7 +392,7 @@ ContextImpl::requestStagingBuffer(size_t bufferSize)
 }
 
 
-DescriptorPool&
+DescriptorSetPool&
 ContextImpl::getDescriptorPool()
 {
     return *mDescriptorPool;

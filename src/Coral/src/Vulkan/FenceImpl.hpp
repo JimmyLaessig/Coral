@@ -3,9 +3,9 @@
 
 #include "Fence.hpp"
 
-#include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
+
+#include <optional>
 
 namespace Coral::Vulkan
 {

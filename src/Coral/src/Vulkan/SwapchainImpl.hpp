@@ -3,16 +3,16 @@
 
 #include "Swapchain.hpp"
 
-#include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
 
 #include <memory>
-
 #include <mutex>
+#include <optional>
 
 namespace Coral::Vulkan
 {
+
+class CommandQueueImpl;
 
 /*!
  * Implementation of the Swapchain interface using the Vulkan backend

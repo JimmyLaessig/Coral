@@ -2,12 +2,10 @@
 #define CORAL_VULKAN_DESCRIPTORSETIMPL_HPP
 
 #include "DescriptorSet.hpp"
-#include "Fwd.hpp"
-#include "Resource.hpp"
-#include "Vulkan.hpp"
 
-#include <expected>
-#include <vector>
+#include "Resource.hpp"
+
+#include <optional>
 
 namespace Coral::Vulkan
 {

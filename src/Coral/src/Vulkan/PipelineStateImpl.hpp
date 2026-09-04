@@ -2,14 +2,10 @@
 #define CORAL_VULKAN_PIPELINESTATEIMPL_HPP
 
 #include "PipelineState.hpp"
-
-#include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
 
 #include <optional>
 #include <span>
-#include <vector>
 
 namespace Coral::Vulkan
 {

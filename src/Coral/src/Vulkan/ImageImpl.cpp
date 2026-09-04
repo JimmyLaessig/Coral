@@ -1,4 +1,6 @@
 #include "ImageImpl.hpp"
+
+#include "ContextImpl.hpp"
 #include "VulkanFormat.hpp"
 
 #include <cmath>

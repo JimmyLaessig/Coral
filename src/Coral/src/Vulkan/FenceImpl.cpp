@@ -1,5 +1,7 @@
 #include "FenceImpl.hpp"
 
+#include "ContextImpl.hpp"
+
 using namespace Coral::Vulkan;
 
 

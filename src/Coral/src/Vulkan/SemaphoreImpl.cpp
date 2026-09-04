@@ -1,7 +1,8 @@
 #include "SemaphoreImpl.hpp"
 
-using namespace Coral::Vulkan;
+#include "ContextImpl.hpp"
 
+using namespace Coral::Vulkan;
 
 SemaphoreImpl::~SemaphoreImpl()
 {
@@ -30,7 +31,6 @@ SemaphoreImpl::init()
 
     return {};
 }
-
 
 
 VkSemaphore

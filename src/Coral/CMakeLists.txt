@@ -109,7 +109,7 @@ set(VULKAN_HEADERS
     ${SOURCE_DIR}/Vulkan/CommandQueueImpl.hpp
     ${SOURCE_DIR}/Vulkan/ContextImpl.hpp
     ${SOURCE_DIR}/Vulkan/DescriptorSetImpl.hpp
-    ${SOURCE_DIR}/Vulkan/DescriptorPool.hpp
+    ${SOURCE_DIR}/Vulkan/DescriptorSetPool.hpp
     ${SOURCE_DIR}/Vulkan/FenceImpl.hpp
     ${SOURCE_DIR}/Vulkan/FramebufferImpl.hpp
     ${SOURCE_DIR}/Vulkan/ImageImpl.hpp
@@ -133,7 +133,7 @@ set(VULKAN_SOURCES
     ${SOURCE_DIR}/Vulkan/CommandQueueImpl.cpp
     ${SOURCE_DIR}/Vulkan/ContextImpl.cpp
     ${SOURCE_DIR}/Vulkan/DescriptorSetImpl.cpp
-    ${SOURCE_DIR}/Vulkan/DescriptorPool.cpp
+    ${SOURCE_DIR}/Vulkan/DescriptorSetPool.cpp
     ${SOURCE_DIR}/Vulkan/FenceImpl.cpp
     ${SOURCE_DIR}/Vulkan/FramebufferImpl.cpp
     ${SOURCE_DIR}/Vulkan/ImageImpl.cpp

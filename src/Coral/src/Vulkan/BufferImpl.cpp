@@ -1,5 +1,6 @@
 #include "BufferImpl.hpp"
 
+#include "ContextImpl.hpp"
 #include "VulkanFormat.hpp"
 
 using namespace Coral::Vulkan;

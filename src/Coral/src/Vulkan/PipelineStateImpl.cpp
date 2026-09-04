@@ -1,6 +1,7 @@
 
 #include "PipelineStateImpl.hpp"
 
+#include "ContextImpl.hpp"
 #include "Visitor.hpp"
 #include "ShaderModuleImpl.hpp"
 #include "VulkanFormat.hpp"

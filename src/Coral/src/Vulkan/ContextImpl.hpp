@@ -4,9 +4,8 @@
 #include "Context.hpp"
 #include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
 
-#include "DescriptorPool.hpp"
+#include "DescriptorSetPool.hpp"
 
 #include <map>
 #include <memory>
@@ -79,7 +78,7 @@ public:
      */
     BufferImplPtr requestStagingBuffer(size_t bufferSize);
 
-    DescriptorPool& getDescriptorPool();
+    DescriptorSetPool& getDescriptorPool();
 
 private:
     
@@ -117,7 +116,7 @@ private:
 
     std::mutex mCommandPoolsProtection;
 
-    std::unique_ptr<DescriptorPool> mDescriptorPool;
+    std::unique_ptr<DescriptorSetPool> mDescriptorPool;
 
     std::unique_ptr<BufferPool> mStagingBufferPool;
 
