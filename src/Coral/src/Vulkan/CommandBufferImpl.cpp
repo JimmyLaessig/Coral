@@ -1,16 +1,14 @@
-#include "Vulkan/CommandBufferImpl.hpp"
+#include "CommandBufferImpl.hpp"
 
-#include "Vulkan/BufferImpl.hpp"
-#include "Vulkan/CommandQueueImpl.hpp"
-#include "Vulkan/FramebufferImpl.hpp"
-#include "Vulkan/ImageImpl.hpp"
-#include "Vulkan/PipelineStateImpl.hpp"
-#include "Vulkan/SamplerImpl.hpp"
-
-#include "Visitor.hpp"
+#include "BufferImpl.hpp"
+#include "CommandQueueImpl.hpp"
+#include "ContextImpl.hpp"
+#include "FramebufferImpl.hpp"
+#include "ImageImpl.hpp"
+#include "PipelineStateImpl.hpp"
+#include "DescriptorSetImpl.hpp"
 
 #include <optional>
-#include <ranges>
 #include <vector>
 
 using namespace Coral::Vulkan;
@@ -18,18 +16,16 @@ using namespace Coral::Vulkan;
 namespace
 {
 
-std::optional<VkIndexType>
-convert(CoAttributeFormat format)
+VkIndexType
+convert(CoIndexFormat format)
 {
     switch (format)
     {
-        case CO_ATTRIBUTE_FORMAT_UINT32:
-            return VK_INDEX_TYPE_UINT32;
-        case CO_ATTRIBUTE_FORMAT_UINT16:
-            return VK_INDEX_TYPE_UINT16;
-        default:
-            return {};
+        case CO_INDEX_FORMAT_UINT32: return VK_INDEX_TYPE_UINT32;
+        case CO_INDEX_FORMAT_UINT16: return VK_INDEX_TYPE_UINT16;
     }
+
+    std::unreachable();
 }
 
 
@@ -266,18 +262,7 @@ CommandBufferImpl::cmdBindIndexBuffer(Coral::BufferPtr buffer, CoIndexFormat for
 
     auto bufferImpl = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(buffer);
 
-    VkIndexType indexType{};
-    switch (format)
-    {
-        case CO_INDEX_FORMAT_UINT16 :
-            indexType = VK_INDEX_TYPE_UINT16;
-            break;
-        case CO_INDEX_FORMAT_UINT32:
-            indexType = VK_INDEX_TYPE_UINT32;
-            break;
-        default:
-            std::unreachable();
-    }
+    VkIndexType indexType = ::convert(format);
 
     vkCmdBindIndexBuffer(mCommandBuffer, bufferImpl->getVkBuffer(), offset, indexType);
 
@@ -306,9 +291,25 @@ CommandBufferImpl::cmdBindPipeline(Coral::PipelineStatePtr pipelineState)
 
 
 bool
+CommandBufferImpl::cmdBindDescriptorSet(Coral::DescriptorSetPtr descriptorSet, uint32_t index)
+{
+    auto impl = std::static_pointer_cast<Coral::Vulkan::DescriptorSetImpl>(descriptorSet);
+
+    mCachedDescriptorSets[index] = std::static_pointer_cast<Coral::Vulkan::DescriptorSetImpl>(descriptorSet);
+
+    if (mRetainReferences)
+    {
+        // mRetainedResources.insert(pipelineState);
+    }
+
+    return true;
+}
+
+
+bool
 CommandBufferImpl::cmdDraw(const CoDrawInfo& info)
 {
-    cmdBindCachedDescriptors();
+    cmdBindCachedDescriptorSets();
     vkCmdDraw(mCommandBuffer, info.vertexCount, info.instanceCount, info.firstVertex, info.firstInstance);
     return true;
 }
@@ -317,7 +318,7 @@ CommandBufferImpl::cmdDraw(const CoDrawInfo& info)
 bool
 CommandBufferImpl::cmdDrawIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 {
-    cmdBindCachedDescriptors();
+    cmdBindCachedDescriptorSets();
     auto bufferImpl = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(buffer);
     vkCmdDrawIndirect(mCommandBuffer, bufferImpl->getVkBuffer(), offset, drawCount, stride);
     return true;
@@ -327,7 +328,7 @@ CommandBufferImpl::cmdDrawIndirect(Coral::BufferPtr buffer, uint64_t offset, uin
 bool
 CommandBufferImpl::cmdDrawIndexed(const CoDrawIndexedInfo& info)
 {
-    cmdBindCachedDescriptors();
+    cmdBindCachedDescriptorSets();
     vkCmdDrawIndexed(mCommandBuffer, info.indexCount, info.instanceCount, info.firstIndex, info.vertexOffset, info.firstInstance);
     return true;
 }
@@ -336,7 +337,7 @@ CommandBufferImpl::cmdDrawIndexed(const CoDrawIndexedInfo& info)
 bool
 CommandBufferImpl::cmdDrawIndexedIndirect(Coral::BufferPtr buffer, uint64_t offset, uint32_t drawCount, uint32_t stride)
 {
-    cmdBindCachedDescriptors();
+    cmdBindCachedDescriptorSets();
     auto bufferImpl = std::static_pointer_cast<Coral::Vulkan::BufferImpl>(buffer);
     vkCmdDrawIndexedIndirect(mCommandBuffer, bufferImpl->getVkBuffer(), offset, drawCount, stride);
     return true;
@@ -649,96 +650,7 @@ CommandBufferImpl::cmdGenerateMipMaps(Coral::ImagePtr image)
 
 
 void
-CommandBufferImpl::cmdBindDescriptor(Coral::BufferPtr buffer, uint32_t binding)
-{
-    auto bufferImpl = std::static_pointer_cast<BufferImpl>(buffer);
-
-    if (buffer->type() != CO_BUFFER_TYPE_UNIFORM &&
-        buffer->type() != CO_BUFFER_TYPE_STORAGE)
-    {
-        return;
-    }
-
-    VkDescriptorBufferInfo info
-    {
-        .buffer = bufferImpl->getVkBuffer(),
-        .offset = 0,
-        .range  = VK_WHOLE_SIZE
-    };
-
-    auto descriptorType = buffer->type() == CO_BUFFER_TYPE_UNIFORM ? VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER 
-                                                                   : VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-   
-    mCachedDescriptorInfos[binding] = DescriptorBufferInfo{ info, descriptorType };
-
-    if (mRetainReferences)
-    {
-        mRetainedResources.insert(bufferImpl);
-    }
-}
-
-
-void
-CommandBufferImpl::cmdBindDescriptor(Coral::ImagePtr image, uint32_t binding)
-{
-    auto imageImpl = std::static_pointer_cast<ImageImpl>(image);
-
-    VkDescriptorImageInfo info
-    {
-        .imageView   = imageImpl ? imageImpl->getVkImageView() : VK_NULL_HANDLE,
-        .imageLayout = imageImpl ? imageImpl->getPreferredImageLayout() : VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    mCachedDescriptorInfos[binding] = info;
-
-    if (mRetainReferences)
-    {
-        mRetainedResources.insert(imageImpl);
-    }
-}
-
-
-void
-CommandBufferImpl::cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding)
-{
-    auto samplerImpl = std::static_pointer_cast<SamplerImpl>(sampler);
-
-    VkDescriptorImageInfo info =
-    {
-        .sampler   = samplerImpl ? samplerImpl->getVkSampler() : VK_NULL_HANDLE,
-        .imageView = VK_NULL_HANDLE
-    };
-
-    mCachedDescriptorInfos[binding] = info;
-    if (mRetainReferences)
-    {
-        mRetainedResources.insert(samplerImpl);
-    }
-}
-
-
-void
-CommandBufferImpl::cmdBindDescriptor(Coral::ImagePtr image, Coral::SamplerPtr sampler, uint32_t binding)
-{
-    auto imageImpl   = std::static_pointer_cast<ImageImpl>(image);
-    auto samplerImpl = std::static_pointer_cast<SamplerImpl>(sampler);
-
-    VkDescriptorImageInfo info =
-    {
-        .sampler     = samplerImpl ? samplerImpl->getVkSampler() : VK_NULL_HANDLE,
-        .imageView   = imageImpl ? imageImpl->getVkImageView() : VK_NULL_HANDLE,
-        .imageLayout = imageImpl ? imageImpl->getPreferredImageLayout() : VK_IMAGE_LAYOUT_UNDEFINED,
-    };
-
-    mCachedDescriptorInfos[binding] = info;
-    if (mRetainReferences)
-    {
-        mRetainedResources.insert(samplerImpl);
-    }
-}
-
-void
-CommandBufferImpl::cmdBindCachedDescriptors()
+CommandBufferImpl::cmdBindCachedDescriptorSets()
 {
     if (!mLastBoundPipelineState)
     {
@@ -748,47 +660,13 @@ CommandBufferImpl::cmdBindCachedDescriptors()
     auto layout       = mLastBoundPipelineState->getVkPipelineLayout();
     auto bindingPoint = mLastBoundPipelineState->getVkPipelineBindingPoint();
 
-    mDescriptorWrites.clear();
-   
-    for (const auto& [binding, info] : mCachedDescriptorInfos)
+    for (auto& [index, descriptorSet] : mCachedDescriptorSets)
     {
-        VkWriteDescriptorSet descriptorWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-        descriptorWrite.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        descriptorWrite.dstBinding      = binding;
-        descriptorWrite.dstSet          = VK_NULL_HANDLE;
-        descriptorWrite.descriptorCount = 1;
-
-        std::visit(Visitor{
-            [&](const DescriptorBufferInfo& bufferInfo)
-            {
-                descriptorWrite.pBufferInfo    = &bufferInfo.bufferInfo;
-                descriptorWrite.descriptorType = bufferInfo.descriptorType;
-            },
-            [&](const VkDescriptorImageInfo& info)
-            {
-                descriptorWrite.pImageInfo = &info;
-                if (info.sampler && info.imageView)
-                {
-                    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                }
-                else if (info.sampler)
-                {
-                    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                }
-                else if (info.imageView)
-                {
-                    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                }
-            }
-        }, info);
-
-        mDescriptorWrites.push_back(descriptorWrite);
+        auto vkDescriptorSet = descriptorSet->getVkDescriptorSet();
+        vkCmdBindDescriptorSets(mCommandBuffer, bindingPoint, layout, index, 1, &vkDescriptorSet, 0, nullptr);
     }
 
-    if (!mDescriptorWrites.empty())
-    {
-        vkCmdPushDescriptorSetKHR(mCommandBuffer, bindingPoint, layout, 0, mDescriptorWrites.size(), mDescriptorWrites.data());
-    }
+    mCachedDescriptorSets.clear();
 }
 
 

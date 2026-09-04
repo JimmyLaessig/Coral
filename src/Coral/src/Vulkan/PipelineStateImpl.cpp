@@ -1,6 +1,7 @@
 
 #include "PipelineStateImpl.hpp"
 
+#include "ContextImpl.hpp"
 #include "Visitor.hpp"
 #include "ShaderModuleImpl.hpp"
 #include "VulkanFormat.hpp"
@@ -334,14 +335,13 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
         {
             if (!visited.emplace(info.binding, bindings.size()).second)
             {
-                bindings[visited[info.binding]].stageFlags |= stage;
                 continue;
             }
 
             auto& binding           = bindings.emplace_back();
             binding.binding         = info.binding;
             binding.descriptorCount = 1;
-            binding.stageFlags      = stage;
+            binding.stageFlags      = VK_SHADER_STAGE_ALL;
             binding.descriptorType  = ::convert(info.type);
         }
     }
@@ -349,7 +349,7 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
     VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
     descriptorSetLayoutCreateInfo.pBindings    = bindings.data();
     descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    descriptorSetLayoutCreateInfo.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+    //descriptorSetLayoutCreateInfo.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
 
     VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
     if (vkCreateDescriptorSetLayout(context().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)

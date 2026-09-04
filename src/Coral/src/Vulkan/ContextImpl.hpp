@@ -4,7 +4,8 @@
 #include "Context.hpp"
 #include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
+
+#include "DescriptorSetPool.hpp"
 
 #include <map>
 #include <memory>
@@ -58,6 +59,8 @@ public:
 
     std::expected<Coral::SwapchainPtr, Coral::Swapchain::CreateError> createSwapchain(const Coral::Swapchain::CreateConfig& config) override;
 
+    std::expected<Coral::DescriptorSetPtr, Coral::DescriptorSet::CreateError> createDescriptorSet(const Coral::DescriptorSet::CreateConfig& config) override;
+
     VkInstance getVkInstance() { return mInstance; }
 
     VkDevice getVkDevice() const { return mDevice; }
@@ -74,6 +77,8 @@ public:
      * after the using command buffer was executed.
      */
     BufferImplPtr requestStagingBuffer(size_t bufferSize);
+
+    DescriptorSetPool& getDescriptorPool();
 
 private:
     
@@ -110,6 +115,8 @@ private:
     std::shared_ptr<CommandQueueImpl> mComputeQueue;
 
     std::mutex mCommandPoolsProtection;
+
+    std::unique_ptr<DescriptorSetPool> mDescriptorPool;
 
     std::unique_ptr<BufferPool> mStagingBufferPool;
 

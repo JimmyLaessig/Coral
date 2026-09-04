@@ -1,5 +1,6 @@
 #include "ShaderModuleImpl.hpp"
 
+#include "ContextImpl.hpp"
 #include "Finally.hpp"
 
 #include <spirv_reflect.h>

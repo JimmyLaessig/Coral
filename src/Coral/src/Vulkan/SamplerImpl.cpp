@@ -1,5 +1,7 @@
 #include "SamplerImpl.hpp"
 
+#include "ContextImpl.hpp"
+
 #include <cassert>
 #include <tuple>
 

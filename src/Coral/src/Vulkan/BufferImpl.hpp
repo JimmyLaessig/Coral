@@ -2,9 +2,9 @@
 #define CORAL_VULKAN_BUFFERIMPL_HPP
 
 #include "Buffer.hpp"
-#include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
+
+#include <optional>
 
 namespace Coral::Vulkan
 {

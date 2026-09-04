@@ -48,11 +48,17 @@ private:
     CoBuffer mCameraParams;
     CoBuffer mLightParams;
 
+    struct InstanceData
+    {
+        Coral::BufferPtr instanceParamsBuffer;
+        Coral::DescriptorSetPtr descriptorSet;
+    };
+
     struct DrawBatch
     {
         std::shared_ptr<const Util::Mesh> mesh;
         std::shared_ptr<const Util::Material> material;
-        std::vector<Coral::BufferPtr> instanceParamsBuffers;
+        std::vector<InstanceData> instances;
     };
 
     std::vector<DrawBatch> mBatches;

@@ -4,7 +4,8 @@
 #include "Sampler.hpp"
 
 #include "Resource.hpp"
-#include "Vulkan.hpp"
+
+#include <optional>
 
 namespace Coral::Vulkan
 {

@@ -5,7 +5,6 @@
 
 #include "Fwd.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
 
 #include <optional>
 #include <map>

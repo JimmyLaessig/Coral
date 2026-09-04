@@ -40,6 +40,7 @@ set(PUBLIC_HEADERS
     ${PUBLIC_HEADER_DIR}/Context.h
     ${PUBLIC_HEADER_DIR}/Coral.h
     ${PUBLIC_HEADER_DIR}/Core.h
+    ${PUBLIC_HEADER_DIR}/DescriptorSet.h
     ${PUBLIC_HEADER_DIR}/Fence.h
     ${PUBLIC_HEADER_DIR}/Framebuffer.h
     ${PUBLIC_HEADER_DIR}/Image.h
@@ -61,6 +62,7 @@ set(SOURCES
     ${SOURCE_DIR}/CommandBuffer.cpp
     ${SOURCE_DIR}/CommandQueue.cpp
     ${SOURCE_DIR}/Context.cpp
+    ${SOURCE_DIR}/DescriptorSet.cpp
     ${SOURCE_DIR}/Fence.cpp
     ${SOURCE_DIR}/Framebuffer.cpp
     ${SOURCE_DIR}/Image.cpp
@@ -85,6 +87,7 @@ set(PRIVATE_HEADERS
     ${SOURCE_DIR}/Context.hpp
     ${SOURCE_DIR}/Coral.hpp
     ${SOURCE_DIR}/CoralFwd.hpp
+    ${SOURCE_DIR}/DescriptorSet.hpp
     ${SOURCE_DIR}/Fence.hpp
     ${SOURCE_DIR}/Framebuffer.hpp
     ${SOURCE_DIR}/Image.hpp
@@ -105,6 +108,8 @@ set(VULKAN_HEADERS
     ${SOURCE_DIR}/Vulkan/CommandBufferImpl.hpp
     ${SOURCE_DIR}/Vulkan/CommandQueueImpl.hpp
     ${SOURCE_DIR}/Vulkan/ContextImpl.hpp
+    ${SOURCE_DIR}/Vulkan/DescriptorSetImpl.hpp
+    ${SOURCE_DIR}/Vulkan/DescriptorSetPool.hpp
     ${SOURCE_DIR}/Vulkan/FenceImpl.hpp
     ${SOURCE_DIR}/Vulkan/FramebufferImpl.hpp
     ${SOURCE_DIR}/Vulkan/ImageImpl.hpp
@@ -127,6 +132,8 @@ set(VULKAN_SOURCES
     ${SOURCE_DIR}/Vulkan/CommandBufferImpl.cpp
     ${SOURCE_DIR}/Vulkan/CommandQueueImpl.cpp
     ${SOURCE_DIR}/Vulkan/ContextImpl.cpp
+    ${SOURCE_DIR}/Vulkan/DescriptorSetImpl.cpp
+    ${SOURCE_DIR}/Vulkan/DescriptorSetPool.cpp
     ${SOURCE_DIR}/Vulkan/FenceImpl.cpp
     ${SOURCE_DIR}/Vulkan/FramebufferImpl.cpp
     ${SOURCE_DIR}/Vulkan/ImageImpl.cpp

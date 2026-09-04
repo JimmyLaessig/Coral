@@ -1,6 +1,7 @@
 #include "CommandQueueImpl.hpp"
 
 #include "CommandBufferImpl.hpp"
+#include "ContextImpl.hpp"
 #include "FenceImpl.hpp"
 #include "SemaphoreImpl.hpp"
 #include "SwapchainImpl.hpp"

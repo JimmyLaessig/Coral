@@ -158,6 +158,13 @@ public:
     virtual bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) = 0;
 
     /*!
+     * \brief Bind the descriptor set at the given index
+     * \brief descriptorSet The descriptor set to bind
+     * \brief index The binding index
+     */
+    virtual bool cmdBindDescriptorSet(Coral::DescriptorSetPtr descriptorSet, uint32_t index) = 0;
+
+    /*!
      * \brief Draw the primitives
      * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
      * \param pInfo Pointer to a CoDrawInfo containing parameters for drawing
@@ -196,35 +203,6 @@ public:
      */
     virtual bool cmdSetViewport(const CoViewportInfo& info) = 0;
     
-    /*!
-     * \brief Bind the image at the given binding
-     * \param buffer The Buffer to bind
-     * \param binding The binding index
-     */
-    virtual void cmdBindDescriptor(Coral::BufferPtr buffer, uint32_t binding) = 0;
-
-    /*!
-     * \brief Bind the image at the given binding
-     * \param sampler The sampler to bind
-     * \param binding The binding index
-     */
-    virtual void cmdBindDescriptor(Coral::SamplerPtr sampler, uint32_t binding) = 0;
-
-    /*!
-     * \brief Bind the sampler and image at the given binding
-     * \param image The image to bind
-     * \param sampler The sampler to bind
-     * \param binding The binding index
-     */
-    virtual void cmdBindDescriptor(Coral::ImagePtr image, Coral::SamplerPtr sampler, uint32_t binding) = 0;
-
-    /*!
-     * \brief Bind the image at the given binding
-     * \param image The image to bind
-     * \param binding The binding index
-     */
-    virtual void cmdBindDescriptor(Coral::ImagePtr image, uint32_t binding) = 0;
-
     /*!
      * \brief Blit the content of \p source to \p dest
      * \param source The source image

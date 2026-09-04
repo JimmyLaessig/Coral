@@ -1,10 +1,11 @@
 #ifndef CORAL_VULKAN_RESOURCE_HPP
 #define CORAL_VULKAN_RESOURCE_HPP
 
-#include "ContextImpl.hpp"
+#include "Vulkan.hpp"
 
 namespace Coral::Vulkan
 {
+class ContextImpl;
 
 /*!
  * Base class of a Vulkan Resource

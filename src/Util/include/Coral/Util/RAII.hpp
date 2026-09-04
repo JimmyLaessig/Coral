@@ -38,6 +38,12 @@ inline auto destroyCommandBuffer = [](CoCommandBuffer buffer)
 
 using CommandBufferPtr = std::unique_ptr<CoCommandBuffer_T, decltype(destroyCommandBuffer)>;
 
+inline auto destroyDescriptorSet = [](CoDescriptorSet set)
+{
+    coDestroyDescriptorSet(set);
+};
+
+using DescriptorSetPtr = std::unique_ptr<CoDescriptorSet_T, decltype(destroyDescriptorSet)>;
 
 inline auto destroyFence = [](CoFence fence)
 {

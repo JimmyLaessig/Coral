@@ -1,12 +1,10 @@
 #ifndef CORAL_VULKANCOMMANDQUEUEIMPL_HPP
 #define CORAL_VULKANCOMMANDQUEUEIMPL_HPP
 
-#include <Coral/CommandQueue.h>
-
-#include "Fwd.hpp"
+#include "CommandQueue.hpp"
 #include "Resource.hpp"
-#include "Vulkan.hpp"
 
+#include <expected>
 #include <mutex>
 #include <thread>
 #include <unordered_map>

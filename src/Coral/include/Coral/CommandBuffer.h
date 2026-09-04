@@ -7,6 +7,8 @@
 #include <Coral/PipelineState.h>
 #include <Coral/Sampler.h>
 
+#include <Coral/DescriptorSet.h>
+
 #include <Coral/Framebuffer.h>
 
 /*!
@@ -240,52 +242,13 @@ CORAL_API CoResult coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, Co
 ///
 CORAL_API CoResult coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* info);
 
-typedef struct
-{
-    CoBuffer buffer;
-
-} CoBufferDescriptor;
-
-typedef struct
-{
-    CoImage image;
-
-} CoImageDescriptor;
-
-typedef struct
-{
-    CoSampler sampler;
-
-} CoSamplerDescriptor;
-
-typedef struct
-{
-    CoImage image;
-    CoSampler sampler;
-
-} CoCombinedImageSamplerDescriptor;
-
-typedef struct
-{
-    union
-    {
-        CoBuffer buffer;
-        CoImage image;
-        CoSampler sampler;
-        CoCombinedImageSamplerDescriptor combinedImageSampler;
-    };
-
-    CoDescriptorType type;
-
-} CoDescriptor;
-
 /*!
- * \brief Bind the descriptor at the given location
+ * \brief Bind the descriptor set at the given index
  * \param commandBuffer The command buffer into which the command will be recorded. Must not be null.
- * \param pDescriptor Pointer to a CoDescriptor structure containing the descriptor to bind
- * \param binding The binding index
+ * \param descriptorSet The descriptor set to bind
+ * \param index The binding index
  */
-CORAL_API CoResult coCommandBufferBindDescriptor(CoCommandBuffer commandBuffer, const CoDescriptor* pDescriptor, uint32_t binding);
+CORAL_API CoResult coCommandBufferBindDescriptorSet(CoCommandBuffer commandBuffer, CoDescriptorSet descriptorSet, uint32_t index);
 
 /*!
  * Structure specifying the draw parameters for drawing
