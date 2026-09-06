@@ -33,9 +33,7 @@ public:
 
     const std::string& entryPoint() const override;
 
-    const CoDescriptorLayout& descriptorLayout() const override;
-
-    const CoAttributeLayout& attributeLayout() const override;
+    const CoShaderModuleLayout& layout() const override;
 
     VkShaderModule getVkShaderModule();
 
@@ -49,9 +47,7 @@ private:
 
     CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
 
-    CoDescriptorLayout mDescriptorLayout;
-
-    CoAttributeLayout mAttributeLayout;
+    CoShaderModuleLayout mLayout{};
 
     VkShaderModule mShaderModule{ VK_NULL_HANDLE };
 

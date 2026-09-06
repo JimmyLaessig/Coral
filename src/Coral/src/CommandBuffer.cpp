@@ -3,7 +3,7 @@
 #include "CommandQueue.hpp"
 #include "Fence.hpp"
 #include "Image.hpp"
-#include "PipelineState.hpp"
+#include "GraphicsPipeline.hpp"
 #include "Sampler.hpp"
 #include "Semaphore.hpp"
 
@@ -131,7 +131,7 @@ coCommandBufferBindIndexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, C
 
 
 CoResult
-coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, CoPipelineState pipeline)
+coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, CoGraphicsPipeline pipeline)
 {
     return commandBuffer->impl->cmdBindPipeline(pipeline->impl) ? CO_SUCCESS : CO_FAILED;
 }

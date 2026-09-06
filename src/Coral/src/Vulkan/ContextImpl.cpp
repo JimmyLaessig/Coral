@@ -6,7 +6,7 @@
 #include "FenceImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
-#include "PipelineStateImpl.hpp"
+#include "GraphicsPipelineImpl.hpp"
 #include "SamplerImpl.hpp"
 #include "SemaphoreImpl.hpp"
 #include "ShaderModuleImpl.hpp"
@@ -330,10 +330,10 @@ ContextImpl::createImage(const Coral::Image::CreateConfig& config)
 }
 
 
-std::expected<Coral::PipelineStatePtr, Coral::PipelineState::CreateError>
-ContextImpl::createPipelineState(const Coral::PipelineState::CreateConfig& config)
+std::expected<Coral::GraphicsPipelinePtr, Coral::GraphicsPipeline::CreateError>
+ContextImpl::createGraphicsPipeline(const Coral::GraphicsPipeline::CreateConfig& config)
 {
-    return create<Coral::PipelineState, PipelineStateImpl, Coral::PipelineState::CreateError>(config);
+    return create<Coral::GraphicsPipeline, GraphicsPipelineImpl, Coral::GraphicsPipeline::CreateError>(config);
 }
 
 

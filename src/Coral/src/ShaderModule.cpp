@@ -31,14 +31,7 @@ coDestroyShaderModule(CoShaderModule shaderModule)
 
 
 void
-coShaderModuleGetDescriptorLayout(const CoShaderModule shaderModule, CoDescriptorLayout* pLayout)
+coShaderModuleGetLayout(const CoShaderModule shaderModule, CoShaderModuleLayout* pLayout)
 {
-    *pLayout = shaderModule->impl->descriptorLayout();
-}
-
-
-void
-coShaderModuleGetAttributeLayout(const CoShaderModule shaderModule, CoAttributeLayout* pLayout)
-{
-    *pLayout = shaderModule->impl->attributeLayout();
+    *pLayout = shaderModule->impl->layout();
 }

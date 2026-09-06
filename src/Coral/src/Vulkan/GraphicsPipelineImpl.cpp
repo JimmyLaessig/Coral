@@ -1,11 +1,13 @@
 
-#include "PipelineStateImpl.hpp"
+#include "GraphicsPipelineImpl.hpp"
 
 #include "ContextImpl.hpp"
-#include "Visitor.hpp"
 #include "ShaderModuleImpl.hpp"
 #include "VulkanFormat.hpp"
 
+#include "../Finally.hpp"
+
+#include <algorithm>
 #include <cassert>
 #include <vector>
 
@@ -121,7 +123,7 @@ convert(CoDescriptorType type)
 } // namespace
 
 
-PipelineStateImpl::~PipelineStateImpl()
+GraphicsPipelineImpl::~GraphicsPipelineImpl()
 {
     if (mPipeline != VK_NULL_HANDLE)
     {
@@ -132,16 +134,11 @@ PipelineStateImpl::~PipelineStateImpl()
     {
         vkDestroyPipelineLayout(context().getVkDevice(), mPipelineLayout, nullptr);
     }
-
-    if (mDescriptorSetLayout != VK_NULL_HANDLE)
-    {
-        vkDestroyDescriptorSetLayout(context().getVkDevice(), mDescriptorSetLayout, nullptr);
-    }
 }
 
 
-std::optional<Coral::PipelineState::CreateError>
-PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
+std::optional<Coral::GraphicsPipeline::CreateError>
+GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
 {
     //-------------------------------------------------------------
     // Shader Stage State
@@ -159,75 +156,90 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
             vertexShader = shader;
         }
 
-        VkPipelineShaderStageCreateInfo shaderStage{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
-        shaderStage.module = shader->getVkShaderModule();
-        shaderStage.stage  = ::convert(shaderModule->shaderStage());
-        shaderStage.pName  = shader->entryPoint().c_str();
+        VkPipelineShaderStageCreateInfo shaderStage
+        { 
+            .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage  = ::convert(shaderModule->shaderStage()),
+            .module = shader->getVkShaderModule(),
+            .pName  = shader->entryPoint().c_str(),
+        };
         shaderStages.push_back(shaderStage);
     }
 
     if (!vertexShader)
     {
-        return Coral::PipelineState::CreateError::INTERNAL_ERROR;
+        return Coral::GraphicsPipeline::CreateError::INTERNAL_ERROR;
     }
     
     //-------------------------------------------------------------
     // Rasterization State
     //-------------------------------------------------------------
 
-    VkPipelineRasterizationStateCreateInfo rasterizationCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
-    rasterizationCreateInfo.polygonMode             = ::convert(config.polygonMode);
-    rasterizationCreateInfo.cullMode                = ::convert(config.faceCullingMode.cullMode);
-    rasterizationCreateInfo.frontFace               = ::convert(config.faceCullingMode.orientation);
-    rasterizationCreateInfo.rasterizerDiscardEnable = VK_FALSE;
-    rasterizationCreateInfo.lineWidth               = 1.f;
-    // TODO: Enable depth bias
-    rasterizationCreateInfo.depthBiasEnable         = VK_FALSE;
-    rasterizationCreateInfo.depthBiasConstantFactor = 0.f;
-    rasterizationCreateInfo.depthBiasClamp          = 0.f;
-    rasterizationCreateInfo.depthBiasSlopeFactor    = 0.f;
+    VkPipelineRasterizationStateCreateInfo rasterizationCreateInfo
+    { 
+        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .rasterizerDiscardEnable = VK_FALSE,
+        .polygonMode             = ::convert(config.polygonMode),
+        .cullMode                = ::convert(config.faceCullingMode.cullMode),
+        .frontFace               = ::convert(config.faceCullingMode.orientation),
+        // TODO: Enable depth bias
+        .depthBiasEnable         = VK_FALSE,
+        .depthBiasConstantFactor = 0.f,
+        .depthBiasClamp          = 0.f,
+        .depthBiasSlopeFactor    = 0.f,
+        .lineWidth               = 1.f,
+    };
 
     //-------------------------------------------------------------
     // Depth Stencil State
     //-------------------------------------------------------------
 
     // TODO: Enable depth test
-    VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-    depthStencilCreateInfo.stencilTestEnable     = VK_FALSE;
-    depthStencilCreateInfo.depthTestEnable       = VK_TRUE;
-    depthStencilCreateInfo.depthWriteEnable      = VK_TRUE;
-    depthStencilCreateInfo.depthCompareOp        = VK_COMPARE_OP_LESS;
-    depthStencilCreateInfo.depthBoundsTestEnable = VK_FALSE;
+    VkPipelineDepthStencilStateCreateInfo depthStencilCreateInfo
+    { 
+        .sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable       = VK_TRUE,
+        .depthWriteEnable      = VK_TRUE,
+        .depthCompareOp        = VK_COMPARE_OP_LESS,
+        .depthBoundsTestEnable = VK_FALSE,
+        .stencilTestEnable     = VK_FALSE,
+    };
 
     //-------------------------------------------------------------
     // Viewport State
     //-------------------------------------------------------------
 
-    VkPipelineViewportStateCreateInfo viewportCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
-    viewportCreateInfo.pViewports    = nullptr;
-    viewportCreateInfo.viewportCount = 1;
-    viewportCreateInfo.pScissors     = nullptr;
-    viewportCreateInfo.scissorCount  = 1;
+    VkPipelineViewportStateCreateInfo viewportCreateInfo
+    { 
+        .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .viewportCount = 1,
+        .pViewports    = nullptr,
+        .scissorCount  = 1,
+        .pScissors     = nullptr,
+    };
 
     //-------------------------------------------------------------
     // Multisample State
     //-------------------------------------------------------------
 
     // TODO: Implement Multi sampling
-    VkPipelineMultisampleStateCreateInfo multiSamplingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
-    multiSamplingCreateInfo.sampleShadingEnable   = VK_FALSE;
-    multiSamplingCreateInfo.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
-    multiSamplingCreateInfo.minSampleShading      = 1.f;
-    multiSamplingCreateInfo.pSampleMask           = nullptr;
-    multiSamplingCreateInfo.alphaToCoverageEnable = VK_FALSE;
-    multiSamplingCreateInfo.alphaToOneEnable      = VK_FALSE;
+    VkPipelineMultisampleStateCreateInfo multiSamplingCreateInfo
+    { 
+        .sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT,
+        .sampleShadingEnable   = VK_FALSE,
+        .minSampleShading      = 1.f,
+        .pSampleMask           = nullptr,
+        .alphaToCoverageEnable = VK_FALSE,
+        .alphaToOneEnable      = VK_FALSE,
+    };
 
     //-------------------------------------------------------------
     // Color Blend State
     //-------------------------------------------------------------
 
     // TODO: Implement Color blending
-    VkPipelineColorBlendAttachmentState colorBlendAttachment{  };
+    VkPipelineColorBlendAttachmentState colorBlendAttachment{};
     colorBlendAttachment.blendEnable         = VK_TRUE;
     colorBlendAttachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     colorBlendAttachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -249,8 +261,9 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
 
     std::vector<VkVertexInputBindingDescription> bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-    auto& vertexShaderLayout = vertexShader->attributeLayout();
-    for (const auto& info : std::span(vertexShaderLayout.pInputAttributeBindingInfos, vertexShaderLayout.inputAttributeBindingInfoCount))
+    auto& vertexShaderLayout = vertexShader->layout();
+    for (const auto& info : std::span(vertexShaderLayout.inputAttributeLayout.pAttributeBindingInfos, 
+                                      vertexShaderLayout.inputAttributeLayout.attributeBindingInfoCount))
     {
         auto& bindingDescription     = bindingDescriptions.emplace_back();
         bindingDescription.binding   = info.location;
@@ -264,11 +277,14 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
         attributeDescription.offset   = 0;
     }
 
-    VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
-    vertexInputCreateInfo.vertexBindingDescriptionCount   = static_cast<uint32_t>(bindingDescriptions.size());
-    vertexInputCreateInfo.pVertexBindingDescriptions      = bindingDescriptions.data();
-    vertexInputCreateInfo.vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size());
-    vertexInputCreateInfo.pVertexAttributeDescriptions    = attributeDescriptions.data();
+    VkPipelineVertexInputStateCreateInfo vertexInputCreateInfo
+    {   
+        .sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexBindingDescriptionCount   = static_cast<uint32_t>(bindingDescriptions.size()),
+        .pVertexBindingDescriptions      = bindingDescriptions.data(),
+        .vertexAttributeDescriptionCount = static_cast<uint32_t>(attributeDescriptions.size()),
+        .pVertexAttributeDescriptions    = attributeDescriptions.data(),
+    };
 
     //-------------------------------------------------------------
     // Dynamic State
@@ -286,17 +302,23 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
         dynamicStates.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE);
     }
 
-    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
-    dynamicStateCreateInfo.pDynamicStates = dynamicStates.data();
-    dynamicStateCreateInfo.dynamicStateCount = static_cast<uint32_t>(dynamicStates.size());
+    VkPipelineDynamicStateCreateInfo dynamicStateCreateInfo
+    { 
+        .sType             = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = static_cast<uint32_t>(dynamicStates.size()),
+        .pDynamicStates    = dynamicStates.data(),
+    };
 
     //-------------------------------------------------------------
     // Input Assembly State
     //-------------------------------------------------------------
 
-    VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-    inputAssemblyCreateInfo.primitiveRestartEnable = VK_FALSE;
-    inputAssemblyCreateInfo.topology               = ::convert(config.topology);
+    VkPipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo
+    { 
+        .sType                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .topology               = ::convert(config.topology),
+        .primitiveRestartEnable = VK_FALSE,
+    };
 
     //-------------------------------------------------------------
     // Rendering State
@@ -313,85 +335,120 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
     {
         depthStencilFormat = Coral::Vulkan::convert(config.framebufferLayout.depthStencilAttachment->format);
     }
-    VkPipelineRenderingCreateInfo renderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
-    renderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colorAttachments.size());
-    renderingCreateInfo.pColorAttachmentFormats = colorAttachments.data();
-    renderingCreateInfo.depthAttachmentFormat   = depthStencilFormat;
-    renderingCreateInfo.stencilAttachmentFormat = depthStencilFormat;
+
+    VkPipelineRenderingCreateInfo renderingCreateInfo
+    { 
+        .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+        .colorAttachmentCount    = static_cast<uint32_t>(colorAttachments.size()),
+        .pColorAttachmentFormats = colorAttachments.data(),
+        .depthAttachmentFormat   = depthStencilFormat,
+        .stencilAttachmentFormat = depthStencilFormat,
+    };
 
     //-------------------------------------------------------------
     // Descriptor Set Layout
     //-------------------------------------------------------------
 
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    struct DescriptorSetData
+    {
+        uint32_t set{ 0 };
+        std::vector<VkDescriptorSetLayoutBinding> bindings;
+    };
 
-    std::unordered_map<uint32_t, size_t> visited;
+    std::unordered_map<uint32_t, DescriptorSetData> sets;
+
     for (auto shader : config.shaderModules)
     {
-        auto stage   = ::convert(shader->shaderStage());
-        auto& layout = shader->descriptorLayout();
-
-        for (const auto& info : std::span(layout.pDescriptorInfos, layout.descriptorInfosCount))
+        auto stage  = ::convert(shader->shaderStage());
+        auto layout = shader->layout();
+        for (const auto& set : std::span(layout.pDescriptorSetLayouts, 
+                                         layout.descriptorSetLayoutCount))
         {
-            if (!visited.emplace(info.binding, bindings.size()).second)
-            {
-                continue;
-            }
+            auto& resolved = sets[set.set];
+            resolved.set   = set.set;
 
-            auto& binding           = bindings.emplace_back();
-            binding.binding         = info.binding;
-            binding.descriptorCount = 1;
-            binding.stageFlags      = VK_SHADER_STAGE_ALL;
-            binding.descriptorType  = ::convert(info.type);
+            for (const auto& info : std::span(set.pDescriptorInfos, set.descriptorInfoCount))
+            { 
+                if (std::ranges::contains(resolved.bindings, info.binding, &VkDescriptorSetLayoutBinding::binding))
+                {
+                    continue;
+                }
+
+                auto& binding = resolved.bindings.emplace_back();
+                binding.binding         = info.binding;
+                binding.descriptorCount = 1;
+                binding.stageFlags      = VK_SHADER_STAGE_ALL;
+                binding.descriptorType  = ::convert(info.type);
+            }
         }
     }
 
-    VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-    descriptorSetLayoutCreateInfo.pBindings    = bindings.data();
-    descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-    //descriptorSetLayoutCreateInfo.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
-
-    VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
-    if (vkCreateDescriptorSetLayout(context().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &mDescriptorSetLayout) != VK_SUCCESS)
+    std::vector<VkDescriptorSetLayout> layouts;
+    for (const auto& [_, set] : sets)
     {
-        return PipelineState::CreateError::INTERNAL_ERROR;
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        descriptorSetLayoutCreateInfo.pBindings    = set.bindings.data();
+        descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(set.bindings.size());
+        //descriptorSetLayoutCreateInfo.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+
+        auto& vkSet = layouts.emplace_back(VK_NULL_HANDLE);
+        if (vkCreateDescriptorSetLayout(context().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &vkSet) != VK_SUCCESS)
+        {
+            return GraphicsPipeline::CreateError::INTERNAL_ERROR;
+        }
     }
+
+    Finally destroyLayouts([&]
+    {
+        for (auto layout : layouts)
+        {
+            if (layout != VK_NULL_HANDLE)
+            {
+                vkDestroyDescriptorSetLayout(context().getVkDevice(), layout, nullptr);
+            }
+        }
+    });
 
     //-------------------------------------------------------------
     // Pipeline Layout 
     //-------------------------------------------------------------
 
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
-    pipelineLayoutCreateInfo.setLayoutCount = 1;
-    pipelineLayoutCreateInfo.pSetLayouts    = &mDescriptorSetLayout;
+    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo
+    {
+        .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO ,
+        .setLayoutCount = static_cast<uint32_t>(layouts.size()),
+        .pSetLayouts    = layouts.data(),
+    };
 
     if (vkCreatePipelineLayout(context().getVkDevice(), &pipelineLayoutCreateInfo, nullptr, &mPipelineLayout) != VK_SUCCESS)
     {
-        return PipelineState::CreateError::INTERNAL_ERROR;
+        return GraphicsPipeline::CreateError::INTERNAL_ERROR;
     }
 
     //-------------------------------------------------------------
     // Create Graphics Pipeline
     //-------------------------------------------------------------
 
-    VkGraphicsPipelineCreateInfo createInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-    createInfo.stageCount        = static_cast<uint32_t>(shaderStages.size());
-    createInfo.pStages           = shaderStages.data();
-    createInfo.pDynamicState     = &dynamicStateCreateInfo;
-    createInfo.pVertexInputState = &vertexInputCreateInfo;
-
-    createInfo.pRasterizationState = &rasterizationCreateInfo;
-    createInfo.pDepthStencilState  = &depthStencilCreateInfo;
-    createInfo.pViewportState      = &viewportCreateInfo;
-    createInfo.pMultisampleState   = &multiSamplingCreateInfo;
-    createInfo.pColorBlendState    = &colorBlendCreateInfo;
-    createInfo.pInputAssemblyState = &inputAssemblyCreateInfo;
-    createInfo.layout              = mPipelineLayout;
-    createInfo.pNext               = &renderingCreateInfo;
+    VkGraphicsPipelineCreateInfo createInfo
+    { 
+        .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .pNext               = &renderingCreateInfo,
+        .stageCount          = static_cast<uint32_t>(shaderStages.size()),
+        .pStages             = shaderStages.data(),
+        .pVertexInputState   = &vertexInputCreateInfo,
+        .pInputAssemblyState = &inputAssemblyCreateInfo,
+        .pViewportState      = &viewportCreateInfo,
+        .pRasterizationState = &rasterizationCreateInfo,
+        .pMultisampleState   = &multiSamplingCreateInfo,
+        .pDepthStencilState  = &depthStencilCreateInfo,
+        .pColorBlendState    = &colorBlendCreateInfo,
+        .pDynamicState       = &dynamicStateCreateInfo,
+        .layout              = mPipelineLayout,
+    };
 
     if (vkCreateGraphicsPipelines(context().getVkDevice(), VK_NULL_HANDLE, 1, &createInfo, nullptr, &mPipeline) != VK_SUCCESS)
     {
-        return PipelineState::CreateError::INTERNAL_ERROR;
+        return GraphicsPipeline::CreateError::INTERNAL_ERROR;
     }
 
     return {};
@@ -399,21 +456,14 @@ PipelineStateImpl::init(const Coral::PipelineState::CreateConfig& config)
 
 
 VkPipeline
-PipelineStateImpl::getVkPipeline()
+GraphicsPipelineImpl::getVkPipeline()
 {
     return mPipeline;
 }
 
 
-std::span<VkDescriptorSetLayout>
-PipelineStateImpl::getVkDescriptorSetLayouts()
-{
-    return { &mDescriptorSetLayout, 1 };
-}
-
-
 VkPipelineLayout
-PipelineStateImpl::getVkPipelineLayout()
+GraphicsPipelineImpl::getVkPipelineLayout()
 {
     return mPipelineLayout;
 }

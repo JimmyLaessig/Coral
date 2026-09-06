@@ -1,5 +1,5 @@
-#ifndef CORAL_PIPELINESTATE_H
-#define CORAL_PIPELINESTATE_H
+#ifndef CORAL_GraphicsPipeline_H
+#define CORAL_GraphicsPipeline_H
 
 #include <Coral/Export.h>
 
@@ -202,14 +202,14 @@ typedef struct
 
     ///
     CoTopology topology;
-} CoPipelineStateCreateConfig;
+} CoGraphicsPipelineCreateConfig;
 
-struct CoPipelineState_T;
+struct CoGraphicsPipeline_T;
 
-typedef CoPipelineState_T* CoPipelineState;
+typedef CoGraphicsPipeline_T* CoGraphicsPipeline;
 
-CORAL_API CoResult coContextCreatePipelineState(CoContext context, const CoPipelineStateCreateConfig* pConfig, CoPipelineState* pPipelineState);
+CORAL_API CoResult coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreateConfig* pConfig, CoGraphicsPipeline* pGraphicsPipeline);
 
-CORAL_API void coDestroyPipelineState(CoPipelineState pipelineState);
+CORAL_API void coDestroyGraphicsPipeline(CoGraphicsPipeline GraphicsPipeline);
 
-#endif // !CORAL_PIPELINESTATE_H
+#endif // !CORAL_GraphicsPipeline_H

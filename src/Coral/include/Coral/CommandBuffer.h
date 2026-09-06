@@ -4,7 +4,7 @@
 #include <Coral/CommandQueue.h>
 #include <Coral/Image.h>
 #include <Coral/Buffer.h>
-#include <Coral/PipelineState.h>
+#include <Coral/GraphicsPipeline.h>
 #include <Coral/Sampler.h>
 
 #include <Coral/DescriptorSet.h>
@@ -237,7 +237,7 @@ CORAL_API CoResult coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer
 CORAL_API CoResult coCommandBufferBindIndexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, CoIndexFormat format, size_t offset);
 
 /// Bind the graphics pipeline to the command buffer
-CORAL_API CoResult coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, CoPipelineState pipeline);
+CORAL_API CoResult coCommandBufferBindPipeline(CoCommandBuffer commandBuffer, CoGraphicsPipeline pipeline);
 
 ///
 CORAL_API CoResult coCommandBufferSetViewport(CoCommandBuffer commandBuffer, const CoViewportInfo* info);

@@ -24,8 +24,6 @@ public:
 
 private:
 
-    bool initializeBindings();
-
     CoContext mContext;
 
     CoBuffer mCameraParams;
@@ -33,16 +31,7 @@ private:
 
     Coral::ShaderModulePtr mVertexShader;
     Coral::ShaderModulePtr mFragmentShader;
-    Coral::PipelineStatePtr mPipelineState;
-
-    struct
-    {
-        uint32_t cameraParams;
-        uint32_t drawParams;
-        uint32_t instanceParams;
-        uint32_t lightParams;
-        uint32_t baseColorTexture;
-    } mBindings;
+    Coral::GraphicsPipelinePtr mGraphicsPipeline;
 
     struct DrawBatch
     {

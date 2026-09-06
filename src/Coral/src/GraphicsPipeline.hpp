@@ -1,21 +1,18 @@
-#ifndef CORAL_PIPELINESTATE_HPP
-#define CORAL_PIPELINESTATE_HPP
+#ifndef CORAL_GRAPHICSPIPELINE_HPP
+#define CORAL_GRAPHICSPIPELINE_HPP
 
-#include <Coral/PipelineState.h>
+#include <Coral/GraphicsPipeline.h>
 
 #include "CoralFwd.hpp"
 #include "Framebuffer.hpp"
 
-#include <cstdint>
-
 #include <vector>
-
 
 namespace Coral
 {
 
 ///
-class CORAL_API PipelineState
+class CORAL_API GraphicsPipeline
 {
 public:
 
@@ -59,14 +56,14 @@ public:
         INTERNAL_ERROR
     };
 
-    virtual ~PipelineState() = default;
+    virtual ~GraphicsPipeline() = default;
 };
 
 } // namespace Coral
 
-struct CoPipelineState_T
+struct CoGraphicsPipeline_T
 {
-    std::shared_ptr<Coral::PipelineState> impl;
+    std::shared_ptr<Coral::GraphicsPipeline> impl;
 };
 
-#endif // !CORAL_PIPELINESTATE_HPP
+#endif // !CORAL_GRAPHICSPIPELINE_HPP

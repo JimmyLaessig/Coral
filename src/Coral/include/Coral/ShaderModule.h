@@ -72,6 +72,7 @@ typedef enum
     CO_MATRIX_LAYOUT_COLUMN_MAJOR,
 
 } CoMatrixLayout;
+
 /*!
  *
  */
@@ -174,7 +175,7 @@ typedef struct
     uint32_t columnCount;
 
     /*!
-     * The distance between the start of two consecutive rows/columnms the matrix in bytes. Only valid if count > 1
+     * The distance between the start of two consecutive rows/columns the matrix in bytes.
      */
     uint32_t stride;
 
@@ -185,6 +186,9 @@ typedef struct
 
 } CoMatrixInfo;
 
+/*!
+ * Structure containing information about an array
+ */
 typedef struct
 {
     /*!
@@ -245,7 +249,7 @@ typedef uint32_t CoStructMemberTypeFlags;
 struct CoStructMemberInfo
 {
     /*!
-     * The name of the value
+     * Null-terminated string containing the name of the value
      */
     const char* pName;
 
@@ -296,7 +300,7 @@ struct CoStructMemberInfo
 };
 
 /*!
- * Description of a storage buffer
+ * Structure specifying a buffer descriptor
  */
 typedef struct
 {
@@ -368,56 +372,75 @@ typedef struct
     /*!
      * Number of elements in the descriptorInfos array
      */
-    uint32_t descriptorInfosCount;
-} CoDescriptorLayout;
+    uint32_t descriptorInfoCount;
+
+    /*!
+     * The index of the Descriptor Set
+     */
+    uint32_t set;
+
+} CoDescriptorSetLayout;
 
 typedef struct
 {
     /*!
-     * Pointer to an array of CoAttributeBindingInfo structurres that describe the input attributes of the shader module
+     * Pointer to an array of CoAttributeBindingInfo structurres that describe
+     * the input attributes of the shader module
      */
-    const CoAttributeBindingInfo* pInputAttributeBindingInfos;
+    const CoAttributeBindingInfo* pAttributeBindingInfos;
 
     /*!
      * Number of elements in the inputAttributeBindingInfos array
      */
-    uint32_t inputAttributeBindingInfoCount;
-
-    /*!
-     * Pointer to an array of CoAttributeBindingInfo structures that describe the output attributes of the shader module
-     */
-    const CoAttributeBindingInfo* pOutputAttributeBindingInfos;
-
-    /*!
-     * Number of elements in the outputAttributeBindingInfos array
-     */
-    uint32_t outputAttributeBindingInfoCount;
+    uint32_t attributeBindingInfoCount;
 
 } CoAttributeLayout;
+
+/*!
+ * Structure containing the attribute and descriptor layout information of the
+ * ShaderModule
+ */
+typedef struct
+{
+    CoAttributeLayout inputAttributeLayout;
+
+    CoAttributeLayout outputAttributeLayout;
+
+    /*!
+     * Pointer to an array of CoDescriptorSetLayout structures that describe
+     * the layout of each individual descriptor set of the shader module
+     */
+    const CoDescriptorSetLayout* pDescriptorSetLayouts;
+
+    /*!
+     * Number of elements in the pDescriptorSetLayouts array
+     */
+    uint32_t descriptorSetLayoutCount;
+
+} CoShaderModuleLayout;
 
 struct CoShaderModule_T;
 
 typedef CoShaderModule_T* CoShaderModule;
 
+/*!
+ *
+ */
 CORAL_API CoResult coContextCreateShaderModule(CoContext context, 
                                                const CoShaderModuleCreateConfig* pConfig, 
                                                CoShaderModule* pShaderModule);
 
+/*!
+ * \brief Destroy the shader module object
+ * \param shaderModule Handle to a CoShaderModule object to destroy
+ */
 CORAL_API void coDestroyShaderModule(CoShaderModule shaderModule);
 
-
 /*!
- * \brief Get the descriptor layout of the shader module
+ * \brief Get the layout of the shader module
  * \param shaderModule The shader module to get the descriptor layout from
- * \param pLayout Pointer to a CoDescriptorLayout structure that will be filled with the descriptor layout of the shader module
+ * \param pLayout Pointer to a CoShaderModuleLayout structure that will be filled with the layout information of the shader module
  */
-CORAL_API void coShaderModuleGetDescriptorLayout(const CoShaderModule shaderModule, CoDescriptorLayout* pLayout);
-
-/*!
- * \brief Get the descriptor layout of the shader module
- * \param shaderModule The shader module to get the descriptor layout from
- * \param pLayout Pointer to a CoDescriptorLayout structure that will be filled with the descriptor layout of the shader module
- */
-CORAL_API void coShaderModuleGetAttributeLayout(const CoShaderModule shaderModule, CoDescriptorLayout* pLayout);
+CORAL_API void coShaderModuleGetLayout(const CoShaderModule shaderModule, CoShaderModuleLayout* pLayout);
 
 #endif // !CORAL_SHADERMODULE_H

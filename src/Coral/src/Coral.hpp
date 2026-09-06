@@ -8,7 +8,7 @@
 #include <Coral/Fence.hpp"
 #include <Coral/Framebuffer.hpp"
 #include <Coral/Image.hpp"
-#include <Coral/PipelineState.hpp"
+#include <Coral/GraphicsPipeline.hpp"
 #include <Coral/Sampler.hpp"
 #include <Coral/Semaphore.hpp"
 #include <Coral/ShaderModule.hpp"

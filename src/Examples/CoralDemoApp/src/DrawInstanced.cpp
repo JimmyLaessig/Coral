@@ -58,36 +58,31 @@ DrawInstanced::initialize(CoContext context, const Scene& scene)
     std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
     CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
 
-    CoPipelineStateCreateConfig pipelineStateConfig{};
-    pipelineStateConfig.vertexShaderModule   = mVertexShader.get();
-    pipelineStateConfig.fragmentShaderModule = mFragmentShader.get();
+    CoGraphicsPipelineCreateConfig GraphicsPipelineConfig{};
+    GraphicsPipelineConfig.vertexShaderModule   = mVertexShader.get();
+    GraphicsPipelineConfig.fragmentShaderModule = mFragmentShader.get();
 
-    pipelineStateConfig.polygonMode                 = CO_POLYGON_MODE_SOLID;
-    pipelineStateConfig.topology                    = CO_TOPOLOGY_TRIANGLE_LIST;
-    pipelineStateConfig.faceCullingMode.cullMode    = CO_CULL_MODE_BACK;
-    pipelineStateConfig.faceCullingMode.orientation = CO_FRONT_FACE_ORIENTATION_CCW;
+    GraphicsPipelineConfig.polygonMode                 = CO_POLYGON_MODE_SOLID;
+    GraphicsPipelineConfig.topology                    = CO_TOPOLOGY_TRIANGLE_LIST;
+    GraphicsPipelineConfig.faceCullingMode.cullMode    = CO_CULL_MODE_BACK;
+    GraphicsPipelineConfig.faceCullingMode.orientation = CO_FRONT_FACE_ORIENTATION_CCW;
 
-    pipelineStateConfig.depthTestMode.writeDepth           = true;
-    pipelineStateConfig.depthTestMode.compareOp            = CO_COMPARE_OP_LESS;
-    pipelineStateConfig.depthTestMode.polygonOffset.factor = 0.f;
-    pipelineStateConfig.depthTestMode.polygonOffset.units  = 0.f;
+    GraphicsPipelineConfig.depthTestMode.writeDepth           = true;
+    GraphicsPipelineConfig.depthTestMode.compareOp            = CO_COMPARE_OP_LESS;
+    GraphicsPipelineConfig.depthTestMode.polygonOffset.factor = 0.f;
+    GraphicsPipelineConfig.depthTestMode.polygonOffset.units  = 0.f;
 
-    pipelineStateConfig.blendMode.blendOp    = CO_BLEND_OP_ADD;
-    pipelineStateConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
-    pipelineStateConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
+    GraphicsPipelineConfig.blendMode.blendOp    = CO_BLEND_OP_ADD;
+    GraphicsPipelineConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
+    GraphicsPipelineConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
 
-    pipelineStateConfig.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
-    pipelineStateConfig.framebufferLayout.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
-    pipelineStateConfig.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
+    GraphicsPipelineConfig.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
+    GraphicsPipelineConfig.framebufferLayout.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
+    GraphicsPipelineConfig.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
 
-    if (coContextCreatePipelineState(context, &pipelineStateConfig, std::out_ptr(mPipelineState)) != CO_SUCCESS)
+    if (coContextCreateGraphicsPipeline(context, &GraphicsPipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
-    }
-
-    if (!initializeBindings())
-    {
-        return false;
     }
 
     using Key   = std::pair<std::shared_ptr<const Util::Mesh>, std::shared_ptr<const Util::Material>>;
@@ -129,28 +124,28 @@ DrawInstanced::initialize(CoContext context, const Scene& scene)
         {
             CoDescriptorBinding
             {
-                .binding = mBindings.cameraParams,
+                .binding = 0,
                 .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                 .buffer  = mCameraParams,
             },
 
             CoDescriptorBinding
             {
-                .binding = mBindings.instanceParams,
+                .binding = 1,
                 .type    = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                 .buffer  = batch.instanceParamsBuffer.get(),
             },
 
             CoDescriptorBinding
             {
-                .binding = mBindings.lightParams,
+                .binding = 2,
                 .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                 .buffer  = mLightParams,
             },
 
             CoDescriptorBinding
             {
-                .binding              = mBindings.baseColorTexture,
+                .binding              = 3,
                 .type                 = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                 .combinedImageSampler = {
                     .image   = batch.material->mBaseColorTexture.mImage.get(),
@@ -177,52 +172,10 @@ DrawInstanced::initialize(CoContext context, const Scene& scene)
 }
 
 
-bool
-DrawInstanced::initializeBindings()
-{
-    CoDescriptorLayout layout;
-    coShaderModuleGetDescriptorLayout(mVertexShader.get(), &layout);
-    std::span<const CoDescriptorInfo> vertexDescriptors(layout.pDescriptorInfos, layout.descriptorInfosCount);
-
-    auto iter = std::ranges::find_if(vertexDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("cameraParams"); });
-    if (iter == vertexDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.cameraParams = iter->binding;
-
-    iter = std::ranges::find_if(vertexDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("instanceParams"); });
-    if (iter == vertexDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.instanceParams = iter->binding;
-
-    coShaderModuleGetDescriptorLayout(mFragmentShader.get(), &layout);
-    std::span<const CoDescriptorInfo> fragmentDescriptors(layout.pDescriptorInfos, layout.descriptorInfosCount);
-
-    iter = std::ranges::find_if(fragmentDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("lightParams"); });
-    if (iter == fragmentDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.lightParams = iter->binding;
-
-    iter = std::ranges::find_if(fragmentDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("baseColorTexture"); });
-    if (iter == fragmentDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.baseColorTexture = iter->binding;
-
-    return true;
-}
-
-
 void
 DrawInstanced::draw(CoCommandBuffer commandBuffer)
 {
-    coCommandBufferBindPipeline(commandBuffer, mPipelineState.get());
+    coCommandBufferBindPipeline(commandBuffer, mGraphicsPipeline.get());
     for (auto& batch : mDrawBatches)
     {
         coCommandBufferBindIndexBuffer(commandBuffer, batch.mesh ->mIndexBuffer.get(), batch.mesh->mIndexFormat, 0);
