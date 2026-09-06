@@ -85,12 +85,12 @@ inline auto destroyShaderModule = [](CoShaderModule shaderModule)
 using ShaderModulePtr = std::unique_ptr<CoShaderModule_T, decltype(destroyShaderModule)>;
 
 
-inline auto destroyPipelineState = [](CoPipelineState pipelineState)
+inline auto destroyGraphicsPipeline = [](CoGraphicsPipeline GraphicsPipeline)
 {
-    coDestroyPipelineState(pipelineState);
+    coDestroyGraphicsPipeline(GraphicsPipeline);
 };
 
-using PipelineStatePtr = std::unique_ptr<CoPipelineState_T, decltype(destroyPipelineState)>;
+using GraphicsPipelinePtr = std::unique_ptr<CoGraphicsPipeline_T, decltype(destroyGraphicsPipeline)>;
 
 } // namespace Coral
 

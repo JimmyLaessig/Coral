@@ -1,6 +1,6 @@
-#include <Coral/PipelineState.h>
+#include <Coral/GraphicsPipeline.h>
 
-#include "PipelineState.hpp"
+#include "GraphicsPipeline.hpp"
 #include "Context.hpp"
 #include "ShaderModule.hpp"
 
@@ -10,9 +10,9 @@ using namespace Coral;
 
 
 CoResult
-coContextCreatePipelineState(CoContext context, const CoPipelineStateCreateConfig* pConfig, CoPipelineState* pPipelineState)
+coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreateConfig* pConfig, CoGraphicsPipeline* pGraphicsPipeline)
 {
-    PipelineState::CreateConfig configImpl;
+    GraphicsPipeline::CreateConfig configImpl;
     configImpl.blendMode       = pConfig->blendMode;
     configImpl.depthTestMode   = pConfig->depthTestMode;
     configImpl.faceCullingMode = pConfig->faceCullingMode;
@@ -40,9 +40,9 @@ coContextCreatePipelineState(CoContext context, const CoPipelineStateCreateConfi
         configImpl.framebufferLayout.depthStencilAttachment = *pConfig->framebufferLayout.depthStencilAttachment;
     }
 
-    if (auto impl = context->impl->createPipelineState(configImpl))
+    if (auto impl = context->impl->createGraphicsPipeline(configImpl))
     {
-        *pPipelineState = new CoPipelineState_T{ impl.value() };
+        *pGraphicsPipeline = new CoGraphicsPipeline_T{ impl.value() };
         return CO_SUCCESS;
     }
     else
@@ -53,7 +53,7 @@ coContextCreatePipelineState(CoContext context, const CoPipelineStateCreateConfi
 
 
 void
-coDestroyPipelineState(CoPipelineState pipelineState)
+coDestroyGraphicsPipeline(CoGraphicsPipeline GraphicsPipeline)
 {
-    delete pipelineState;
+    delete GraphicsPipeline;
 }

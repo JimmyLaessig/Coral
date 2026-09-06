@@ -36,14 +36,12 @@ public:
     void drawOptimized(CoCommandBuffer commandBuffer);
 
 private:
-    
-    bool initializeBindings();
 
     CoContext mContext;
 
     Coral::ShaderModulePtr mVertexShader;
     Coral::ShaderModulePtr mFragmentShader;
-    Coral::PipelineStatePtr mPipelineState;
+    Coral::GraphicsPipelinePtr mGraphicsPipeline;
 
     CoBuffer mCameraParams;
     CoBuffer mLightParams;
@@ -62,15 +60,6 @@ private:
     };
 
     std::vector<DrawBatch> mBatches;
-
-    struct
-    {
-        uint32_t cameraParams;
-        uint32_t instanceParams;
-        uint32_t lightParams;
-        uint32_t baseColorTexture;
-    } mBindings;
-
 
 }; // class DrawIndexed
 

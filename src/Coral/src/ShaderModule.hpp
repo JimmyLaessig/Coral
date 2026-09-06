@@ -31,11 +31,8 @@ public:
     /// Get the entry point of the shader module
     virtual const std::string& entryPoint() const = 0;
 
-    /// Get the descriptor layout of the shader module
-    virtual const CoDescriptorLayout& descriptorLayout() const = 0;
-
-    /// Get the attribute layout of the shader module
-    virtual const CoAttributeLayout& attributeLayout() const = 0;
+    /// Get the layout of the shader module
+    virtual const CoShaderModuleLayout& layout() const = 0;
 
 }; // class ShaderModule
 

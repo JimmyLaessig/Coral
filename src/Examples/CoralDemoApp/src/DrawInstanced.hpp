@@ -24,8 +24,6 @@ public:
 
 private:
 
-    bool initializeBindings();
-
     CoContext mContext;
 
     CoBuffer mCameraParams;
@@ -33,7 +31,7 @@ private:
 
     Coral::ShaderModulePtr mVertexShader;
     Coral::ShaderModulePtr mFragmentShader;
-    Coral::PipelineStatePtr mPipelineState;
+    Coral::GraphicsPipelinePtr mGraphicsPipeline;
 
     struct DrawBatch
     {
@@ -46,13 +44,6 @@ private:
 
     std::vector<DrawBatch> mDrawBatches;
 
-    struct
-    {
-        uint32_t cameraParams;
-        uint32_t instanceParams;
-        uint32_t lightParams;
-        uint32_t baseColorTexture;
-    } mBindings;
 }; // class DrawInstanced
 
 #endif // !DRAWINSTANCED_HPP

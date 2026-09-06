@@ -8,7 +8,7 @@
 #include "Fence.hpp"
 #include "Framebuffer.hpp"
 #include "Image.hpp"
-#include "PipelineState.hpp"
+#include "GraphicsPipeline.hpp"
 #include "Sampler.hpp"
 #include "Semaphore.hpp"
 #include "ShaderModule.hpp"
@@ -31,7 +31,7 @@ class CommandQueue;
 class Fence;
 class Framebuffer;
 class Image;
-class PipelineState;
+class GraphicsPipeline;
 class Sampler;
 class Semaphore;
 class Swapchain;
@@ -43,7 +43,7 @@ using CommandBufferPtr = std::shared_ptr<CommandBuffer>;
 using FencePtr         = std::shared_ptr<Fence>;
 using FramebufferPtr   = std::shared_ptr<Framebuffer>;
 using ImagePtr         = std::shared_ptr<Image>;
-using PipelineStatePtr = std::shared_ptr<PipelineState>;
+using GraphicsPipelinePtr = std::shared_ptr<GraphicsPipeline>;
 using SamplerPtr       = std::shared_ptr<Sampler>;
 using SemaphorePtr     = std::shared_ptr<Semaphore>;
 using SwapchainPtr     = std::shared_ptr<Swapchain>;
@@ -92,8 +92,8 @@ public:
     /// Create a new Image object
     virtual std::expected<Coral::ImagePtr, Coral::Image::CreateError> createImage(const Coral::Image::CreateConfig& config) = 0;
 
-    /// Create a new PipelineState object
-    virtual std::expected<Coral::PipelineStatePtr, Coral::PipelineState::CreateError> createPipelineState(const Coral::PipelineState::CreateConfig& config) = 0;
+    /// Create a new GraphicsPipeline object
+    virtual std::expected<Coral::GraphicsPipelinePtr, Coral::GraphicsPipeline::CreateError> createGraphicsPipeline(const Coral::GraphicsPipeline::CreateConfig& config) = 0;
 
     /// Create a new Sampler object
     virtual std::expected<Coral::SamplerPtr, Coral::Sampler::CreateError> createSampler(const Coral::Sampler::CreateConfig& config) = 0;

@@ -91,30 +91,39 @@ destroy(const CoAttributeBindingInfo& attr)
 
 
 void
-destroy(CoDescriptorLayout& layout)
+destroy(const CoDescriptorSetLayout& layout)
 {
-    for (auto& descriptor : std::span(layout.pDescriptorInfos, layout.descriptorInfosCount))
+    for (auto& info : std::span(layout.pDescriptorInfos, layout.descriptorInfoCount))
     {
-        destroy(descriptor);
+        destroy(info);
     }
     delete[] layout.pDescriptorInfos;
 }
 
 
 void
-destroy(CoAttributeLayout& layout)
+destroy(const CoAttributeLayout& layout)
 {
-    for (auto& attr : std::span(layout.pInputAttributeBindingInfos, layout.inputAttributeBindingInfoCount))
+    for (auto& attr : std::span(layout.pAttributeBindingInfos, layout.attributeBindingInfoCount))
     {
         destroy(attr);
     }
-    delete[] layout.pInputAttributeBindingInfos;
+    delete[] layout.pAttributeBindingInfos;
+}
 
-    for (auto& attr : std::span(layout.pOutputAttributeBindingInfos, layout.outputAttributeBindingInfoCount))
+
+void
+destroy(const CoShaderModuleLayout& layout)
+{
+    for (auto set : std::span(layout.pDescriptorSetLayouts, layout.descriptorSetLayoutCount))
     {
-        destroy(attr);
+        destroy(set);
     }
-    delete[] layout.pOutputAttributeBindingInfos;
+
+    delete[] layout.pDescriptorSetLayouts;
+
+    destroy(layout.inputAttributeLayout);
+    destroy(layout.outputAttributeLayout);
 }
 
 
@@ -153,6 +162,13 @@ copy(const char* src)
     std::strcpy(copy, src);
 
     return copy;
+}
+
+
+template<typename T>
+T* allocArray(size_t s)
+{
+    return s > 0 ? new T[s] : nullptr;
 }
 
 
@@ -216,6 +232,7 @@ reflect(const SpvReflectBlockVariable& variable, CoStructMemberInfo& member)
     if (SPV_REFLECT_TYPE_FLAG_STRUCT & variable.type_description->type_flags)
     {
         member.type                  = CO_STRUCT_MEMBER_TYPE_STRUCT;
+        member.structure.pTypeName   = copy(variable.type_description->type_name);
         member.structure.memberCount = variable.member_count;
         auto members                 = new CoStructMemberInfo[member.structure.memberCount];
         member.structure.pMembers    = members;
@@ -329,6 +346,47 @@ reflect(const SpvReflectInterfaceVariable& variable, CoAttributeBindingInfo& inf
     return true;
 }
 
+
+bool
+reflect(const std::vector<SpvReflectInterfaceVariable*>& variables, CoAttributeLayout& layout)
+{
+    auto attributeBindingInfos       = allocArray<CoAttributeBindingInfo>(variables.size());
+    layout.pAttributeBindingInfos    = attributeBindingInfos;
+    layout.attributeBindingInfoCount = static_cast<uint32_t>(variables.size());
+
+    for (auto [var, binding] : std::views::zip(variables, 
+                                               std::span(attributeBindingInfos, variables.size())))
+    {
+        if (!::reflect(*var, binding))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+
+bool
+reflect(const SpvReflectDescriptorSet& set, CoDescriptorSetLayout& layout)
+{
+    auto descriptorInfos = allocArray<CoDescriptorInfo>(set.binding_count);
+    layout               = {
+        .pDescriptorInfos     = descriptorInfos,
+        .descriptorInfoCount = set.binding_count,
+    };
+
+    for (size_t i = 0; i < set.binding_count; ++i)
+    {
+        if (!::reflect(*set.bindings[i], descriptorInfos[i]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
 } // namespace
 
 
@@ -338,6 +396,8 @@ ShaderModuleImpl::~ShaderModuleImpl()
     {
         vkDestroyShaderModule(context().getVkDevice(), mShaderModule, nullptr);
     }
+
+    destroy(mLayout);
 }
 
 
@@ -393,23 +453,13 @@ ShaderModuleImpl::reflect(std::span<const uint32_t> spirvCode)
         spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
     }
 
-    if (!(sets.size() == 1 && sets.front()->set == 0))
-    {
-        return false;
-    }
+    auto descriptorSets              = allocArray<CoDescriptorSetLayout>(sets.size());
+    mLayout.pDescriptorSetLayouts    = descriptorSets,
+    mLayout.descriptorSetLayoutCount = static_cast<uint32_t>(sets.size());
 
-    auto set = sets.front();
-    mDescriptorLayout.descriptorInfosCount = set->binding_count;
-    auto descriptorInfos                   = mDescriptorLayout.descriptorInfosCount ? new CoDescriptorInfo[mDescriptorLayout.descriptorInfosCount] : nullptr;
-    mDescriptorLayout.pDescriptorInfos     = descriptorInfos;
-
-    for (auto [a, b] : std::views::zip(std::span(set->bindings, set->binding_count),
-                                       std::span(descriptorInfos, mDescriptorLayout.descriptorInfosCount)))
+    for (const auto& [spvSet, set] : std::views::zip(sets, std::span(descriptorSets, sets.size())))
     {
-        if (!::reflect(*a, b))
-        {
-            return false;
-        }
+        ::reflect(*spvSet, set);
     }
 
     std::vector<SpvReflectInterfaceVariable*> inputVariables;
@@ -425,18 +475,9 @@ ShaderModuleImpl::reflect(std::span<const uint32_t> spirvCode)
         return v->built_in != -1;
     });
 
-    mAttributeLayout.inputAttributeBindingInfoCount = static_cast<uint32_t>(inputVariables.size());
-    auto inputAttributeBindingInfos                 = mAttributeLayout.inputAttributeBindingInfoCount ? new CoAttributeBindingInfo[mAttributeLayout.inputAttributeBindingInfoCount] : nullptr;
-    mAttributeLayout.pInputAttributeBindingInfos    = inputAttributeBindingInfos;
-
-    for (auto [a, b] : std::views::zip(inputVariables,
-                                       std::span(inputAttributeBindingInfos,
-                                                 mAttributeLayout.inputAttributeBindingInfoCount)))
+    if (!::reflect(inputVariables, mLayout.inputAttributeLayout))
     {
-        if (!::reflect(*a, b))
-        {
-            return false;
-        }
+        return false;
     }
 
     std::vector<SpvReflectInterfaceVariable*> outputVariables;
@@ -446,17 +487,15 @@ ShaderModuleImpl::reflect(std::span<const uint32_t> spirvCode)
         outputVariables.resize(count);
         spvReflectEnumerateOutputVariables(&module, &count, outputVariables.data());
     }
-    mAttributeLayout.outputAttributeBindingInfoCount = static_cast<uint32_t>(outputVariables.size());
-    auto outputAttributeBindingInfos                 = mAttributeLayout.outputAttributeBindingInfoCount ? new CoAttributeBindingInfo[mAttributeLayout.outputAttributeBindingInfoCount] : nullptr;
-    mAttributeLayout.pOutputAttributeBindingInfos    = outputAttributeBindingInfos;
 
-    for (auto [a, b] : std::views::zip(inputVariables,
-                                       std::span(outputAttributeBindingInfos, mAttributeLayout.outputAttributeBindingInfoCount)))
+    std::erase_if(outputVariables, [](const SpvReflectInterfaceVariable* v)
     {
-        if (!::reflect(*a, b))
-        {
-            return false;
-        }
+        return v->built_in != -1;
+    });
+
+    if (!::reflect(outputVariables, mLayout.outputAttributeLayout))
+    {
+        return false;
     }
 
     return true;
@@ -491,15 +530,8 @@ ShaderModuleImpl::getVkShaderModule()
 }
 
 
-const CoDescriptorLayout&
-ShaderModuleImpl::descriptorLayout() const
+const CoShaderModuleLayout&
+ShaderModuleImpl::layout() const
 {
-    return mDescriptorLayout;
-}
-
-
-const CoAttributeLayout&
-ShaderModuleImpl::attributeLayout() const
-{
-    return mAttributeLayout;
+    return mLayout;
 }

@@ -44,7 +44,7 @@ set(PUBLIC_HEADERS
     ${PUBLIC_HEADER_DIR}/Fence.h
     ${PUBLIC_HEADER_DIR}/Framebuffer.h
     ${PUBLIC_HEADER_DIR}/Image.h
-    ${PUBLIC_HEADER_DIR}/PipelineState.h
+    ${PUBLIC_HEADER_DIR}/GraphicsPipeline.h
     ${PUBLIC_HEADER_DIR}/Sampler.h
     ${PUBLIC_HEADER_DIR}/Semaphore.h
     ${PUBLIC_HEADER_DIR}/ShaderModule.h
@@ -66,7 +66,7 @@ set(SOURCES
     ${SOURCE_DIR}/Fence.cpp
     ${SOURCE_DIR}/Framebuffer.cpp
     ${SOURCE_DIR}/Image.cpp
-    ${SOURCE_DIR}/PipelineState.cpp
+    ${SOURCE_DIR}/GraphicsPipeline.cpp
     ${SOURCE_DIR}/Sampler.cpp
     ${SOURCE_DIR}/Semaphore.cpp
     ${SOURCE_DIR}/ShaderModule.cpp
@@ -91,7 +91,7 @@ set(PRIVATE_HEADERS
     ${SOURCE_DIR}/Fence.hpp
     ${SOURCE_DIR}/Framebuffer.hpp
     ${SOURCE_DIR}/Image.hpp
-    ${SOURCE_DIR}/PipelineState.hpp
+    ${SOURCE_DIR}/GraphicsPipeline.hpp
     ${SOURCE_DIR}/Sampler.hpp
     ${SOURCE_DIR}/Semaphore.hpp
     ${SOURCE_DIR}/ShaderModule.hpp
@@ -113,7 +113,7 @@ set(VULKAN_HEADERS
     ${SOURCE_DIR}/Vulkan/FenceImpl.hpp
     ${SOURCE_DIR}/Vulkan/FramebufferImpl.hpp
     ${SOURCE_DIR}/Vulkan/ImageImpl.hpp
-    ${SOURCE_DIR}/Vulkan/PipelineStateImpl.hpp
+    ${SOURCE_DIR}/Vulkan/GraphicsPipelineImpl.hpp
     ${SOURCE_DIR}/Vulkan/SamplerImpl.hpp
     ${SOURCE_DIR}/Vulkan/SemaphoreImpl.hpp
     ${SOURCE_DIR}/Vulkan/ShaderModuleImpl.hpp
@@ -137,7 +137,7 @@ set(VULKAN_SOURCES
     ${SOURCE_DIR}/Vulkan/FenceImpl.cpp
     ${SOURCE_DIR}/Vulkan/FramebufferImpl.cpp
     ${SOURCE_DIR}/Vulkan/ImageImpl.cpp
-    ${SOURCE_DIR}/Vulkan/PipelineStateImpl.cpp
+    ${SOURCE_DIR}/Vulkan/GraphicsPipelineImpl.cpp
     ${SOURCE_DIR}/Vulkan/SamplerImpl.cpp
     ${SOURCE_DIR}/Vulkan/SemaphoreImpl.cpp
     ${SOURCE_DIR}/Vulkan/ShaderModuleImpl.cpp

@@ -216,7 +216,7 @@ ImageImpl::getPreferredImageLayout()
 void
 ImageImpl::cmdTransitionImageLayout(VkCommandBuffer commandBuffer, ImageImpl& image, VkImageLayout layout, 
                                     uint32_t firstMipLevel, uint32_t levelCount, VkAccessFlagBits srcAccessMask,
-                                    VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageFlags, 
+                                    VkAccessFlags dstAccessMask, VkPipelineStageFlags srcStageFlags,
                                     VkPipelineStageFlags dstStageFlags)
 {
     auto& context = image.context();

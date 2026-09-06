@@ -5,7 +5,7 @@
 #include "ContextImpl.hpp"
 #include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
-#include "PipelineStateImpl.hpp"
+#include "GraphicsPipelineImpl.hpp"
 #include "DescriptorSetImpl.hpp"
 
 #include <optional>
@@ -276,14 +276,14 @@ CommandBufferImpl::cmdBindIndexBuffer(Coral::BufferPtr buffer, CoIndexFormat for
 
 
 bool
-CommandBufferImpl::cmdBindPipeline(Coral::PipelineStatePtr pipelineState)
+CommandBufferImpl::cmdBindPipeline(Coral::GraphicsPipelinePtr GraphicsPipeline)
 {
-    mLastBoundPipelineState = std::static_pointer_cast<Coral::Vulkan::PipelineStateImpl>(pipelineState);
-    vkCmdBindPipeline(mCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mLastBoundPipelineState->getVkPipeline());
+    mLastBoundGraphicsPipeline = std::static_pointer_cast<Coral::Vulkan::GraphicsPipelineImpl>(GraphicsPipeline);
+    vkCmdBindPipeline(mCommandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, mLastBoundGraphicsPipeline->getVkPipeline());
 
     if (mRetainReferences)
     {
-       // mRetainedResources.insert(pipelineState);
+       // mRetainedResources.insert(GraphicsPipeline);
     }
 
     return true;
@@ -299,7 +299,7 @@ CommandBufferImpl::cmdBindDescriptorSet(Coral::DescriptorSetPtr descriptorSet, u
 
     if (mRetainReferences)
     {
-        // mRetainedResources.insert(pipelineState);
+        // mRetainedResources.insert(GraphicsPipeline);
     }
 
     return true;
@@ -652,13 +652,13 @@ CommandBufferImpl::cmdGenerateMipMaps(Coral::ImagePtr image)
 void
 CommandBufferImpl::cmdBindCachedDescriptorSets()
 {
-    if (!mLastBoundPipelineState)
+    if (!mLastBoundGraphicsPipeline)
     {
         return;
     }
 
-    auto layout       = mLastBoundPipelineState->getVkPipelineLayout();
-    auto bindingPoint = mLastBoundPipelineState->getVkPipelineBindingPoint();
+    auto layout       = mLastBoundGraphicsPipeline->getVkPipelineLayout();
+    auto bindingPoint = mLastBoundGraphicsPipeline->getVkPipelineBindingPoint();
 
     for (auto& [index, descriptorSet] : mCachedDescriptorSets)
     {

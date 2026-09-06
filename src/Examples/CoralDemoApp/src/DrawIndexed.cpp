@@ -53,7 +53,7 @@ DrawIndexed::initialize(CoContext context,
     std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
     CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
 
-    CoPipelineStateCreateConfig pipelineStateConfig
+    CoGraphicsPipelineCreateConfig GraphicsPipelineConfig
     {
         .vertexShaderModule   = mVertexShader.get(),
         .fragmentShaderModule = mFragmentShader.get(),
@@ -84,14 +84,9 @@ DrawIndexed::initialize(CoContext context,
         .topology    = CO_TOPOLOGY_TRIANGLE_LIST,
     };
 
-    if (coContextCreatePipelineState(context, &pipelineStateConfig, std::out_ptr(mPipelineState)) != CO_SUCCESS)
+    if (coContextCreateGraphicsPipeline(context, &GraphicsPipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
-    }
-
-    if (!initializeBindings())
-    {
-        return false;
     }
 
     using Key   = std::pair<std::shared_ptr<const Util::Mesh>, std::shared_ptr<const Util::Material>>;
@@ -103,12 +98,6 @@ DrawIndexed::initialize(CoContext context,
     {
         map[{ ro.mesh, ro.material }].push_back(&ro);
     }
-
-
-    CoDescriptorLayout layout;
-    coShaderModuleGetDescriptorLayout(mVertexShader.get(), &layout);
-    std::span<const CoDescriptorInfo> descriptors(layout.pDescriptorInfos, layout.descriptorInfosCount);
-    auto instanceParamsInfo = std::ranges::find_if(descriptors, [&](const auto& desc) { return desc.binding == mBindings.instanceParams; });
 
     for (const auto& [key, renderObjects] : map)
     {
@@ -122,37 +111,45 @@ DrawIndexed::initialize(CoContext context,
         {
             auto& instanceData = batch.instances.emplace_back();
 
-            Util::UniformBlockBuilder builder(instanceParamsInfo->buffer);
-            builder.set("instanceParams.modelMatrix", r->modelMatrix);
-            builder.set("instanceParams.normalMatrix", glm::inverseTranspose(glm::mat3(r->modelMatrix)));
+            struct InstanceParams
+            {
+                glm::mat4 modelMatrix;
+                glm::mat3x4 normalMatrix;
+            };
 
-            instanceData.instanceParamsBuffer = Util::createUniformBuffer(mContext, builder);
+            InstanceParams p
+            {
+                r->modelMatrix, 
+                glm::inverseTranspose(glm::mat3(r->modelMatrix))
+            };
+
+            instanceData.instanceParamsBuffer = Util::createBuffer(context, std::span{ reinterpret_cast<const std::byte*>(&p), sizeof(p)}, CO_BUFFER_TYPE_UNIFORM);
 
             std::vector<CoDescriptorBinding> descriptorBindings =
             {
                 CoDescriptorBinding
                 {
-                    .binding = mBindings.cameraParams,
+                    .binding = 0,
                     .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .buffer  = mCameraParams,
                 },
 
                 CoDescriptorBinding
                 {
-                    .binding = mBindings.instanceParams,
+                    .binding = 1,
                     .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .buffer  = instanceData.instanceParamsBuffer.get(),
                 },
  
                 CoDescriptorBinding
                 {
-                    .binding = mBindings.lightParams,
+                    .binding = 2,
                     .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .buffer  = mLightParams,
                 },
                 CoDescriptorBinding
                 {
-                    .binding              = mBindings.baseColorTexture,
+                    .binding              = 3,
                     .type                 = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .combinedImageSampler = {
                         .image   = batch.material->mBaseColorTexture.mImage.get(),
@@ -178,52 +175,10 @@ DrawIndexed::initialize(CoContext context,
 }
 
 
-bool
-DrawIndexed::initializeBindings()
-{
-    CoDescriptorLayout layout;
-    coShaderModuleGetDescriptorLayout(mVertexShader.get(), &layout);
-    std::span<const CoDescriptorInfo> vertexDescriptors(layout.pDescriptorInfos, layout.descriptorInfosCount);
-
-    auto iter = std::ranges::find_if(vertexDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("cameraParams"); });
-    if (iter == vertexDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.cameraParams = iter->binding;
-
-    iter = std::ranges::find_if(vertexDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("instanceParams"); });
-    if (iter == vertexDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.instanceParams = iter->binding;
-
-    coShaderModuleGetDescriptorLayout(mFragmentShader.get(), &layout);
-    std::span<const CoDescriptorInfo> fragmentDescriptors(layout.pDescriptorInfos, layout.descriptorInfosCount);
-
-    iter = std::ranges::find_if(fragmentDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("lightParams"); });
-    if (iter == fragmentDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.lightParams = iter->binding;
-
-    iter = std::ranges::find_if(fragmentDescriptors, [](const auto& descriptor) { return descriptor.pName == std::string_view("baseColorTexture"); });
-    if (iter == fragmentDescriptors.end())
-    {
-        return false;
-    }
-    mBindings.baseColorTexture = iter->binding;
-
-    return true;
-}
-
-
 void
 DrawIndexed::drawOptimized(CoCommandBuffer commandBuffer)
 {
-    coCommandBufferBindPipeline(commandBuffer, mPipelineState.get());
+    coCommandBufferBindPipeline(commandBuffer, mGraphicsPipeline.get());
 
     for (const auto& batch : mBatches)
     {
@@ -253,7 +208,7 @@ DrawIndexed::drawOptimized(CoCommandBuffer commandBuffer)
 void
 DrawIndexed::draw(CoCommandBuffer commandBuffer)
 {
-    coCommandBufferBindPipeline(commandBuffer, mPipelineState.get());
+    coCommandBufferBindPipeline(commandBuffer, mGraphicsPipeline.get());
 
     for (const auto& batch : mBatches)
     {

@@ -155,7 +155,7 @@ public:
      * \brief Bind the graphics pipeline to the command buffer
      * \brief pipeline The pipeline to bind
      */
-    virtual bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) = 0;
+    virtual bool cmdBindPipeline(Coral::GraphicsPipelinePtr pipeline) = 0;
 
     /*!
      * \brief Bind the descriptor set at the given index

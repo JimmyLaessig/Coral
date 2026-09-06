@@ -49,7 +49,7 @@ public:
 
     std::expected<Coral::ImagePtr, Coral::Image::CreateError> createImage(const Coral::Image::CreateConfig& config) override;
 
-    std::expected<Coral::PipelineStatePtr, Coral::PipelineState::CreateError> createPipelineState(const Coral::PipelineState::CreateConfig& config) override;
+    std::expected<Coral::GraphicsPipelinePtr, Coral::GraphicsPipeline::CreateError> createGraphicsPipeline(const Coral::GraphicsPipeline::CreateConfig& config) override;
 
     std::expected<Coral::SamplerPtr, Coral::Sampler::CreateError> createSampler(const Coral::Sampler::CreateConfig& config) override;
 

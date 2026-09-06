@@ -47,7 +47,7 @@ public:
 
     bool cmdBindIndexBuffer(Coral::BufferPtr buffer, CoIndexFormat format, size_t offset) override;
 
-    bool cmdBindPipeline(Coral::PipelineStatePtr pipeline) override;
+    bool cmdBindPipeline(Coral::GraphicsPipelinePtr pipeline) override;
 
     bool cmdBindDescriptorSet(Coral::DescriptorSetPtr descriptorSet, uint32_t index)  override;
 
@@ -87,7 +87,7 @@ private:
 
     bool mRetainReferences{ false };
 
-    PipelineStateImplPtr mLastBoundPipelineState{ nullptr };
+    GraphicsPipelineImplPtr mLastBoundGraphicsPipeline{ nullptr };
 
     std::unordered_map<uint32_t, DescriptorSetImplPtr> mCachedDescriptorSets;
 
