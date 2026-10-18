@@ -60,20 +60,20 @@ public:
 
     /*!
      * \brief Allocates a descriptor set from the pool.
-     * \param config The configuration for creating the descriptor set.
+     * \param layout The layout of the descriptor set
+     * \param size The size of the descriptor set
      */
-    std::pair<VkDescriptorSetLayout, VkDescriptorSet> allocateDescriptorSet(const DescriptorSet::CreateConfig& config);
+    VkDescriptorSet allocateDescriptorSet(VkDescriptorSetLayout layout, const DescriptorSetSize& size);
 
     /*!
      * \brief Frees a descriptor set back to the pool.
      * \param descriptorSet The descriptor set to free.
      * \param pool The descriptor pool from which the descriptor set was allocated.
      */
-    void freeDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet descriptorSet);
+    void freeDescriptorSet(VkDescriptorSet descriptorSet);
 
 private:
 
-    VkDescriptorSet allocateDescriptorSet(VkDescriptorSetLayout layout, const DescriptorSetSize& size);
 
     PoolCapacity calculatePoolCapacity(const DescriptorSetSize& minSize);
 

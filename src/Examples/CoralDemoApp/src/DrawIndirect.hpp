@@ -2,6 +2,7 @@
 #define DRAWINDIRECT_HPP
 
 #include "Util.hpp"
+#include "FlyCamera.hpp"
 
 #include "DrawInstanced.hpp"
 
@@ -20,14 +21,16 @@ public:
     bool initialize(CoContext context, 
                     const Scene& scene);
 
-    void draw(CoCommandBuffer commandBuffer);
+    void draw(CoCommandBuffer commandBuffer, const FlyCamera& camera);
 
 private:
 
     CoContext mContext;
 
-    CoBuffer mCameraParams;
-    CoBuffer mLightParams;
+    Util::UniformBlockBuilder mCameraParamsBuilder;
+    Coral::BufferPtr mCameraParams;
+    Util::UniformBlockBuilder mLightParamsBuilder;
+    Coral::BufferPtr mLightParams;
 
     Coral::ShaderModulePtr mVertexShader;
     Coral::ShaderModulePtr mFragmentShader;

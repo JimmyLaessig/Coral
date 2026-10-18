@@ -28,8 +28,6 @@ DrawIndirect::initialize(CoContext context,
                          const Scene& scene)
 {
     mContext      = context;
-    mCameraParams = scene.cameraParams;
-    mLightParams  = scene.lightParams;
 
     if (auto source = Util::compileShader(std::string(Shaders::IndirectShader_slang.begin(), Shaders::IndirectShader_slang.end()), "vertexShader"))
     {
@@ -68,32 +66,50 @@ DrawIndirect::initialize(CoContext context,
     std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
     CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
 
-    CoGraphicsPipelineCreateConfig GraphicsPipelineConfig{};
-    GraphicsPipelineConfig.vertexShaderModule   = mVertexShader.get();
-    GraphicsPipelineConfig.fragmentShaderModule = mFragmentShader.get();
+    CoGraphicsPipelineCreateConfig pipelineConfig{};
+    pipelineConfig.vertexShaderModule   = mVertexShader.get();
+    pipelineConfig.fragmentShaderModule = mFragmentShader.get();
 
-    GraphicsPipelineConfig.polygonMode                 = CO_POLYGON_MODE_SOLID;
-    GraphicsPipelineConfig.topology                    = CO_TOPOLOGY_TRIANGLE_LIST;
-    GraphicsPipelineConfig.faceCullingMode.cullMode    = CO_CULL_MODE_BACK;
-    GraphicsPipelineConfig.faceCullingMode.orientation = CO_FRONT_FACE_ORIENTATION_CCW;
+    pipelineConfig.polygonMode                 = CO_POLYGON_MODE_SOLID;
+    pipelineConfig.topology                    = CO_TOPOLOGY_TRIANGLE_LIST;
+    pipelineConfig.faceCullingMode.cullMode    = CO_CULL_MODE_BACK;
+    pipelineConfig.faceCullingMode.orientation = CO_FRONT_FACE_ORIENTATION_CCW;
 
-    GraphicsPipelineConfig.depthTestMode.writeDepth           = true;
-    GraphicsPipelineConfig.depthTestMode.compareOp            = CO_COMPARE_OP_LESS;
-    GraphicsPipelineConfig.depthTestMode.polygonOffset.factor = 0.f;
-    GraphicsPipelineConfig.depthTestMode.polygonOffset.units  = 0.f;
+    pipelineConfig.depthTestMode.writeDepth           = true;
+    pipelineConfig.depthTestMode.compareOp            = CO_COMPARE_OP_LESS;
+    pipelineConfig.depthTestMode.polygonOffset.factor = 0.f;
+    pipelineConfig.depthTestMode.polygonOffset.units  = 0.f;
 
-    GraphicsPipelineConfig.blendMode.blendOp    = CO_BLEND_OP_ADD;
-    GraphicsPipelineConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
-    GraphicsPipelineConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
+    pipelineConfig.blendMode.blendOp    = CO_BLEND_OP_ADD;
+    pipelineConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
+    pipelineConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
 
-    GraphicsPipelineConfig.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
-    GraphicsPipelineConfig.framebufferLayout.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
-    GraphicsPipelineConfig.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
+    pipelineConfig.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
+    pipelineConfig.framebufferLayout.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
+    pipelineConfig.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
 
-    if (coContextCreateGraphicsPipeline(context, &GraphicsPipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
+    if (coContextCreateGraphicsPipeline(context, &pipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
     {
         return false;
     }
+
+    std::vector<CoDescriptorSetLayout> layouts(coGraphicsPipelineGetDescriptorSetLayoutCount(mGraphicsPipeline.get()));
+    coGraphicsPipelineGetDescriptorSetLayouts(mGraphicsPipeline.get(), layouts.data());
+
+    CoShaderModuleReflectionInfo reflectionInfo{};
+    coShaderModuleReflect(mVertexShader.get(), &reflectionInfo);
+    auto cameraParams    = reflectionInfo.pDescriptorSets[0].pDescriptors[0];
+    mCameraParamsBuilder = Util::UniformBlockBuilder(cameraParams.buffer);
+    mCameraParamsBuilder.set("viewProjectionMatrix", scene.projectionMatrix * scene.viewMatrix);
+    mCameraParams = Util::createUniformBuffer(context, mCameraParamsBuilder);
+
+    coShaderModuleReflect(mFragmentShader.get(), &reflectionInfo);
+    auto lightParams    = reflectionInfo.pDescriptorSets[0].pDescriptors[0];
+    mLightParamsBuilder = Util::UniformBlockBuilder(lightParams.buffer);
+    mLightParamsBuilder.set("lightDirection", scene.lightDirection);
+    mLightParamsBuilder.set("lightColor", scene.lightColor);
+    mLightParamsBuilder.set("ambientColor", scene.ambientColor);
+    mLightParams = Util::createUniformBuffer(context, mLightParamsBuilder);
 
     using Key   = std::shared_ptr<const Util::Material>;
     using Value = std::vector<const RenderObject*>;
@@ -141,36 +157,28 @@ DrawIndirect::initialize(CoContext context,
         batch.drawParamsBuffer     = Util::createBuffer(mContext, std::as_bytes(std::span(drawParams)),           CO_BUFFER_TYPE_STORAGE);
         batch.instanceParamsBuffer = Util::createBuffer(mContext, std::as_bytes(std::span(instanceParams)),       CO_BUFFER_TYPE_STORAGE);
 
-        std::vector<CoDescriptorBinding> descriptorBindings =
+        std::vector<CoBindDescriptor> descriptors =
         {
-            CoDescriptorBinding
             {
                 .binding = 0,
                 .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .buffer  = mCameraParams,
+                .buffer  = mCameraParams.get(),
             },
-
-            CoDescriptorBinding
             {
                 .binding = 1,
                 .type    = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                 .buffer  = batch.drawParamsBuffer.get(),
             },
-
-            CoDescriptorBinding
             {
                 .binding = 2,
                 .type    = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER,
                 .buffer  = batch.instanceParamsBuffer.get(),
             },
-
-            CoDescriptorBinding
             {
                 .binding = 3,
                 .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                .buffer  = mLightParams,
+                .buffer  = mLightParams.get(),
             },
-            CoDescriptorBinding
             {
                 .binding              = 4,
                 .type                 = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
@@ -183,8 +191,9 @@ DrawIndirect::initialize(CoContext context,
 
         CoDescriptorSetCreateConfig descriptorSetConfig
         {
-            .pDescriptorBindings    = descriptorBindings.data(),
-            .descriptorBindingCount = static_cast<uint32_t>(descriptorBindings.size()),
+            .pLayout             = &layouts[0],
+            .pBindDescriptors    = descriptors.data(),
+            .bindDescriptorCount = static_cast<uint32_t>(descriptors.size()),
         };
 
         if (coContextCreateDescriptorSet(mContext, &descriptorSetConfig, std::out_ptr(batch.descriptorSet)) != CO_SUCCESS)
@@ -200,8 +209,11 @@ DrawIndirect::initialize(CoContext context,
 
 
 void
-DrawIndirect::draw(CoCommandBuffer commandBuffer)
+DrawIndirect::draw(CoCommandBuffer commandBuffer, const FlyCamera& camera)
 {
+    mCameraParamsBuilder.set("viewProjectionMatrix", camera.projectionMatrix() * camera.viewMatrix());
+    Util::updateBuffer(mContext, mCameraParams.get(), mCameraParamsBuilder.data());
+
     coCommandBufferBindPipeline(commandBuffer, mGraphicsPipeline.get());
 
     for (auto& batch : mDrawBatches)

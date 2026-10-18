@@ -54,7 +54,7 @@ struct Image
     std::vector<std::byte> data;
     uint32_t width{ 0 };
     uint32_t height{ 0 };
-    CoPixelFormat format{ CO_PIXEL_FORMAT_RGBA8_UI };
+    CoPixelFormat format{ CO_PIXEL_FORMAT_RGBA_U8 };
 };
 
 /*!

@@ -14,6 +14,10 @@ public:
 
     glm::mat4 viewMatrix() const;
 
+    glm::mat4 projectionMatrix() const;
+
+    void setSize(uint32_t width, uint32_t height);
+
 private:
 
     glm::vec3 mVelocity{ 0.f, 0.f, 0.f };
@@ -29,6 +33,13 @@ private:
     float mMouseSensitivity{ 1.f };
 
     const glm::vec3 mWorldUp{ 0.f, 1.f, 0.f };
+
+    float mFov       = glm::radians(65.f);
+    float mNearPlane = 0.01f;
+    float mFarPlane  = 1000.f;
+
+    uint32_t mWidth  = 1024;
+    uint32_t mHeight = 768;
 
 }; // class FlyCamera
 

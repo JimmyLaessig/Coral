@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <vector>
 #include <span>
+#include "../Visitor.hpp"
 
 using namespace Coral::Vulkan;
 
@@ -32,131 +33,158 @@ VkDescriptorType convert(CoDescriptorType type)
 
 DescriptorSetImpl::~DescriptorSetImpl()
 {
+    if (mLayout != VK_NULL_HANDLE)
+    {
+        vkDestroyDescriptorSetLayout(context().getVkDevice(), mLayout, nullptr);
+    }
     if (mDescriptorSet != VK_NULL_HANDLE)
     {
-        context().getDescriptorPool().freeDescriptorSet(mLayout, mDescriptorSet);
+        context().getDescriptorPool().freeDescriptorSet(mDescriptorSet);
     }
 }
 
 
-void
-reserveDescriptorWrites(const std::span<CoDescriptorBinding>& bindings, 
-                       std::vector<VkDescriptorBufferInfo>& bufferInfos, 
-                       std::vector<VkDescriptorImageInfo>& imageInfos,
-                       std::vector<VkWriteDescriptorSet>& descriptorWrites)
+DescriptorSetSize
+countDescriptors(const std::vector<Coral::BindDescriptor>& bindings)
 {
-    auto bufferInfoCount = std::count_if(bindings.begin(), bindings.end(), [](const CoDescriptorBinding& binding)
+    DescriptorSetSize result{};
+
+    for (const auto& binding : bindings)
     {
-            return binding.type == CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER || 
-                   binding.type == CO_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    });
+        std::visit(Coral::Visitor{
+            [&](const Coral::BufferPtr& buffer)
+            {
+                result.storageBufferCount += buffer->type() == CO_BUFFER_TYPE_STORAGE;
+                result.uniformBufferCount += buffer->type() == CO_BUFFER_TYPE_UNIFORM;
+            },
+            [&](const Coral::ImagePtr& image)
+            {
+                result.sampledImageCount++;
+            },
+            [&](const Coral::SamplerPtr& sampler)
+            {
+                result.sampledImageCount++;
+            },
+            [&](const Coral::CombinedImageSampler& imageAndSampler)
+            {
+                result.combinedImageSamplerCount++;
+            }
+        }, binding.descriptor);
+    }
 
-    auto imageInfoCount = std::count_if(bindings.begin(), bindings.end(), [](const CoDescriptorBinding& binding)
-    {
-        return binding.type == CO_DESCRIPTOR_TYPE_IMAGE ||
-               binding.type == CO_DESCRIPTOR_TYPE_SAMPLER ||
-               binding.type == CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    });
-
-    bufferInfos.reserve(bufferInfoCount);
-    imageInfos.reserve(imageInfoCount);
-    descriptorWrites.reserve(bufferInfoCount + imageInfoCount);
-}
-
-
-uint32_t
-countImageInfos(const std::span<CoDescriptorBinding>& bindings)
-{
-    auto result = std::ranges::count_if(bindings, [](const CoDescriptorBinding& binding)
-        {
-            return binding.type == CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER ||
-                binding.type == CO_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        });
-
-    return static_cast<uint32_t>(result);
+    return result;
 }
 
 
 std::optional<Coral::DescriptorSet::CreateError>
 DescriptorSetImpl::init(const DescriptorSet::CreateConfig& config)
 {
-    std::tie(mLayout, mDescriptorSet) = context().getDescriptorPool().allocateDescriptorSet(config);
-    if (mLayout == VK_NULL_HANDLE ||
-        mDescriptorSet == VK_NULL_HANDLE)
+    auto device = context().getVkDevice();
+
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    for (const auto& binding : config.layout.bindings)
+    {
+        bindings.push_back({
+            .binding            = binding.binding,
+            .descriptorType     = convert(binding.type),
+            .descriptorCount    = 1,//binding.count,
+            .stageFlags         = VK_SHADER_STAGE_ALL,
+            .pImmutableSamplers = VK_NULL_HANDLE,
+        });
+    }
+
+    VkDescriptorSetLayoutCreateInfo layoutInfo
+    { 
+        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO, 
+        .bindingCount = static_cast<uint32_t>(bindings.size()),
+        .pBindings    = bindings.data(), 
+    };
+
+    VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
+    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &mLayout) != VK_SUCCESS)
     {
         return Coral::DescriptorSet::CreateError::INTERNAL_ERROR;
     }
 
-    auto device = context().getVkDevice();
+    // Count all descriptors so we can request the correctly sized DescriptorSet from the Pool.
+    // Note that the size of the layout might not be identical to the actual size due to
+    // descriptor indexing.
+    DescriptorSetSize sizes = countDescriptors(config.bindings);
 
-    std::span bindings(config.pDescriptorBindings, config.descriptorBindingCount);
-
+    mDescriptorSet = context().getDescriptorPool().allocateDescriptorSet(mLayout, sizes);
+    if (mDescriptorSet == VK_NULL_HANDLE)
+    {
+        return Coral::DescriptorSet::CreateError::INTERNAL_ERROR;
+    }
+ 
     std::vector<VkDescriptorBufferInfo> bufferInfos;
+    bufferInfos.reserve(sizes.uniformBufferCount + sizes.storageBufferCount);
     std::vector<VkDescriptorImageInfo> imageInfos;
-    std::vector<VkWriteDescriptorSet> descriptorWrites;
-    reserveDescriptorWrites(bindings, bufferInfos, imageInfos, descriptorWrites);
+    bufferInfos.reserve(sizes.sampledImageCount + sizes.samplerCount + sizes.combinedImageSamplerCount);
 
-    for (const auto& binding : bindings)
+    std::vector<VkWriteDescriptorSet> descriptorWrites;
+    descriptorWrites.reserve(bufferInfos.size() + imageInfos.size());
+    for (const auto& binding : config.bindings)
     {
         auto& descriptorWrite = descriptorWrites.emplace_back(VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
         descriptorWrite.dstSet          = mDescriptorSet;
         descriptorWrite.dstBinding      = binding.binding;
         descriptorWrite.dstArrayElement = 0;
-        descriptorWrite.descriptorType  = ::convert(binding.type);
-
-        VkDescriptorBufferInfo bufferInfo{};
-        VkDescriptorImageInfo imageInfo{};
-
-        switch (binding.type)
-        {
-            case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-            case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+        descriptorWrite.descriptorCount = 1;
+        
+        std::visit(Coral::Visitor{
+            [&](const Coral::BufferPtr& buffer)
             {
-                auto impl = std::static_pointer_cast<BufferImpl>(binding.buffer->impl);
-
+                auto impl = std::static_pointer_cast<BufferImpl>(buffer);
                 bufferInfos.push_back({
                     .buffer = impl->getVkBuffer(),
                     .offset = 0,
                     .range = VK_WHOLE_SIZE,
                 });
-
-                descriptorWrite.pBufferInfo     = &bufferInfos.back();
-                descriptorWrite.descriptorCount = 1;
-                break;
-            }
-            case CO_DESCRIPTOR_TYPE_IMAGE:
+                
+                if (impl->type() == CO_BUFFER_TYPE_STORAGE)
+                {
+                    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                }
+                else if (impl->type() == CO_BUFFER_TYPE_UNIFORM)
+                {
+                    descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                }
+                else
+                {
+                    assert(false);
+                }
+                descriptorWrite.pBufferInfo = &bufferInfos.back();
+   
+            },
+            [&](const Coral::ImagePtr& image)
             {
-                auto impl = std::static_pointer_cast<ImageImpl>(binding.image->impl);
-
+                auto impl = std::static_pointer_cast<ImageImpl>(image);
                 imageInfos.push_back({
                     .sampler     = VK_NULL_HANDLE,
                     .imageView   = impl->getVkImageView(),
-                    .imageLayout = impl->getPreferredImageLayout(),
+                    .imageLayout = impl->getPreferredImageLayout()
                 });
 
-                descriptorWrite.pImageInfo      = &imageInfos.back();
-                descriptorWrite.descriptorCount = 1;
-
-                break;
-            }
-            case CO_DESCRIPTOR_TYPE_SAMPLER:
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+                descriptorWrite.pImageInfo = &imageInfos.back();
+            },
+            [&](const Coral::SamplerPtr& sampler)
             {
-                auto impl = std::static_pointer_cast<SamplerImpl>(binding.sampler->impl);
-
+                auto impl = std::static_pointer_cast<SamplerImpl>(sampler);
                 imageInfos.push_back({
-                    .sampler   = impl->getVkSampler(),
-                    .imageView = VK_NULL_HANDLE,
+                    .sampler     = impl->getVkSampler(),
+                    .imageView   = VK_NULL_HANDLE,
+                    .imageLayout = VK_IMAGE_LAYOUT_UNDEFINED
                 });
 
-                descriptorWrite.pImageInfo      = &imageInfos.back();
-                descriptorWrite.descriptorCount = 1;
-
-                break;
-            }
-            case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
+                descriptorWrite.pImageInfo = &imageInfos.back();
+            },
+            [&](const Coral::CombinedImageSampler& imageAndSampler)
             {
-                auto imageImpl   = std::static_pointer_cast<ImageImpl>(binding.combinedImageSampler.image->impl);
-                auto samplerImpl = std::static_pointer_cast<SamplerImpl>(binding.combinedImageSampler.sampler->impl);
+                auto imageImpl   = std::static_pointer_cast<ImageImpl>(imageAndSampler.image);
+                auto samplerImpl = std::static_pointer_cast<SamplerImpl>(imageAndSampler.sampler);
 
                 imageInfos.push_back({
                     .sampler     = samplerImpl->getVkSampler(),
@@ -164,12 +192,10 @@ DescriptorSetImpl::init(const DescriptorSet::CreateConfig& config)
                     .imageLayout = imageImpl->getPreferredImageLayout(),
                 });
 
-                descriptorWrite.pImageInfo      = &imageInfos.back();
-                descriptorWrite.descriptorCount = 1;
-
-                break;
+                descriptorWrite.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                descriptorWrite.pImageInfo     = &imageInfos.back();
             }
-        }
+        }, binding.descriptor);
     }
 
     vkUpdateDescriptorSets(device,

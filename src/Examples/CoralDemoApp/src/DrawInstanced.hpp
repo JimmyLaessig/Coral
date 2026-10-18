@@ -20,17 +20,20 @@ public:
     bool initialize(CoContext context, 
                     const Scene& scene);
 
-    void draw(CoCommandBuffer commandBuffer);
+    void draw(CoCommandBuffer commandBuffer, const FlyCamera& camera);
 
 private:
 
     CoContext mContext;
 
-    CoBuffer mCameraParams;
-    CoBuffer mLightParams;
-
     Coral::ShaderModulePtr mVertexShader;
     Coral::ShaderModulePtr mFragmentShader;
+
+    Util::UniformBlockBuilder mCameraParamsBuilder;
+    Coral::BufferPtr mCameraParams;
+    Util::UniformBlockBuilder mLightParamsBuilder;
+    Coral::BufferPtr mLightParams;
+
     Coral::GraphicsPipelinePtr mGraphicsPipeline;
 
     struct DrawBatch

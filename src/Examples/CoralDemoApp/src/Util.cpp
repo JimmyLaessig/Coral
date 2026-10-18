@@ -156,10 +156,10 @@ loadImage(std::span<const uint8_t> buffer)
     case 1:
         switch (c)
         {
-            case 1:    image.format = CO_PIXEL_FORMAT_R8_UI;    break;
-            case 2:    image.format = CO_PIXEL_FORMAT_RG8_UI;   break;
-            case 3:    image.format = CO_PIXEL_FORMAT_RGB8_UI;  break;
-            case 4:    image.format = CO_PIXEL_FORMAT_RGBA8_UI; break;
+            case 1:    image.format = CO_PIXEL_FORMAT_R_U8;    break;
+            case 2:    image.format = CO_PIXEL_FORMAT_RG_U8;   break;
+            case 3:    image.format = CO_PIXEL_FORMAT_RGB_U8;  break;
+            case 4:    image.format = CO_PIXEL_FORMAT_RGBA_U8; break;
             default:
                 return std::nullopt;
         }
@@ -167,10 +167,10 @@ loadImage(std::span<const uint8_t> buffer)
     case 2:
         switch (c)
         {
-            case 1:    image.format = CO_PIXEL_FORMAT_R16_UI;    break;
-            case 2:    image.format = CO_PIXEL_FORMAT_RG16_UI;   break;
-            case 3:    image.format = CO_PIXEL_FORMAT_RGB16_UI;  break;
-            case 4:    image.format = CO_PIXEL_FORMAT_RGBA16_UI; break;
+            case 1:    image.format = CO_PIXEL_FORMAT_R_U16;    break;
+            case 2:    image.format = CO_PIXEL_FORMAT_RG_U16;   break;
+            case 3:    image.format = CO_PIXEL_FORMAT_RGB_U16;  break;
+            case 4:    image.format = CO_PIXEL_FORMAT_RGBA_U16; break;
             default:
                 return std::nullopt;
         }

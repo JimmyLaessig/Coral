@@ -47,12 +47,6 @@ private:
     std::shared_ptr<Util::Mesh> mMesh;
     std::shared_ptr<Util::Material> mMaterial;
 
-    Util::UniformBlockBuilder mCameraParams;
-    std::shared_ptr<CoBuffer_T> mCameraParamsBuffer;
-
-    Util::UniformBlockBuilder mLightParams;
-    std::shared_ptr<CoBuffer_T> mLightParamsBuffer;
-
     std::vector<RenderObject> mRenderObjects;
 
     FlyCamera mCamera;

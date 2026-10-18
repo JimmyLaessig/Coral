@@ -66,76 +66,13 @@ VkDescriptorType convert(CoDescriptorType type)
 {
     switch (type)
     {
-    case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    case CO_DESCRIPTOR_TYPE_IMAGE:                  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    case CO_DESCRIPTOR_TYPE_SAMPLER:                return VK_DESCRIPTOR_TYPE_SAMPLER;
-    case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+        case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:         return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:         return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        case CO_DESCRIPTOR_TYPE_IMAGE:                  return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+        case CO_DESCRIPTOR_TYPE_SAMPLER:                return VK_DESCRIPTOR_TYPE_SAMPLER;
+        case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER: return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
     }
     std::unreachable();
-}
-
-
-std::pair<VkDescriptorSetLayout, VkDescriptorSet>
-DescriptorSetPool::allocateDescriptorSet(const DescriptorSet::CreateConfig& config)
-{
-    auto device = mContext.getVkDevice();
-
-    auto inputBindings = std::span(config.pDescriptorBindings, config.descriptorBindingCount);
-
-    DescriptorSetSize sizes{};
-
-    std::vector<VkDescriptorSetLayoutBinding> bindings;
-    for (const auto& binding : inputBindings)
-    {
-        auto& vkBinding = bindings.emplace_back();
-        vkBinding.binding            = binding.binding;
-        vkBinding.descriptorCount    = 1;
-        vkBinding.stageFlags         = VK_SHADER_STAGE_ALL;
-        vkBinding.pImmutableSamplers = VK_NULL_HANDLE;
- 
-        switch (binding.type)
-        {
-            case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                vkBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-                sizes.uniformBufferCount++;
-                break;
-            case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-                vkBinding.descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-                sizes.storageBufferCount++;
-                break;
-            case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-                vkBinding.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                sizes.combinedImageSamplerCount++;
-                break;
-            case CO_DESCRIPTOR_TYPE_IMAGE:
-                vkBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-                sizes.sampledImageCount++;
-                break;
-            case CO_DESCRIPTOR_TYPE_SAMPLER:
-                vkBinding.descriptorType = VK_DESCRIPTOR_TYPE_SAMPLER;
-                sizes.samplerCount++;
-                break;
-        };
-    }
-
-    VkDescriptorSetLayoutCreateInfo layoutInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-    layoutInfo.pBindings    = bindings.data();
-    layoutInfo.bindingCount = static_cast<uint32_t>(bindings.size());
-
-    VkDescriptorSetLayout layout{ VK_NULL_HANDLE };
-    if (vkCreateDescriptorSetLayout(device, &layoutInfo, nullptr, &layout) != VK_SUCCESS)
-    {
-        return { VK_NULL_HANDLE, VK_NULL_HANDLE };
-    }
-
-    auto set = allocateDescriptorSet(layout, sizes);
-    if (set == VK_NULL_HANDLE)
-    {
-        vkDestroyDescriptorSetLayout(device, layout, nullptr);
-        layout = VK_NULL_HANDLE;
-    }
-    return std::pair(layout, set);
 }
 
 
@@ -198,7 +135,7 @@ DescriptorSetPool::allocateDescriptorSet(VkDescriptorSetLayout layout, const Des
 
 
 void
-DescriptorSetPool::freeDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorSet descriptorSet)
+DescriptorSetPool::freeDescriptorSet(VkDescriptorSet descriptorSet)
 {
     auto iter = mLookUpTable.find(descriptorSet);
     if (iter == mLookUpTable.end())
@@ -207,11 +144,8 @@ DescriptorSetPool::freeDescriptorSet(VkDescriptorSetLayout layout, VkDescriptorS
         return;
     }
     auto device = mContext.getVkDevice();
-
-    vkDestroyDescriptorSetLayout(device, layout, nullptr);
-
-    auto index = iter->second;
-    auto& pool = mDescriptorPools[iter->second];
+    auto index  = iter->second;
+    auto& pool  = mDescriptorPools[iter->second];
     
     mLookUpTable.erase(descriptorSet);
 

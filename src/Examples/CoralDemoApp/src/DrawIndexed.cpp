@@ -12,9 +12,7 @@ bool
 DrawIndexed::initialize(CoContext context,
                         const Scene& scene)
 {
-    mContext      = context;
-    mCameraParams = scene.cameraParams;
-    mLightParams  = scene.lightParams;
+    mContext = context;
 
     if (auto source = Util::compileShader(std::string(Shaders::DefaultShader_slang.begin(), Shaders::DefaultShader_slang.end()), "vertexShader"))
     {
@@ -50,10 +48,25 @@ DrawIndexed::initialize(CoContext context,
         }
     }
 
+    CoShaderModuleReflectionInfo reflectionInfo{};
+    coShaderModuleReflect(mVertexShader.get(), &reflectionInfo);
+    auto cameraParams = reflectionInfo.pDescriptorSets[0].pDescriptors[0];
+    mCameraParamsBuilder = Util::UniformBlockBuilder(cameraParams.buffer);
+    mCameraParamsBuilder.set("viewProjectionMatrix", scene.projectionMatrix * scene.viewMatrix);
+    mCameraParams        = Util::createUniformBuffer(context, mCameraParamsBuilder);
+    
+    coShaderModuleReflect(mFragmentShader.get(), &reflectionInfo);
+    auto lightParams    = reflectionInfo.pDescriptorSets[0].pDescriptors[0];
+    mLightParamsBuilder = Util::UniformBlockBuilder(lightParams.buffer);
+    mLightParamsBuilder.set("lightDirection", scene.lightDirection);
+    mLightParamsBuilder.set("lightColor", scene.lightColor);
+    mLightParamsBuilder.set("ambientColor", scene.ambientColor);
+    mLightParams        = Util::createUniformBuffer(context, mLightParamsBuilder);
+
     std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
     CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
 
-    CoGraphicsPipelineCreateConfig GraphicsPipelineConfig
+    CoGraphicsPipelineCreateConfig pipelineConfig
     {
         .vertexShaderModule   = mVertexShader.get(),
         .fragmentShaderModule = mFragmentShader.get(),
@@ -84,10 +97,14 @@ DrawIndexed::initialize(CoContext context,
         .topology    = CO_TOPOLOGY_TRIANGLE_LIST,
     };
 
-    if (coContextCreateGraphicsPipeline(context, &GraphicsPipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
+    if (coContextCreateGraphicsPipeline(context, &pipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
     }
+
+    std::vector<CoDescriptorSetLayout> layouts(coGraphicsPipelineGetDescriptorSetLayoutCount(mGraphicsPipeline.get()));
+    coGraphicsPipelineGetDescriptorSetLayouts(mGraphicsPipeline.get(), layouts.data());
+
 
     using Key   = std::pair<std::shared_ptr<const Util::Mesh>, std::shared_ptr<const Util::Material>>;
     using Value = std::vector<const RenderObject*>;
@@ -125,30 +142,24 @@ DrawIndexed::initialize(CoContext context,
 
             instanceData.instanceParamsBuffer = Util::createBuffer(context, std::span{ reinterpret_cast<const std::byte*>(&p), sizeof(p)}, CO_BUFFER_TYPE_UNIFORM);
 
-            std::vector<CoDescriptorBinding> descriptorBindings =
+            std::vector<CoBindDescriptor> descriptors =
             {
-                CoDescriptorBinding
-                {
+                CoBindDescriptor{
                     .binding = 0,
                     .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .buffer  = mCameraParams,
+                    .buffer  = mCameraParams.get(),
                 },
-
-                CoDescriptorBinding
-                {
+                CoBindDescriptor{
                     .binding = 1,
                     .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
                     .buffer  = instanceData.instanceParamsBuffer.get(),
                 },
- 
-                CoDescriptorBinding
-                {
+                CoBindDescriptor{
                     .binding = 2,
                     .type    = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                    .buffer  = mLightParams,
+                    .buffer  = mLightParams.get(),
                 },
-                CoDescriptorBinding
-                {
+                CoBindDescriptor{
                     .binding              = 3,
                     .type                 = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
                     .combinedImageSampler = {
@@ -160,8 +171,9 @@ DrawIndexed::initialize(CoContext context,
 
             CoDescriptorSetCreateConfig descriptorSetConfig
             {
-                .pDescriptorBindings    = descriptorBindings.data(),
-                .descriptorBindingCount = static_cast<uint32_t>(descriptorBindings.size()),
+                .pLayout             = &layouts[0],
+                .pBindDescriptors    = descriptors.data(),
+                .bindDescriptorCount = static_cast<uint32_t>(descriptors.size()),
             };
 
             if (coContextCreateDescriptorSet(mContext, &descriptorSetConfig, std::out_ptr(instanceData.descriptorSet)) != CO_SUCCESS)
@@ -176,16 +188,19 @@ DrawIndexed::initialize(CoContext context,
 
 
 void
-DrawIndexed::drawOptimized(CoCommandBuffer commandBuffer)
+DrawIndexed::drawOptimized(CoCommandBuffer commandBuffer, const FlyCamera& camera)
 {
+    mCameraParamsBuilder.set("viewProjectionMatrix", camera.projectionMatrix() * camera.viewMatrix());
+    Util::updateBuffer(mContext, mCameraParams.get(), mCameraParamsBuilder.data());
+
     coCommandBufferBindPipeline(commandBuffer, mGraphicsPipeline.get());
 
     for (const auto& batch : mBatches)
     {
-        coCommandBufferBindIndexBuffer(commandBuffer, batch.mesh->mIndexBuffer.get(), batch.mesh->mIndexFormat, 0);
-        coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mPositionBuffer.get(), 0, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
-        coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mNormalBuffer.get(), 1, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
-        coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mTexcoordBuffer.get(), 2, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
+        coCommandBufferBindIndexBuffer(commandBuffer,  batch.mesh->mIndexBuffer.get(),    batch.mesh->mIndexFormat, 0);
+        coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mPositionBuffer.get(), 0, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_RGB_F32));
+        coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mNormalBuffer.get(),   1, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_RGB_F32));
+        coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mTexcoordBuffer.get(), 2, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_RG_F32));
 
         for (const auto& instanceData : batch.instances)
         {
@@ -206,8 +221,11 @@ DrawIndexed::drawOptimized(CoCommandBuffer commandBuffer)
 
 
 void
-DrawIndexed::draw(CoCommandBuffer commandBuffer)
+DrawIndexed::draw(CoCommandBuffer commandBuffer, const FlyCamera& camera)
 {
+    mCameraParamsBuilder.set("viewProjectionMatrix", camera.projectionMatrix() * camera.viewMatrix());
+    Util::updateBuffer(mContext, mCameraParams.get(), mCameraParamsBuilder.data());
+
     coCommandBufferBindPipeline(commandBuffer, mGraphicsPipeline.get());
 
     for (const auto& batch : mBatches)
@@ -215,9 +233,9 @@ DrawIndexed::draw(CoCommandBuffer commandBuffer)
         for (const auto& instanceData : batch.instances)
         {
             coCommandBufferBindIndexBuffer(commandBuffer, batch.mesh->mIndexBuffer.get(), batch.mesh->mIndexFormat, 0);
-            coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mPositionBuffer.get(), 0, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
-            coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mNormalBuffer.get(), 1, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC3F));
-            coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mTexcoordBuffer.get(), 2, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_VEC2F));
+            coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mPositionBuffer.get(), 0, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_RGB_F32));
+            coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mNormalBuffer.get(), 1, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_RGB_F32));
+            coCommandBufferBindVertexBuffer(commandBuffer, batch.mesh->mTexcoordBuffer.get(), 2, 0, coAttributeFormatGetSizeInBytes(CO_ATTRIBUTE_FORMAT_RG_F32));
 
             coCommandBufferBindDescriptorSet(commandBuffer, instanceData.descriptorSet.get(), 0);
 

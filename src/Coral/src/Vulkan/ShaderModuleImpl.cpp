@@ -17,158 +17,51 @@ using namespace Coral::Vulkan;
 namespace
 {
 
-void
-destroy(const CoStructMemberInfo& memberInfo);
-
-
-void
-destroy(const CoStructInfo& structInfo)
-{
-    delete structInfo.pTypeName;
-
-    for (auto& member : std::span(structInfo.pMembers, structInfo.memberCount))
-    {
-        destroy(member);
-    }
-
-    delete[] structInfo.pMembers;
-}
-
-
-void
-destroy(const CoStructMemberInfo& memberInfo)
-{
-    delete(memberInfo.pName);
-
-    switch (memberInfo.type)
-    {
-        case CO_STRUCT_MEMBER_TYPE_SCALAR:
-            break;
-        case CO_STRUCT_MEMBER_TYPE_VECTOR:
-            break;
-        case CO_STRUCT_MEMBER_TYPE_MATRIX:
-            break;
-        case CO_STRUCT_MEMBER_TYPE_STRUCT:
-            destroy(memberInfo.structure);
-            break;
-    }
-}
-
-
-void
-destroy(const CoBufferInfo& bufferInfo)
-{
-    destroy(bufferInfo.structure);
-}
-
-
-void
-destroy(const CoDescriptorInfo& info)
-{
-    delete info.pName;
-
-    switch (info.type)
-    {
-    case CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-    case CO_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-        destroy(info.buffer);
-        break;
-    case CO_DESCRIPTOR_TYPE_IMAGE:
-        break;
-    case CO_DESCRIPTOR_TYPE_SAMPLER:
-        break;
-    case CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-        break;
-    }
-}
-
-
-void
-destroy(const CoAttributeBindingInfo& attr)
-{
-    delete attr.pName;
-}
-
-
-void
-destroy(const CoDescriptorSetLayout& layout)
-{
-    for (auto& info : std::span(layout.pDescriptorInfos, layout.descriptorInfoCount))
-    {
-        destroy(info);
-    }
-    delete[] layout.pDescriptorInfos;
-}
-
-
-void
-destroy(const CoAttributeLayout& layout)
-{
-    for (auto& attr : std::span(layout.pAttributeBindingInfos, layout.attributeBindingInfoCount))
-    {
-        destroy(attr);
-    }
-    delete[] layout.pAttributeBindingInfos;
-}
-
-
-void
-destroy(const CoShaderModuleLayout& layout)
-{
-    for (auto set : std::span(layout.pDescriptorSetLayouts, layout.descriptorSetLayoutCount))
-    {
-        destroy(set);
-    }
-
-    delete[] layout.pDescriptorSetLayouts;
-
-    destroy(layout.inputAttributeLayout);
-    destroy(layout.outputAttributeLayout);
-}
-
-
 std::optional<CoAttributeFormat>
 convert(SpvReflectFormat format)
 {
     switch (format)
     {
-        case SPV_REFLECT_FORMAT_R16_UINT:            return CO_ATTRIBUTE_FORMAT_UINT16;
-        case SPV_REFLECT_FORMAT_R32_UINT:            return CO_ATTRIBUTE_FORMAT_UINT32;
-        case SPV_REFLECT_FORMAT_R16_SINT:            return CO_ATTRIBUTE_FORMAT_INT16;
-        case SPV_REFLECT_FORMAT_R32_SINT:            return CO_ATTRIBUTE_FORMAT_INT32;
-        case SPV_REFLECT_FORMAT_R32_SFLOAT:          return CO_ATTRIBUTE_FORMAT_FLOAT;
-        case SPV_REFLECT_FORMAT_R32G32_SFLOAT:       return CO_ATTRIBUTE_FORMAT_VEC2F;
-        case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:    return CO_ATTRIBUTE_FORMAT_VEC3F;
-        case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT: return CO_ATTRIBUTE_FORMAT_VEC4F;
-        default:
-            return {};
+        case SPV_REFLECT_FORMAT_UNDEFINED:           return std::nullopt;
+        case SPV_REFLECT_FORMAT_R16_UINT:            return CO_ATTRIBUTE_FORMAT_R_U16;
+        case SPV_REFLECT_FORMAT_R16_SINT:            return CO_ATTRIBUTE_FORMAT_R_I16;
+        case SPV_REFLECT_FORMAT_R16_SFLOAT:          return CO_ATTRIBUTE_FORMAT_R_F16;
+        case SPV_REFLECT_FORMAT_R16G16_UINT:         return CO_ATTRIBUTE_FORMAT_RG_U16;
+        case SPV_REFLECT_FORMAT_R16G16_SINT:         return CO_ATTRIBUTE_FORMAT_RG_I16;
+        case SPV_REFLECT_FORMAT_R16G16_SFLOAT:       return CO_ATTRIBUTE_FORMAT_RG_F16;
+        case SPV_REFLECT_FORMAT_R16G16B16_UINT:      return CO_ATTRIBUTE_FORMAT_RGB_U16;
+        case SPV_REFLECT_FORMAT_R16G16B16_SINT:      return CO_ATTRIBUTE_FORMAT_RGB_I16;
+        case SPV_REFLECT_FORMAT_R16G16B16_SFLOAT:    return CO_ATTRIBUTE_FORMAT_RGB_F16;
+        case SPV_REFLECT_FORMAT_R16G16B16A16_UINT:   return CO_ATTRIBUTE_FORMAT_RGBA_U16;
+        case SPV_REFLECT_FORMAT_R16G16B16A16_SINT:   return CO_ATTRIBUTE_FORMAT_RGBA_I16;
+        case SPV_REFLECT_FORMAT_R16G16B16A16_SFLOAT: return CO_ATTRIBUTE_FORMAT_RGBA_F16;
+        case SPV_REFLECT_FORMAT_R32_UINT:            return CO_ATTRIBUTE_FORMAT_R_U32;
+        case SPV_REFLECT_FORMAT_R32_SINT:            return CO_ATTRIBUTE_FORMAT_R_I32;
+        case SPV_REFLECT_FORMAT_R32_SFLOAT:          return CO_ATTRIBUTE_FORMAT_R_F32;
+        case SPV_REFLECT_FORMAT_R32G32_UINT:         return CO_ATTRIBUTE_FORMAT_RG_U32;
+        case SPV_REFLECT_FORMAT_R32G32_SINT:         return CO_ATTRIBUTE_FORMAT_RG_I32;
+        case SPV_REFLECT_FORMAT_R32G32_SFLOAT:       return CO_ATTRIBUTE_FORMAT_RG_F32;
+        case SPV_REFLECT_FORMAT_R32G32B32_UINT:      return CO_ATTRIBUTE_FORMAT_RGB_U32;
+        case SPV_REFLECT_FORMAT_R32G32B32_SINT:      return CO_ATTRIBUTE_FORMAT_RGB_I32;
+        case SPV_REFLECT_FORMAT_R32G32B32_SFLOAT:    return CO_ATTRIBUTE_FORMAT_RGB_F32;
+        case SPV_REFLECT_FORMAT_R32G32B32A32_UINT:   return CO_ATTRIBUTE_FORMAT_RGBA_U32;
+        case SPV_REFLECT_FORMAT_R32G32B32A32_SINT:   return CO_ATTRIBUTE_FORMAT_RGBA_I32;
+        case SPV_REFLECT_FORMAT_R32G32B32A32_SFLOAT: return CO_ATTRIBUTE_FORMAT_RGBA_F32;
+        case SPV_REFLECT_FORMAT_R64_UINT:            return CO_ATTRIBUTE_FORMAT_R_U64;
+        case SPV_REFLECT_FORMAT_R64_SINT:            return CO_ATTRIBUTE_FORMAT_R_I64;
+        case SPV_REFLECT_FORMAT_R64_SFLOAT:          return CO_ATTRIBUTE_FORMAT_R_F64;
+        case SPV_REFLECT_FORMAT_R64G64_UINT:         return CO_ATTRIBUTE_FORMAT_RG_U64;
+        case SPV_REFLECT_FORMAT_R64G64_SINT:         return CO_ATTRIBUTE_FORMAT_RG_I64;
+        case SPV_REFLECT_FORMAT_R64G64_SFLOAT:       return CO_ATTRIBUTE_FORMAT_RG_F64;
+        case SPV_REFLECT_FORMAT_R64G64B64_UINT:      return CO_ATTRIBUTE_FORMAT_RGB_U64;
+        case SPV_REFLECT_FORMAT_R64G64B64_SINT:      return CO_ATTRIBUTE_FORMAT_RGB_I64;
+        case SPV_REFLECT_FORMAT_R64G64B64_SFLOAT:    return CO_ATTRIBUTE_FORMAT_RGB_F64;
+        case SPV_REFLECT_FORMAT_R64G64B64A64_UINT:   return CO_ATTRIBUTE_FORMAT_RGBA_U64;
+        case SPV_REFLECT_FORMAT_R64G64B64A64_SINT:   return CO_ATTRIBUTE_FORMAT_RGBA_I64;
+        case SPV_REFLECT_FORMAT_R64G64B64A64_SFLOAT: return CO_ATTRIBUTE_FORMAT_RGBA_F64;
     }
-}
 
-
-const char*
-copy(const char* src)
-{
-    if (src == nullptr)
-    {
-        return nullptr;
-    }
-    auto length = std::strlen(src);
-    if (length == 0)
-    {
-        return nullptr;
-    }
-    char* copy = new char[length + 1];
-    std::strcpy(copy, src);
-
-    return copy;
-}
-
-
-template<typename T>
-T* allocArray(size_t s)
-{
-    return s > 0 ? new T[s] : nullptr;
+    std::unreachable();
 }
 
 
@@ -191,10 +84,10 @@ toScalarType(const SpvReflectTypeDescription& desc)
         {
             switch (size)
             {
-                case 1:  return CO_SCALAR_TYPE_INT8;
-                case 2:  return CO_SCALAR_TYPE_INT16;
-                case 4:  return CO_SCALAR_TYPE_INT32;
-                case 8:  return CO_SCALAR_TYPE_INT64;
+                case 1: return CO_SCALAR_TYPE_INT8;
+                case 2: return CO_SCALAR_TYPE_INT16;
+                case 4: return CO_SCALAR_TYPE_INT32;
+                case 8: return CO_SCALAR_TYPE_INT64;
                 default: assert(false);
             }
         }
@@ -202,10 +95,10 @@ toScalarType(const SpvReflectTypeDescription& desc)
         {
             switch (size)
             {
-                case 1:  return CO_SCALAR_TYPE_UINT8;
-                case 2:  return CO_SCALAR_TYPE_UINT16;
-                case 4:  return CO_SCALAR_TYPE_UINT32;
-                case 8:  return CO_SCALAR_TYPE_UINT64;
+                case 1: return CO_SCALAR_TYPE_UINT8;
+                case 2: return CO_SCALAR_TYPE_UINT16;
+                case 4: return CO_SCALAR_TYPE_UINT32;
+                case 8: return CO_SCALAR_TYPE_UINT64;
                 default: assert(false);
             }
         }
@@ -216,30 +109,29 @@ toScalarType(const SpvReflectTypeDescription& desc)
 
 
 bool
-reflect(const SpvReflectBlockVariable& variable, CoStructMemberInfo& member)
+reflect(const SpvReflectBlockVariable& variable, Coral::StructureMember& member)
 {
-    member.pName     = copy(variable.name);
-    member.offset    = variable.offset;
-    member.stride    = variable.padded_size;
-    member.count     = 1;
-    member.typeFlags = CO_STRUCT_MEMBER_TYPE_FLAG_NONE_BIT;
-    auto& traits     = variable.type_description->traits;
+    member.name   = variable.name;
+    member.offset = variable.offset;
 
+    member.array.stride = variable.padded_size;
+    member.array.dimensions.assign(variable.array.dims, variable.array.dims + variable.array.dims_count);
+
+    auto& traits = variable.type_description->traits;
     if (SPV_REFLECT_TYPE_FLAG_REF & variable.type_description->type_flags)
     {
-        member.typeFlags |= CO_STRUCT_MEMBER_TYPE_FLAG_POINTER_BIT;
+        member.typeFlags |= CO_STRUCTURE_MEMBER_TYPE_FLAG_POINTER_BIT;
     }
     if (SPV_REFLECT_TYPE_FLAG_STRUCT & variable.type_description->type_flags)
     {
-        member.type                  = CO_STRUCT_MEMBER_TYPE_STRUCT;
-        member.structure.pTypeName   = copy(variable.type_description->type_name);
-        member.structure.memberCount = variable.member_count;
-        auto members                 = new CoStructMemberInfo[member.structure.memberCount];
-        member.structure.pMembers    = members;
-
-        for (size_t i = 0; i < member.structure.memberCount; ++i)
+        auto& structure    = member.typeInfo.emplace<Coral::StructureInfo>();
+        structure.typeName = variable.type_description->type_name;
+        structure.size     = variable.size;
+        structure.members.resize(variable.member_count);
+        for (const auto& [source, target] : std::views::zip(std::span(variable.members, variable.member_count), 
+                                                            structure.members))
         {
-            if (!reflect(variable.members[i], members[i]))
+            if (!reflect(source, target))
             {
                 return false;
             }
@@ -248,43 +140,42 @@ reflect(const SpvReflectBlockVariable& variable, CoStructMemberInfo& member)
     }
     if (SPV_REFLECT_TYPE_FLAG_MATRIX & variable.type_description->type_flags)
     {
-        member.type               = CO_STRUCT_MEMBER_TYPE_MATRIX;
-        member.matrix.rowCount    = traits.numeric.matrix.row_count;
-        member.matrix.columnCount = traits.numeric.matrix.column_count;
-        member.matrix.stride      = traits.numeric.matrix.stride;
-        auto elementCount         = member.matrix.rowCount * member.matrix.columnCount;
-        member.matrix.dataType    = ::toScalarType(*variable.type_description);
-        member.matrix.layout      = (variable.decoration_flags & SPV_REFLECT_DECORATION_ROW_MAJOR) ? CO_MATRIX_LAYOUT_ROW_MAJOR 
-                                                                                                   : CO_MATRIX_LAYOUT_COLUMN_MAJOR;
+        auto& matrix    = member.typeInfo.emplace<Coral::MatrixInfo>();
+        matrix.rows     = traits.numeric.matrix.row_count;
+        matrix.columns  = traits.numeric.matrix.column_count;
+        matrix.stride   = traits.numeric.matrix.stride;
+        matrix.dataType = ::toScalarType(*variable.type_description);
+        matrix.layout   = (variable.decoration_flags & SPV_REFLECT_DECORATION_ROW_MAJOR) ? CO_MATRIX_LAYOUT_ROW_MAJOR 
+                                                                                         : CO_MATRIX_LAYOUT_COLUMN_MAJOR;
         return true;
     }
 
     if (SPV_REFLECT_TYPE_FLAG_VECTOR & variable.type_description->type_flags)
     {
-        member.type                  = CO_STRUCT_MEMBER_TYPE_VECTOR;
-        member.vector.componentCount = traits.numeric.vector.component_count;
-        member.vector.dataType       = ::toScalarType(*variable.type_description);
+        auto& vector      = member.typeInfo.emplace<Coral::VectorInfo>();
+        vector.components = traits.numeric.vector.component_count;
+        vector.dataType   = ::toScalarType(*variable.type_description);
         return true;
     }
 
     if (SPV_REFLECT_TYPE_FLAG_BOOL & variable.type_description->type_flags)
     {
-        member.type            = CO_STRUCT_MEMBER_TYPE_SCALAR;
-        member.scalar.dataType = CO_SCALAR_TYPE_BOOL;
+        auto& scalar    = member.typeInfo.emplace<Coral::ScalarInfo>();
+        scalar.dataType = CO_SCALAR_TYPE_BOOL;
         return true;
     }
 
     if (SPV_REFLECT_TYPE_FLAG_INT & variable.type_description->type_flags)
     {
-        member.type            = CO_STRUCT_MEMBER_TYPE_SCALAR;
-        member.scalar.dataType = ::toScalarType(*variable.type_description);
+        auto& scalar    = member.typeInfo.emplace<Coral::ScalarInfo>();
+        scalar.dataType = ::toScalarType(*variable.type_description);
         return true;
     }
 
     if (SPV_REFLECT_TYPE_FLAG_FLOAT & variable.type_description->type_flags)
     {
-        member.type            = CO_STRUCT_MEMBER_TYPE_SCALAR;
-        member.scalar.dataType = ::toScalarType(*variable.type_description);
+        auto& scalar     = member.typeInfo.emplace<Coral::ScalarInfo>();
+        scalar.dataType = ::toScalarType(*variable.type_description);
         return true;
     }
 
@@ -293,74 +184,75 @@ reflect(const SpvReflectBlockVariable& variable, CoStructMemberInfo& member)
 
 
 bool
-reflect(const SpvReflectBlockVariable& block, CoBufferInfo& buffer)
+reflect(const SpvReflectBlockVariable& block, Coral::BufferInfo& buffer)
 {
-    return reflect(block, buffer.structure);
-}
-
-
-bool
-reflect(const SpvReflectDescriptorBinding& binding, CoDescriptorInfo& info)
-{
-    info.binding = binding.binding;
-    info.pName   = copy(binding.name);
-    switch (binding.descriptor_type)
+    Coral::StructureMember member;
+    if (!reflect(block, member))
     {
-        case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-            info.type = CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-            return reflect(binding.block, info.buffer);
-        case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-            info.type = CO_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-            return reflect(binding.block, info.buffer);
-        case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
-            info.type  = CO_DESCRIPTOR_TYPE_IMAGE;
-            return true;
-        case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
-            info.type  = CO_DESCRIPTOR_TYPE_SAMPLER;
-            return true;
-        case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
-            info.type  = CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-            return true;
-      
-        default:
-            assert(false);
-    }
-
-    std::unreachable();
-}
-
-
-bool
-reflect(const SpvReflectInterfaceVariable& variable, CoAttributeBindingInfo& info)
-{
-    auto format = convert(variable.format);
-    if (!format)
-    {
-        // TODO Log unsupported input format
         return false;
     }
-    
-    info.format   = *format;
-    info.location = variable.location;
-    info.pName    = copy(variable.name);
+
+    auto structure = std::get_if<Coral::StructureInfo>(&member.typeInfo);
+    if (!structure)
+    {
+        return false;
+    }
+
+    buffer.structure = *structure;
     return true;
 }
 
 
 bool
-reflect(const std::vector<SpvReflectInterfaceVariable*>& variables, CoAttributeLayout& layout)
+reflect(const SpvReflectDescriptorBinding& source, Coral::ReflectDescriptor& target)
 {
-    auto attributeBindingInfos       = allocArray<CoAttributeBindingInfo>(variables.size());
-    layout.pAttributeBindingInfos    = attributeBindingInfos;
-    layout.attributeBindingInfoCount = static_cast<uint32_t>(variables.size());
+    target.binding = source.binding;
+    target.name    = source.name;
 
-    for (auto [var, binding] : std::views::zip(variables, 
-                                               std::span(attributeBindingInfos, variables.size())))
+    switch (source.descriptor_type)
     {
-        if (!::reflect(*var, binding))
+        case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
         {
-            return false;
+            auto& info = target.info.emplace<Coral::BufferInfo>();
+            info.bufferType = CO_BUFFER_TYPE_UNIFORM;
+            return reflect(source.block, info);
         }
+        case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+        {
+            auto& info = target.info.emplace<Coral::BufferInfo>();
+            info.bufferType = CO_BUFFER_TYPE_STORAGE;
+            return reflect(source.block, info);
+        }
+        case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            target.info.emplace<Coral::ImageInfo>();
+            return true;
+        case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+            target.info.emplace<Coral::SamplerInfo>();
+            return true;
+        case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            target.info.emplace<Coral::CombinedImageSamplerInfo>();
+            return true;
+
+        default:
+            assert(false);
+            return false;
+    }
+}
+
+
+bool
+reflect(const SpvReflectInterfaceVariable& variable, Coral::ReflectAttribute& attribute)
+{
+    attribute.location = variable.location;
+    attribute.name     = variable.name;
+
+    if (auto format = ::convert(variable.format))
+    {
+        attribute.format = *format;
+    }
+    else
+    {
+        return false;
     }
 
     return true;
@@ -368,17 +260,12 @@ reflect(const std::vector<SpvReflectInterfaceVariable*>& variables, CoAttributeL
 
 
 bool
-reflect(const SpvReflectDescriptorSet& set, CoDescriptorSetLayout& layout)
+reflect(const SpvReflectDescriptorSet& source, Coral::ReflectDescriptorSet& target)
 {
-    auto descriptorInfos = allocArray<CoDescriptorInfo>(set.binding_count);
-    layout               = {
-        .pDescriptorInfos     = descriptorInfos,
-        .descriptorInfoCount = set.binding_count,
-    };
-
-    for (size_t i = 0; i < set.binding_count; ++i)
+    target.descriptors.resize(source.binding_count);
+    for (size_t i = 0; i < source.binding_count; ++i)
     {
-        if (!::reflect(*set.bindings[i], descriptorInfos[i]))
+        if (!::reflect(*source.bindings[i], target.descriptors[i]))
         {
             return false;
         }
@@ -396,109 +283,32 @@ ShaderModuleImpl::~ShaderModuleImpl()
     {
         vkDestroyShaderModule(context().getVkDevice(), mShaderModule, nullptr);
     }
-
-    destroy(mLayout);
 }
 
 
 std::optional<Coral::ShaderModule::CreateError>
 ShaderModuleImpl::init(const ShaderModule::CreateConfig& config)
 {
-    mName        = config.pName ? config.pName : "";
+    mName        = config.name;
     mShaderStage = config.stage;
-    mEntryPoint  = config.pEntryPoint ?  config.pEntryPoint : "";
-
-    std::span<const uint32_t> spirvCode(reinterpret_cast<const uint32_t*>(config.pSource), config.sourceCount / sizeof(uint32_t));
-
+    mEntryPoint  = config.entryPoint;
+    auto code    = reinterpret_cast<const uint32_t*>(config.source.data());
+    mSpirvCode   = std::vector<uint32_t>(code, code + config.source.size() /  sizeof(uint32_t));
+    
     VkShaderModuleCreateInfo createInfo{ VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-    createInfo.pCode    = spirvCode.data();
-    createInfo.codeSize = config.sourceCount;
+    createInfo.pCode    = mSpirvCode.data();
+    createInfo.codeSize = config.source.size();
 
     if (vkCreateShaderModule(context().getVkDevice(), &createInfo, nullptr, &mShaderModule) != VK_SUCCESS)
     {
         return ShaderModule::CreateError::INTERNAL_ERROR;
     }
 
-    if (!reflect(spirvCode))
+    if (!reflect())
     {
         return ShaderModule::CreateError::INTERNAL_ERROR;
     }
-
     return {};
-}
-
-
-bool
-ShaderModuleImpl::reflect(std::span<const uint32_t> spirvCode)
-{
-    SpvReflectShaderModule module{};
-
-    if (spvReflectCreateShaderModule(spirvCode.size_bytes(), spirvCode.data(), &module) != SPV_REFLECT_RESULT_SUCCESS)
-    {
-        return false;
-    }
-
-    Finally cleanup([&]() { spvReflectDestroyShaderModule(&module); });
-
-    if (module.entry_point_name == nullptr)
-    {
-        return false;
-    }
-
-    std::vector<SpvReflectDescriptorSet*> sets;
-    {
-        uint32_t count{ 0 };
-        spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
-        sets.resize(count);
-        spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
-    }
-
-    auto descriptorSets              = allocArray<CoDescriptorSetLayout>(sets.size());
-    mLayout.pDescriptorSetLayouts    = descriptorSets,
-    mLayout.descriptorSetLayoutCount = static_cast<uint32_t>(sets.size());
-
-    for (const auto& [spvSet, set] : std::views::zip(sets, std::span(descriptorSets, sets.size())))
-    {
-        ::reflect(*spvSet, set);
-    }
-
-    std::vector<SpvReflectInterfaceVariable*> inputVariables;
-    {
-        uint32_t count{ 0 };
-        spvReflectEnumerateInputVariables(&module, &count, nullptr);
-        inputVariables.resize(count);
-        spvReflectEnumerateInputVariables(&module, &count, inputVariables.data());
-    }
-
-    std::erase_if(inputVariables, [](const SpvReflectInterfaceVariable* v) 
-    { 
-        return v->built_in != -1;
-    });
-
-    if (!::reflect(inputVariables, mLayout.inputAttributeLayout))
-    {
-        return false;
-    }
-
-    std::vector<SpvReflectInterfaceVariable*> outputVariables;
-    {
-        uint32_t count{ 0 };
-        spvReflectEnumerateOutputVariables(&module, &count, nullptr);
-        outputVariables.resize(count);
-        spvReflectEnumerateOutputVariables(&module, &count, outputVariables.data());
-    }
-
-    std::erase_if(outputVariables, [](const SpvReflectInterfaceVariable* v)
-    {
-        return v->built_in != -1;
-    });
-
-    if (!::reflect(outputVariables, mLayout.outputAttributeLayout))
-    {
-        return false;
-    }
-
-    return true;
 }
 
 
@@ -530,8 +340,88 @@ ShaderModuleImpl::getVkShaderModule()
 }
 
 
-const CoShaderModuleLayout&
-ShaderModuleImpl::layout() const
+const Coral::ShaderModuleReflectionInfo&
+ShaderModuleImpl::getReflectionInfo() const
 {
-    return mLayout;
+    return mReflection;
+}
+
+
+bool
+ShaderModuleImpl::reflect()
+{
+    SpvReflectShaderModule module;
+    if (spvReflectCreateShaderModule(mSpirvCode.size() * sizeof(uint32_t), mSpirvCode.data(), &module) != SPV_REFLECT_RESULT_SUCCESS)
+    {
+        return {};
+    }
+
+    Finally cleanup([&]() { spvReflectDestroyShaderModule(&module); });
+
+    //if (module.entry_point_name == nullptr)
+    //{
+    //    return false;
+    //}
+        
+    std::vector<SpvReflectDescriptorSet*> sets;
+    {
+        uint32_t count{ 0 };
+        spvReflectEnumerateDescriptorSets(&module, &count, nullptr);
+        sets.resize(count);
+        spvReflectEnumerateDescriptorSets(&module, &count, sets.data());
+    }
+
+    mReflection.descriptorSets.resize(sets.size());
+    for (const auto& [spvSet, set] : std::views::zip(sets, mReflection.descriptorSets))
+    {
+        ::reflect(*spvSet, set);
+    }
+
+    auto reflectAttributes = [](std::vector<SpvReflectInterfaceVariable*> variables, std::vector<Coral::ReflectAttribute>& attributes)
+    {
+        std::erase_if(variables, [](const SpvReflectInterfaceVariable* v)
+        {
+            return v->built_in != -1;
+        });
+
+        attributes.resize(variables.size());
+
+        for (const auto& [spvVar, attr] : std::views::zip(variables, attributes))
+        {
+            if (!::reflect(*spvVar, attr))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    std::vector<SpvReflectInterfaceVariable*> inputVariables;
+    {
+        uint32_t count{ 0 };
+        spvReflectEnumerateInputVariables(&module, &count, nullptr);
+        inputVariables.resize(count);
+        spvReflectEnumerateInputVariables(&module, &count, inputVariables.data());
+    }
+        
+    if (!reflectAttributes(std::move(inputVariables), mReflection.inputAttributes))
+    {
+        return false;
+    }
+
+    std::vector<SpvReflectInterfaceVariable*> outputVariables;
+    {
+        uint32_t count{ 0 };
+        spvReflectEnumerateOutputVariables(&module, &count, nullptr);
+        outputVariables.resize(count);
+        spvReflectEnumerateOutputVariables(&module, &count, outputVariables.data());
+    }
+
+    if (!reflectAttributes(std::move(outputVariables), mReflection.outputAttributes))
+    {
+        return false;
+    }
+        
+    return true;
 }

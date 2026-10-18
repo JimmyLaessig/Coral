@@ -1,13 +1,13 @@
-#ifndef CORAL_GraphicsPipeline_H
-#define CORAL_GraphicsPipeline_H
+#ifndef CORAL_GRAPHICSPIPELINE_H
+#define CORAL_GRAPHICSPIPELINE_H
 
 #include <Coral/Export.h>
 
+#include <Coral/DescriptorSet.h>
 #include <Coral/Framebuffer.h>
 #include <Coral/ShaderModule.h>
 
 #include <cstdint>
-
 
 ///
 typedef enum
@@ -161,7 +161,9 @@ typedef enum
 } CoTopology;
 
 
-///
+/*!
+ * Configuration to create a graphics pipeline object
+ */
 typedef struct 
 {
     CoShaderModule vertexShaderModule;
@@ -208,8 +210,15 @@ struct CoGraphicsPipeline_T;
 
 typedef CoGraphicsPipeline_T* CoGraphicsPipeline;
 
+/*!
+ * \brief Create a new graphics pipeline object
+ */
 CORAL_API CoResult coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreateConfig* pConfig, CoGraphicsPipeline* pGraphicsPipeline);
 
-CORAL_API void coDestroyGraphicsPipeline(CoGraphicsPipeline GraphicsPipeline);
+CORAL_API void coDestroyGraphicsPipeline(CoGraphicsPipeline pipeline);
 
-#endif // !CORAL_GraphicsPipeline_H
+CORAL_API uint32_t coGraphicsPipelineGetDescriptorSetLayoutCount(const CoGraphicsPipeline pipeline);
+
+CORAL_API void coGraphicsPipelineGetDescriptorSetLayouts(const CoGraphicsPipeline pipeline, CoDescriptorSetLayout* pDescriptorSetLayouts);
+
+#endif // !CORAL_GRAPHICSPIPELINE_H

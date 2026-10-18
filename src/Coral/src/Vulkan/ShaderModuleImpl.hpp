@@ -33,21 +33,23 @@ public:
 
     const std::string& entryPoint() const override;
 
-    const CoShaderModuleLayout& layout() const override;
-
     VkShaderModule getVkShaderModule();
+
+    const ShaderModuleReflectionInfo& getReflectionInfo() const override;
 
 private:
 
-    bool reflect(std::span<const uint32_t> spirvCode);
+    bool reflect();
 
     std::string mName;
 
     std::string mEntryPoint;
 
-    CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
+    std::vector<uint32_t> mSpirvCode;
 
-    CoShaderModuleLayout mLayout{};
+    ShaderModuleReflectionInfo mReflection;
+
+    CoShaderStage mShaderStage{ CO_SHADER_STAGE_VERTEX };
 
     VkShaderModule mShaderModule{ VK_NULL_HANDLE };
 

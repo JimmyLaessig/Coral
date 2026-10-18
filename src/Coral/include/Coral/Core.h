@@ -4,7 +4,6 @@
 #include <Coral/Export.h>
 
 #include <cstdint>
-#include <utility>
 
 typedef enum
 {
@@ -25,7 +24,9 @@ typedef enum
     // An internal error occurred
     CO_ERROR_INTERNAL,
     // A timeout occurred
-    CO_ERROR_TIMEOUT
+    CO_ERROR_TIMEOUT,
+    // An invalid argument was passed to a function
+    CO_ERROR_INVALID_ARGUMENT,
 
 } CoResult;
 
@@ -44,98 +45,141 @@ typedef struct
     CoExtent extent;
 } CoRectangle;
 
+/*!
+ * \brief Enum specifying the format of pixels in an image
+ */
 typedef enum
 {
-    CO_PIXEL_FORMAT_R8_SRGB,
+    CO_PIXEL_FORMAT_R8_SRGB = 0,
     CO_PIXEL_FORMAT_RG8_SRGB,
     CO_PIXEL_FORMAT_RGB8_SRGB,
     CO_PIXEL_FORMAT_RGBA8_SRGB,
 
-    CO_PIXEL_FORMAT_R8_UI,
-    CO_PIXEL_FORMAT_RG8_UI,
-    CO_PIXEL_FORMAT_RGB8_UI,
-    CO_PIXEL_FORMAT_RGBA8_UI,
+    CO_PIXEL_FORMAT_R_U8,
+    CO_PIXEL_FORMAT_RG_U8,
+    CO_PIXEL_FORMAT_RGB_U8,
+    CO_PIXEL_FORMAT_RGBA_U8,
 
-    CO_PIXEL_FORMAT_R8_I,
-    CO_PIXEL_FORMAT_RG8_I,
-    CO_PIXEL_FORMAT_RGB8_I,
-    CO_PIXEL_FORMAT_RGBA8_I,
+    CO_PIXEL_FORMAT_R_I8,
+    CO_PIXEL_FORMAT_RG_I8,
+    CO_PIXEL_FORMAT_RGB_I8,
+    CO_PIXEL_FORMAT_RGBA_I8,
 
-    CO_PIXEL_FORMAT_R16_UI,
-    CO_PIXEL_FORMAT_RG16_UI,
-    CO_PIXEL_FORMAT_RGB16_UI,
-    CO_PIXEL_FORMAT_RGBA16_UI,
+    CO_PIXEL_FORMAT_R_U16,
+    CO_PIXEL_FORMAT_RG_U16,
+    CO_PIXEL_FORMAT_RGB_U16,
+    CO_PIXEL_FORMAT_RGBA_U16,
 
-    CO_PIXEL_FORMAT_R16_I,
-    CO_PIXEL_FORMAT_RG16_I,
-    CO_PIXEL_FORMAT_RGB16_I,
-    CO_PIXEL_FORMAT_RGBA16_I,
+    CO_PIXEL_FORMAT_R_I16,
+    CO_PIXEL_FORMAT_RG_I16,
+    CO_PIXEL_FORMAT_RGB_I16,
+    CO_PIXEL_FORMAT_RGBA_I16,
 
-    CO_PIXEL_FORMAT_R32_UI,
-    CO_PIXEL_FORMAT_RG32_UI,
-    CO_PIXEL_FORMAT_RGB32_UI,
-    CO_PIXEL_FORMAT_RGBA32_UI,
+    CO_PIXEL_FORMAT_R_U32,
+    CO_PIXEL_FORMAT_RG_U32,
+    CO_PIXEL_FORMAT_RGB_U32,
+    CO_PIXEL_FORMAT_RGBA_U32,
 
-    CO_PIXEL_FORMAT_R32_I,
-    CO_PIXEL_FORMAT_RG32_I,
-    CO_PIXEL_FORMAT_RGB32_I,
-    CO_PIXEL_FORMAT_RGBA32_I,
+    CO_PIXEL_FORMAT_R_I32,
+    CO_PIXEL_FORMAT_RG_I32,
+    CO_PIXEL_FORMAT_RGB_I32,
+    CO_PIXEL_FORMAT_RGBA_I32,
 
-    CO_PIXEL_FORMAT_R16_F,
-    CO_PIXEL_FORMAT_RG16_F,
-    CO_PIXEL_FORMAT_RGB16_F,
-    CO_PIXEL_FORMAT_RGBA16_F,
+    CO_PIXEL_FORMAT_R_F16,
+    CO_PIXEL_FORMAT_RG_F16,
+    CO_PIXEL_FORMAT_RGB_F16,
+    CO_PIXEL_FORMAT_RGBA_F16,
 
-    CO_PIXEL_FORMAT_R32_F,
-    CO_PIXEL_FORMAT_RG32_F,
-    CO_PIXEL_FORMAT_RGB32_F,
-    CO_PIXEL_FORMAT_RGBA32_F,
+    CO_PIXEL_FORMAT_R_F32,
+    CO_PIXEL_FORMAT_RG_F32,
+    CO_PIXEL_FORMAT_RGB_F32,
+    CO_PIXEL_FORMAT_RGBA_F32,
 
     CO_PIXEL_FORMAT_DEPTH16,
     CO_PIXEL_FORMAT_DEPTH24_STENCIL8,
-    CO_PIXEL_FORMAT_DEPTH32_F,
+    CO_PIXEL_FORMAT_DEPTH_F32,
 
 } CoPixelFormat;
 
-
+/*!
+ * \brief Enum specifying the format of an index
+ */
 typedef enum
 {
     CO_INDEX_FORMAT_UINT16 = 0,
-    CO_INDEX_FORMAT_UINT32 = 1,
+    CO_INDEX_FORMAT_UINT32,
 } CoIndexFormat;
 
+/*!
+ * \brief Enum specifying the format of an attribute
+ */
 typedef enum
 {
-    CO_ATTRIBUTE_FORMAT_UINT16 = 0,
-    CO_ATTRIBUTE_FORMAT_UINT32 = 1,
-    CO_ATTRIBUTE_FORMAT_INT16  = 2,
-    CO_ATTRIBUTE_FORMAT_INT32  = 3,
-    CO_ATTRIBUTE_FORMAT_FLOAT  = 4,
-    CO_ATTRIBUTE_FORMAT_VEC2F  = 5,
-    CO_ATTRIBUTE_FORMAT_VEC3F  = 6,
-    CO_ATTRIBUTE_FORMAT_VEC4F  = 7
+    CO_ATTRIBUTE_FORMAT_R_U16 = 0,
+    CO_ATTRIBUTE_FORMAT_R_I16,
+    CO_ATTRIBUTE_FORMAT_R_F16,
+    CO_ATTRIBUTE_FORMAT_RG_U16,
+    CO_ATTRIBUTE_FORMAT_RG_I16,
+    CO_ATTRIBUTE_FORMAT_RG_F16,
+    CO_ATTRIBUTE_FORMAT_RGB_U16,
+    CO_ATTRIBUTE_FORMAT_RGB_I16,
+    CO_ATTRIBUTE_FORMAT_RGB_F16,
+    CO_ATTRIBUTE_FORMAT_RGBA_U16,
+    CO_ATTRIBUTE_FORMAT_RGBA_I16,
+    CO_ATTRIBUTE_FORMAT_RGBA_F16,
+    CO_ATTRIBUTE_FORMAT_R_U32,
+    CO_ATTRIBUTE_FORMAT_R_I32,
+    CO_ATTRIBUTE_FORMAT_R_F32,
+    CO_ATTRIBUTE_FORMAT_RG_U32,
+    CO_ATTRIBUTE_FORMAT_RG_I32,
+    CO_ATTRIBUTE_FORMAT_RG_F32,
+    CO_ATTRIBUTE_FORMAT_RGB_U32,
+    CO_ATTRIBUTE_FORMAT_RGB_I32,
+    CO_ATTRIBUTE_FORMAT_RGB_F32,
+    CO_ATTRIBUTE_FORMAT_RGBA_U32,
+    CO_ATTRIBUTE_FORMAT_RGBA_I32,
+    CO_ATTRIBUTE_FORMAT_RGBA_F32,
+    CO_ATTRIBUTE_FORMAT_R_U64,
+    CO_ATTRIBUTE_FORMAT_R_I64,
+    CO_ATTRIBUTE_FORMAT_R_F64,
+    CO_ATTRIBUTE_FORMAT_RG_U64,
+    CO_ATTRIBUTE_FORMAT_RG_I64,
+    CO_ATTRIBUTE_FORMAT_RG_F64,
+    CO_ATTRIBUTE_FORMAT_RGB_U64,
+    CO_ATTRIBUTE_FORMAT_RGB_I64,
+    CO_ATTRIBUTE_FORMAT_RGB_F64,
+    CO_ATTRIBUTE_FORMAT_RGBA_U64,
+    CO_ATTRIBUTE_FORMAT_RGBA_I64,
+    CO_ATTRIBUTE_FORMAT_RGBA_F64,
+
 } CoAttributeFormat;
 
-/// Get the size in bytes of the pixel format
-uint32_t coPixelFormatGetSizeInBytes(CoPixelFormat format);
-
-/// Get the size in bytes of the attribute format
-uint32_t coAttributeFormatGetSizeInBytes(CoAttributeFormat format);
-
-/// Get the size in bytes of the uniform format
-/**
- * Returns the packed size of the uniform format without padding or alignment.
+/*! 
+ * \brief Get the size of the pixel format in bytes
+ * \param format The pixel format
+ * \return The size in bytes
  */
-//uint32_t coUniformFormatGetSizeInBytes(CoUniformFormat format);
+CORAL_API uint32_t coPixelFormatGetSizeInBytes(CoPixelFormat format);
 
-/// Get the size in bytes of the index format
-uint32_t coIndexFormatGetSizeInBytes(CoIndexFormat format);
+/*!
+ * \brief Get the size of the attribute format in bytes
+ * \param format The attribute format
+ * \return The size in bytes
+ */
+CORAL_API uint32_t coAttributeFormatGetSizeInBytes(CoAttributeFormat format);
+
+/*!
+ * \brief Get the size of the index format in bytes
+ * \param format The index format
+ * \return The size in bytes
+ */
+CORAL_API uint32_t coIndexFormatGetSizeInBytes(CoIndexFormat format);
 
 typedef enum
 {
-    CO_CLEAR_OP_CLEAR     = 0,
-    CO_CLEAR_OP_LOAD      = 1,
-    CO_CLEAR_OP_DONT_CARE = 2,
+    CO_CLEAR_OP_CLEAR = 0,
+    CO_CLEAR_OP_LOAD,
+    CO_CLEAR_OP_DONT_CARE,
 } CoClearOp;
 
 /*!
@@ -151,19 +195,19 @@ typedef enum
     /*!
      * The buffer is used as an index buffer
      */
-    CO_BUFFER_TYPE_INDEX = 1,
+    CO_BUFFER_TYPE_INDEX,
     /*!
      * The buffer is used as uniform buffer
      */
-    CO_BUFFER_TYPE_UNIFORM = 2,
+    CO_BUFFER_TYPE_UNIFORM,
     /*!
      * The buffer is used as storage buffer
      */
-    CO_BUFFER_TYPE_STORAGE = 3,
+    CO_BUFFER_TYPE_STORAGE,
     /*!
      * The buffer is used as indirect buffer
      */
-    CO_BUFFER_TYPE_INDIRECT = 4,
+    CO_BUFFER_TYPE_INDIRECT,
 } CoBufferType;
 
 /*!
@@ -171,11 +215,11 @@ typedef enum
  */
 typedef enum
 {
-    CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER         = 0,
-    CO_DESCRIPTOR_TYPE_STORAGE_BUFFER         = 1,
-    CO_DESCRIPTOR_TYPE_IMAGE                  = 2,
-    CO_DESCRIPTOR_TYPE_SAMPLER                = 3,
-    CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER = 4,
+    CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER = 0,
+    CO_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+    CO_DESCRIPTOR_TYPE_IMAGE,
+    CO_DESCRIPTOR_TYPE_SAMPLER,
+    CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 } CoDescriptorType;
 
 #endif // !CORAL_TYPES_H

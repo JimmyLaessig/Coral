@@ -109,15 +109,19 @@ ContextImpl::init(const Context::CreateConfig& config)
     features10.shaderInt16       = VK_TRUE;
     features10.shaderInt64       = VK_TRUE;
     features10.multiDrawIndirect = VK_TRUE;
-   
+
     // Vulkan 1.1 features
     VkPhysicalDeviceVulkan11Features features11{};
-    features11.shaderDrawParameters = VK_TRUE;
-    features11.storageBuffer16BitAccess = VK_TRUE;
+    features11.shaderDrawParameters               = VK_TRUE;
+    features11.storageBuffer16BitAccess           = VK_TRUE;
+    features11.uniformAndStorageBuffer16BitAccess = VK_TRUE;
+
     // Vulkan 1.2 features
     VkPhysicalDeviceVulkan12Features features12{};
-    features12.bufferDeviceAddress = VK_TRUE;
-    features12.timelineSemaphore   = VK_TRUE;
+    features12.bufferDeviceAddress    = VK_TRUE;
+    features12.timelineSemaphore      = VK_TRUE;
+    features12.descriptorIndexing     = VK_TRUE;
+    features12.runtimeDescriptorArray = VK_TRUE;
 
     // Vulkan 1.3 features
     VkPhysicalDeviceVulkan13Features features13{};

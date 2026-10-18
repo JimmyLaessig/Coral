@@ -23,7 +23,6 @@
 #include <Coral/ImGui_Impl_Coral.h>
 
 #include <Coral/Util/RAII.hpp>
-#include <Coral/Util/UniformBlockBuilder.hpp>
 
 #include <backends/imgui_impl_glfw.h>
 
@@ -154,109 +153,22 @@ CoralDemoApp::initialize()
         }
     }
 
-    {
-        std::array<CoStructMemberInfo, 1> members
-        {
-            CoStructMemberInfo{
-                .pName = "viewProjectionMatrix",
-                .count = 1,
-                .offset = 0,
-                .stride = 64,
-                .type = CO_STRUCT_MEMBER_TYPE_MATRIX,
-                .matrix = {
-                    .dataType    = CO_SCALAR_TYPE_FLOAT32,
-                    .rowCount    = 4,
-                    .columnCount = 4,
-                    .stride      = 16,
-                }
-            },
-        };
+    // Update the camera parameters
+    int width, height;
+    glfwGetWindowSize(mWindow, &width, &height);
 
-        CoBufferInfo cameraParamsDef
-        {
-            .structure = {
-                .pName  = "cameraParams",
-                .count  = 1,
-                .offset = 0,
-                .stride = 64,
-                .type   = CO_STRUCT_MEMBER_TYPE_STRUCT,
-                .structure = {
-                    .pTypeName   = "CameraParams",
-                    .pMembers    = members.data(),
-                    .memberCount = static_cast<uint32_t>(members.size()),
-                },
-            },
-        };
-        mCameraParams       = { cameraParamsDef };
-        mCameraParamsBuffer = Util::createUniformBuffer(mContext.get(), mCameraParams);
-    }
+    mCamera.setSize(static_cast<uint32_t>(width), static_cast<uint32_t>(height));
 
-    {
-        std::array<CoStructMemberInfo, 3> members
-        {
-            CoStructMemberInfo{
-                .pName  = "lightDirection",
-                .count  = 1,
-                .offset = 0,
-                .stride = 16,
-                .type   = CO_STRUCT_MEMBER_TYPE_VECTOR,
-                .vector = {
-                    .dataType       = CO_SCALAR_TYPE_FLOAT32,
-                    .componentCount = 3
-                }
-            },
-            CoStructMemberInfo{
-                .pName  = "lightColor",
-                .count  = 1,
-                .offset = 16,
-                .stride = 16,
-                .type = CO_STRUCT_MEMBER_TYPE_VECTOR,
-                .vector = {
-                    .dataType       = CO_SCALAR_TYPE_FLOAT32,
-                    .componentCount = 3
-                }
-            },
-            CoStructMemberInfo{
-                .pName  = "ambientColor",
-                .count  = 1,
-                .offset = 32,
-                .stride = 16,
-                .type   = CO_STRUCT_MEMBER_TYPE_VECTOR,
-                .vector = {
-                    .dataType       = CO_SCALAR_TYPE_FLOAT32,
-                    .componentCount = 3
-                }
-            },
-        };
-
-        CoBufferInfo lightParamsBufferInfo
-        {
-            .structure  = {
-                .pName  = "lightParams",
-                .count  = 1,
-                .offset = 0,
-                .stride = 48,
-                .type   = CO_STRUCT_MEMBER_TYPE_STRUCT,
-                .structure = {
-                    .pTypeName   = "LightParams",
-                    .pMembers    = members.data(),
-                    .memberCount = static_cast<uint32_t>(members.size()),
-                },
-            }
-        };
-
-        mLightParams = { lightParamsBufferInfo };
-        mLightParams.set("lightParams.lightColor",     glm::vec3(1.f, 1.f, 1.f));
-        mLightParams.set("lightParams.lightDirection", glm::normalize(glm::vec3(1.f, 2.f, 0.f)));
-        mLightParams.set("lightParams.ambientColor",   glm::vec3(0.1f, 0.1f, 0.1f));
-        mLightParamsBuffer = Util::createUniformBuffer(mContext.get(), mLightParams);
-    }
     Scene scene
     {
-        .renderObjects = mRenderObjects,
-        .cameraParams  = mCameraParamsBuffer.get(),
-        .lightParams   = mLightParamsBuffer.get()
+        .renderObjects    = mRenderObjects,
+        .viewMatrix       = mCamera.viewMatrix(),
+        .projectionMatrix = mCamera.projectionMatrix(),
+        .lightDirection   = glm::normalize(glm::vec3(1.f, 1.f, 1.f)),
+        .lightColor       = glm::vec3(1.f, 1.f, 1.f),
+        .ambientColor     = glm::vec3(0.1f, 0.1f, 0.1f),
     };
+
     return mDrawIndexed.initialize(mContext.get(), scene) &&
            mDrawInstanced.initialize(mContext.get(), scene) &&
            mDrawIndirect.initialize(mContext.get(), scene);
@@ -426,13 +338,6 @@ CoralDemoApp::run()
 
         mRotation += (mRotationsPerSecond * 360.f) * deltaT;
 
-        // Update the camera parameters
-        auto viewMatrix       = mCamera.viewMatrix();
-        auto projectionMatrix = glm::perspective(fov, static_cast<float>(width) / height, nearPlane, farPlane);
-
-        mCameraParams.set("cameraParams.viewProjectionMatrix", projectionMatrix * viewMatrix);
-        Util::updateBuffer(mContext.get(), mCameraParamsBuffer.get(), mCameraParams.data());
-
         CoCommandBufferCreateConfig commandBufferConfig{};
         Coral::CommandBufferPtr commandBuffer;
         if (coCommandQueueCreateCommandBuffer(queue, &commandBufferConfig, std::out_ptr(commandBuffer)) != CO_SUCCESS)
@@ -466,19 +371,19 @@ CoralDemoApp::run()
 
         if (mDrawMode == DrawMode::INDEXED)
         {
-            mDrawIndexed.draw(commandBuffer.get());
+            mDrawIndexed.draw(commandBuffer.get(), mCamera);
         }
         if (mDrawMode == DrawMode::INDEXED_OPTIMIZED)
         {
-            mDrawIndexed.drawOptimized(commandBuffer.get());
+            mDrawIndexed.drawOptimized(commandBuffer.get(), mCamera);
         }
         if (mDrawMode == DrawMode::INSTANCED)
         {
-            mDrawInstanced.draw(commandBuffer.get());
+            mDrawInstanced.draw(commandBuffer.get(), mCamera);
         }
         if (mDrawMode == DrawMode::INDIRECT)
         {
-            mDrawIndirect.draw(commandBuffer.get());
+            mDrawIndirect.draw(commandBuffer.get(), mCamera);
         }
 
         ImGui_ImplCoral_NewFrame(mContext.get());
