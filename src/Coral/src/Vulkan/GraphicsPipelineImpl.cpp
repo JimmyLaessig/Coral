@@ -6,10 +6,13 @@
 #include "VulkanFormat.hpp"
 
 #include "../Finally.hpp"
+#include "../Visitor.hpp"
 
 #include <algorithm>
 #include <cassert>
 #include <vector>
+#include <map>
+
 
 using namespace Coral::Vulkan;
 
@@ -23,8 +26,9 @@ convert(CoShaderStage shaderStage)
     {
         case CO_SHADER_STAGE_VERTEX:   return VK_SHADER_STAGE_VERTEX_BIT;
         case CO_SHADER_STAGE_FRAGMENT: return VK_SHADER_STAGE_FRAGMENT_BIT;
-        default: assert(false);        return VK_SHADER_STAGE_ALL_GRAPHICS;
     }
+
+    std::unreachable();
 }
 
 
@@ -33,17 +37,47 @@ convert(CoAttributeFormat format)
 {
     switch (format)
     {
-        case CO_ATTRIBUTE_FORMAT_VEC4F:  return VK_FORMAT_R32G32B32A32_SFLOAT;
-        case CO_ATTRIBUTE_FORMAT_VEC3F:  return VK_FORMAT_R32G32B32_SFLOAT;
-        case CO_ATTRIBUTE_FORMAT_VEC2F:  return VK_FORMAT_R32G32_SFLOAT;
-        case CO_ATTRIBUTE_FORMAT_FLOAT:  return VK_FORMAT_R32_SFLOAT;
-        case CO_ATTRIBUTE_FORMAT_INT32:  return VK_FORMAT_R32_SINT;
-        case CO_ATTRIBUTE_FORMAT_INT16:  return VK_FORMAT_R16_SINT;
-        case CO_ATTRIBUTE_FORMAT_UINT32: return VK_FORMAT_R32_UINT;
-        case CO_ATTRIBUTE_FORMAT_UINT16: return VK_FORMAT_R16_UINT;
-        default: assert(false);          return VK_FORMAT_UNDEFINED;
+        case CO_ATTRIBUTE_FORMAT_R_U16:    return VK_FORMAT_R16_UINT;
+        case CO_ATTRIBUTE_FORMAT_R_I16:    return VK_FORMAT_R16_SINT;
+        case CO_ATTRIBUTE_FORMAT_R_F16:    return VK_FORMAT_R16_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RG_U16:   return VK_FORMAT_R16G16_UINT;
+        case CO_ATTRIBUTE_FORMAT_RG_I16:   return VK_FORMAT_R16G16_SINT;
+        case CO_ATTRIBUTE_FORMAT_RG_F16:   return VK_FORMAT_R16G16_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RGB_U16:  return VK_FORMAT_R16G16B16_UINT;
+        case CO_ATTRIBUTE_FORMAT_RGB_I16:  return VK_FORMAT_R16G16B16_SINT;
+        case CO_ATTRIBUTE_FORMAT_RGB_F16:  return VK_FORMAT_R16G16B16_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_U16: return VK_FORMAT_R16G16B16A16_UINT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_I16: return VK_FORMAT_R16G16B16A16_SINT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_F16: return VK_FORMAT_R16G16B16A16_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_R_U32:    return VK_FORMAT_R32_UINT;
+        case CO_ATTRIBUTE_FORMAT_R_I32:    return VK_FORMAT_R32_SINT;
+        case CO_ATTRIBUTE_FORMAT_R_F32:    return VK_FORMAT_R32_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RG_U32:   return VK_FORMAT_R32G32_UINT;
+        case CO_ATTRIBUTE_FORMAT_RG_I32:   return VK_FORMAT_R32G32_SINT;
+        case CO_ATTRIBUTE_FORMAT_RG_F32:   return VK_FORMAT_R32G32_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RGB_U32:  return VK_FORMAT_R32G32B32_UINT;
+        case CO_ATTRIBUTE_FORMAT_RGB_I32:  return VK_FORMAT_R32G32B32_SINT;
+        case CO_ATTRIBUTE_FORMAT_RGB_F32:  return VK_FORMAT_R32G32B32_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_U32: return VK_FORMAT_R32G32B32A32_UINT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_I32: return VK_FORMAT_R32G32B32A32_SINT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_F32: return VK_FORMAT_R32G32B32A32_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_R_U64:    return VK_FORMAT_R64_UINT;
+        case CO_ATTRIBUTE_FORMAT_R_I64:    return VK_FORMAT_R64_SINT;
+        case CO_ATTRIBUTE_FORMAT_R_F64:    return VK_FORMAT_R64_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RG_U64:   return VK_FORMAT_R64G64_UINT;
+        case CO_ATTRIBUTE_FORMAT_RG_I64:   return VK_FORMAT_R64G64_SINT;
+        case CO_ATTRIBUTE_FORMAT_RG_F64:   return VK_FORMAT_R64G64_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RGB_U64:  return VK_FORMAT_R64G64B64_UINT;
+        case CO_ATTRIBUTE_FORMAT_RGB_I64:  return VK_FORMAT_R64G64B64_SINT;
+        case CO_ATTRIBUTE_FORMAT_RGB_F64:  return VK_FORMAT_R64G64B64_SFLOAT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_U64: return VK_FORMAT_R64G64B64A64_UINT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_I64: return VK_FORMAT_R64G64B64A64_SINT;
+        case CO_ATTRIBUTE_FORMAT_RGBA_F64: return VK_FORMAT_R64G64B64A64_SFLOAT;
     }
+
+    std::unreachable();
 }
+
 
 VkPolygonMode
 convert(CoPolygonMode mode)
@@ -53,8 +87,9 @@ convert(CoPolygonMode mode)
         case CO_POLYGON_MODE_WIREFRAME: return VK_POLYGON_MODE_LINE;
         case CO_POLYGON_MODE_SOLID:     return VK_POLYGON_MODE_FILL;
         case CO_POLYGON_MODE_POINTS:    return VK_POLYGON_MODE_POINT;
-        default: assert(false);         return VK_POLYGON_MODE_FILL;
     }
+
+    std::unreachable();
 }
 
 
@@ -67,8 +102,9 @@ convert(CoCullMode mode)
         case CO_CULL_MODE_FRONT_AND_BACK: return VK_CULL_MODE_FRONT_AND_BACK;
         case CO_CULL_MODE_BACK:           return VK_CULL_MODE_BACK_BIT;
         case CO_CULL_MODE_FRONT:          return VK_CULL_MODE_FRONT_BIT;
-        default: assert(false);           return VK_CULL_MODE_NONE;
     }
+
+    std::unreachable();
 }
 
 
@@ -79,8 +115,9 @@ convert(CoFrontFaceOrientation orientation)
     {
         case CO_FRONT_FACE_ORIENTATION_CCW: return VK_FRONT_FACE_COUNTER_CLOCKWISE;
         case CO_FRONT_FACE_ORIENTATION_CW:  return VK_FRONT_FACE_CLOCKWISE;
-        default: assert(false);             return VK_FRONT_FACE_COUNTER_CLOCKWISE;
     }
+
+    std::unreachable();
 }
 
 
@@ -120,8 +157,26 @@ convert(CoDescriptorType type)
     std::unreachable();
 }
 
-} // namespace
 
+bool
+reflect(const Coral::ReflectDescriptor& descriptor, Coral::BindDescriptorInfo& info)
+{
+    info.binding = descriptor.binding;
+
+    // TODO: parse array params
+
+    info.type = std::visit(Coral::Visitor{
+        [](const Coral::BufferInfo& info)          { return info.bufferType == CO_BUFFER_TYPE_STORAGE ? CO_DESCRIPTOR_TYPE_STORAGE_BUFFER 
+                                                                                                      : CO_DESCRIPTOR_TYPE_UNIFORM_BUFFER; },
+        [](const Coral::ImageInfo&)                { return CO_DESCRIPTOR_TYPE_IMAGE; },
+        [](const Coral::SamplerInfo&)              { return CO_DESCRIPTOR_TYPE_SAMPLER; },
+        [](const Coral::CombinedImageSamplerInfo&) { return CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER; }
+    }, descriptor.info);
+
+    return true;
+}
+
+} // namespace
 
 GraphicsPipelineImpl::~GraphicsPipelineImpl()
 {
@@ -145,15 +200,15 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
     //-------------------------------------------------------------
 
     std::vector<VkPipelineShaderStageCreateInfo> shaderStages;
-
+    std::vector<std::shared_ptr<ShaderModuleImpl>> shaderModules;
     Coral::Vulkan::ShaderModuleImpl* vertexShader{ nullptr };
     for (const auto& shaderModule : config.shaderModules)
     {
-        auto shader = static_cast<Coral::Vulkan::ShaderModuleImpl*>(shaderModule.get());
-
+        auto shader = std::static_pointer_cast<Coral::Vulkan::ShaderModuleImpl>(shaderModule);
+        
         if (shader->shaderStage() == CO_SHADER_STAGE_VERTEX)
         {
-            vertexShader = shader;
+            vertexShader = shader.get();
         }
 
         VkPipelineShaderStageCreateInfo shaderStage
@@ -164,6 +219,7 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
             .pName  = shader->entryPoint().c_str(),
         };
         shaderStages.push_back(shaderStage);
+        shaderModules.push_back(shader);
     }
 
     if (!vertexShader)
@@ -171,6 +227,16 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
         return Coral::GraphicsPipeline::CreateError::INTERNAL_ERROR;
     }
     
+    if (!createDescriptorSetLayouts(shaderModules))
+    {
+        return Coral::GraphicsPipeline::CreateError::INTERNAL_ERROR;
+    }
+
+    if (!createAttributeLayout(*vertexShader))
+    {
+        return Coral::GraphicsPipeline::CreateError::INTERNAL_ERROR;
+    }
+
     //-------------------------------------------------------------
     // Rasterization State
     //-------------------------------------------------------------
@@ -261,9 +327,7 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
 
     std::vector<VkVertexInputBindingDescription> bindingDescriptions;
     std::vector<VkVertexInputAttributeDescription> attributeDescriptions;
-    auto& vertexShaderLayout = vertexShader->layout();
-    for (const auto& info : std::span(vertexShaderLayout.inputAttributeLayout.pAttributeBindingInfos, 
-                                      vertexShaderLayout.inputAttributeLayout.attributeBindingInfoCount))
+    for (const auto& info : mAttributeLayout.bindings)
     {
         auto& bindingDescription     = bindingDescriptions.emplace_back();
         bindingDescription.binding   = info.location;
@@ -349,47 +413,45 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
     // Descriptor Set Layout
     //-------------------------------------------------------------
 
-    struct DescriptorSetData
-    {
-        uint32_t set{ 0 };
-        std::vector<VkDescriptorSetLayoutBinding> bindings;
-    };
-
-    std::unordered_map<uint32_t, DescriptorSetData> sets;
-
-    for (auto shader : config.shaderModules)
-    {
-        auto stage  = ::convert(shader->shaderStage());
-        auto layout = shader->layout();
-        for (const auto& set : std::span(layout.pDescriptorSetLayouts, 
-                                         layout.descriptorSetLayoutCount))
-        {
-            auto& resolved = sets[set.set];
-            resolved.set   = set.set;
-
-            for (const auto& info : std::span(set.pDescriptorInfos, set.descriptorInfoCount))
-            { 
-                if (std::ranges::contains(resolved.bindings, info.binding, &VkDescriptorSetLayoutBinding::binding))
-                {
-                    continue;
-                }
-
-                auto& binding = resolved.bindings.emplace_back();
-                binding.binding         = info.binding;
-                binding.descriptorCount = 1;
-                binding.stageFlags      = VK_SHADER_STAGE_ALL;
-                binding.descriptorType  = ::convert(info.type);
-            }
-        }
-    }
-
     std::vector<VkDescriptorSetLayout> layouts;
-    for (const auto& [_, set] : sets)
+
+    for (const auto& layout : mDescriptorSetLayouts)
     {
-        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        descriptorSetLayoutCreateInfo.pBindings    = set.bindings.data();
-        descriptorSetLayoutCreateInfo.bindingCount = static_cast<uint32_t>(set.bindings.size());
-        //descriptorSetLayoutCreateInfo.flags        = VK_DESCRIPTOR_SET_LAYOUT_CREATE_PUSH_DESCRIPTOR_BIT_KHR;
+        std::vector<VkDescriptorSetLayoutBinding> bindings;
+        std::vector<VkDescriptorBindingFlags> bindingFlags;
+
+        for (const auto& descriptor : layout.bindings)
+        {
+            auto& binding           = bindings.emplace_back();
+            binding.binding         = descriptor.binding;
+            binding.descriptorCount = 1;
+            binding.stageFlags      = VK_SHADER_STAGE_ALL;
+            binding.descriptorType  = ::convert(descriptor.type);
+
+            VkDescriptorBindingFlags flags{ 0 };
+            //if (descriptor.type == CO_DESCRIPTOR_TYPE_STORAGE_BUFFER &&
+            //    descriptor.buffer.structure.array.dimensionsCount > 0 &&
+            //    descriptor.buffer.structure.array.pDimensions[0] == 0)
+            //{
+            //    flags = VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            //}
+            bindingFlags.push_back(flags); 
+        }
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsCreateInfo
+        {
+            .sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount  = static_cast<uint32_t>(bindingFlags.size()),
+            .pBindingFlags = bindingFlags.data(),
+        };
+
+        VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo
+        {
+            .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext        = &bindingFlagsCreateInfo,
+            .bindingCount = static_cast<uint32_t>(bindings.size()),
+            .pBindings    = bindings.data(),
+        };
 
         auto& vkSet = layouts.emplace_back(VK_NULL_HANDLE);
         if (vkCreateDescriptorSetLayout(context().getVkDevice(), &descriptorSetLayoutCreateInfo, nullptr, &vkSet) != VK_SUCCESS)
@@ -415,7 +477,7 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo
     {
-        .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO ,
+        .sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .setLayoutCount = static_cast<uint32_t>(layouts.size()),
         .pSetLayouts    = layouts.data(),
     };
@@ -430,7 +492,7 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
     //-------------------------------------------------------------
 
     VkGraphicsPipelineCreateInfo createInfo
-    { 
+    {
         .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .pNext               = &renderingCreateInfo,
         .stageCount          = static_cast<uint32_t>(shaderStages.size()),
@@ -455,6 +517,65 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
 }
 
 
+bool
+GraphicsPipelineImpl::createDescriptorSetLayouts(std::span<const std::shared_ptr<ShaderModuleImpl>> shaderModules)
+{
+    std::map<uint32_t, DescriptorSetLayout> layouts;
+
+    // Collect all descriptor bindings across all shader modules and join them
+    // into one layout for each descriptor set
+    for (auto shaderModule : shaderModules)
+    {
+        const auto& refl = shaderModule->getReflectionInfo();
+
+        for (const auto& descriptorSet : refl.descriptorSets)
+        {
+            auto& layout = layouts[descriptorSet.set];
+
+            for (const auto& descriptor : descriptorSet.descriptors)
+            {
+                // The binding has already been parsed
+                if (layout.bindings.end() != std::find_if(layout.bindings.begin(), layout.bindings.end(), [&](const auto& info)
+                    {
+                        return info.binding == descriptor.binding;
+                    }))
+                {
+                    continue;
+                }
+
+                auto& target = layout.bindings.emplace_back();
+
+                if (!::reflect(descriptor, target))
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    for (auto& [_, set] : layouts)
+    {
+        mDescriptorSetLayouts.push_back(std::move(set));
+    }
+
+    return true;
+}
+
+
+bool
+GraphicsPipelineImpl::createAttributeLayout(const ShaderModuleImpl& vertexShader)
+{
+    const auto& refl = vertexShader.getReflectionInfo();
+    for (const auto& attribute : refl.inputAttributes)
+    {
+        auto& info    = mAttributeLayout.bindings.emplace_back();
+        info.location = attribute.location;
+        info.format   = attribute.format;
+    }
+    return true;
+}
+
+
 VkPipeline
 GraphicsPipelineImpl::getVkPipeline()
 {
@@ -466,4 +587,18 @@ VkPipelineLayout
 GraphicsPipelineImpl::getVkPipelineLayout()
 {
     return mPipelineLayout;
+}
+
+
+const std::vector<Coral::DescriptorSetLayout>&
+GraphicsPipelineImpl::getDescriptorSetLayouts() const
+{
+    return mDescriptorSetLayouts;
+}
+
+
+const Coral::AttributeLayout&
+GraphicsPipelineImpl::getAttributeLayout() const
+{
+    return mAttributeLayout;
 }

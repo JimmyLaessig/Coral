@@ -41,3 +41,17 @@ FlyCamera::viewMatrix() const
 {
     return glm::inverse(mLocalToWorldMatrix);
 }
+
+glm::mat4
+FlyCamera::projectionMatrix() const
+{
+    float aspectRatio = static_cast<float>(mWidth) / mHeight;
+    return glm::perspective(mFov, aspectRatio, mNearPlane, mFarPlane);
+}
+
+void
+FlyCamera::setSize(uint32_t width, uint32_t height)
+{
+    mWidth  = width;
+    mHeight = height;
+}

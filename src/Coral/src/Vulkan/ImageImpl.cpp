@@ -17,7 +17,7 @@ getAspectFlags(CoPixelFormat format)
     switch (format)
     {
         case CO_PIXEL_FORMAT_DEPTH16:
-        case CO_PIXEL_FORMAT_DEPTH32_F:
+        case CO_PIXEL_FORMAT_DEPTH_F32:
             return VK_IMAGE_ASPECT_DEPTH_BIT;
         case CO_PIXEL_FORMAT_DEPTH24_STENCIL8:
             return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;

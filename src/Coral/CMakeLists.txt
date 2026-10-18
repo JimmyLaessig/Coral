@@ -48,6 +48,7 @@ set(PUBLIC_HEADERS
     ${PUBLIC_HEADER_DIR}/Sampler.h
     ${PUBLIC_HEADER_DIR}/Semaphore.h
     ${PUBLIC_HEADER_DIR}/ShaderModule.h
+    ${PUBLIC_HEADER_DIR}/ShaderModuleReflection.h
     ${PUBLIC_HEADER_DIR}/Swapchain.h
     ${PUBLIC_HEADER_DIR}/ImGui_Impl_Coral.h)
 
@@ -70,6 +71,7 @@ set(SOURCES
     ${SOURCE_DIR}/Sampler.cpp
     ${SOURCE_DIR}/Semaphore.cpp
     ${SOURCE_DIR}/ShaderModule.cpp
+    ${SOURCE_DIR}/ShaderModuleReflection.cpp
     ${SOURCE_DIR}/Swapchain.cpp
     ${SOURCE_DIR}/ImGui_Impl_Coral.cpp)
 
@@ -95,6 +97,7 @@ set(PRIVATE_HEADERS
     ${SOURCE_DIR}/Sampler.hpp
     ${SOURCE_DIR}/Semaphore.hpp
     ${SOURCE_DIR}/ShaderModule.hpp
+    ${SOURCE_DIR}/ShaderModuleReflection.hpp
     ${SOURCE_DIR}/Swapchain.hpp)
 
 ###############################################################################
@@ -117,6 +120,7 @@ set(VULKAN_HEADERS
     ${SOURCE_DIR}/Vulkan/SamplerImpl.hpp
     ${SOURCE_DIR}/Vulkan/SemaphoreImpl.hpp
     ${SOURCE_DIR}/Vulkan/ShaderModuleImpl.hpp
+    ${SOURCE_DIR}/Vulkan/ShaderModuleReflectionImpl.hpp
     ${SOURCE_DIR}/Vulkan/SwapchainImpl.hpp
     ${SOURCE_DIR}/Vulkan/Vulkan.hpp
     ${SOURCE_DIR}/Vulkan/VulkanFormat.hpp
@@ -141,6 +145,7 @@ set(VULKAN_SOURCES
     ${SOURCE_DIR}/Vulkan/SamplerImpl.cpp
     ${SOURCE_DIR}/Vulkan/SemaphoreImpl.cpp
     ${SOURCE_DIR}/Vulkan/ShaderModuleImpl.cpp
+    ${SOURCE_DIR}/Vulkan/ShaderModuleReflectionImpl.cpp
     ${SOURCE_DIR}/Vulkan/SwapchainImpl.cpp
     ${SOURCE_DIR}/Vulkan/ImGuiImpl.cpp
     ${imgui_SOURCE_DIR}/backends/imgui_impl_vulkan.cpp)

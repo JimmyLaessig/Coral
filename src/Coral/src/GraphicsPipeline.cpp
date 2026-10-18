@@ -8,9 +8,40 @@
 
 using namespace Coral;
 
+namespace
+{
+
+void
+destroy(const CoDescriptorSetLayout& set)
+{
+    delete[] set.pBindings;
+}
+
+void
+create(const Coral::BindDescriptorInfo& source, CoBindDescriptorInfo& target)
+{
+    target.type    = source.type;
+    target.binding = source.binding;
+    target.count   = source.count;
+}
+
+void
+create(const Coral::DescriptorSetLayout& source, CoDescriptorSetLayout& target)
+{
+    auto bindings = new CoBindDescriptorInfo[source.bindings.size()];
+    target.pBindings     = bindings;
+    target.bindingsCount = source.bindings.size();
+
+    for (size_t i = 0; i < source.bindings.size(); ++i)
+    {
+        ::create(source.bindings[i], bindings[i]);
+    }
+}
+
+} // namespace
 
 CoResult
-coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreateConfig* pConfig, CoGraphicsPipeline* pGraphicsPipeline)
+coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreateConfig* pConfig, CoGraphicsPipeline* pPipeline)
 {
     GraphicsPipeline::CreateConfig configImpl;
     configImpl.blendMode       = pConfig->blendMode;
@@ -42,7 +73,7 @@ coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreat
 
     if (auto impl = context->impl->createGraphicsPipeline(configImpl))
     {
-        *pGraphicsPipeline = new CoGraphicsPipeline_T{ impl.value() };
+        *pPipeline = new CoGraphicsPipeline_T{ impl.value() };
         return CO_SUCCESS;
     }
     else
@@ -53,7 +84,48 @@ coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreat
 
 
 void
-coDestroyGraphicsPipeline(CoGraphicsPipeline GraphicsPipeline)
+coDestroyGraphicsPipeline(CoGraphicsPipeline pipeline)
 {
-    delete GraphicsPipeline;
+    delete pipeline;
+}
+
+
+CoGraphicsPipeline_T::CoGraphicsPipeline_T(std::shared_ptr<Coral::GraphicsPipeline> impl)
+    : impl(impl)
+{
+    const auto& layouts = impl->getDescriptorSetLayouts();
+    mDescriptorSetLayouts.resize(layouts.size());
+
+    for (size_t i = 0; i < layouts.size(); ++i)
+    {
+        auto& source = layouts[i];
+        auto& target = mDescriptorSetLayouts[i];
+       
+        create(source, target);
+
+    }
+}
+
+CoGraphicsPipeline_T::~CoGraphicsPipeline_T()
+{
+    for (const auto& set : mDescriptorSetLayouts)
+    {
+        destroy(set);
+    }
+}
+
+
+uint32_t
+coGraphicsPipelineGetDescriptorSetLayoutCount(const CoGraphicsPipeline pipeline)
+{
+    return static_cast<uint32_t>(pipeline->mDescriptorSetLayouts.size());
+}
+
+
+void
+coGraphicsPipelineGetDescriptorSetLayouts(const CoGraphicsPipeline pipeline, CoDescriptorSetLayout* pDescriptorSetLayouts)
+{
+    std::copy(pipeline->mDescriptorSetLayouts.begin(), 
+              pipeline->mDescriptorSetLayouts.end(),
+              pDescriptorSetLayouts);
 }

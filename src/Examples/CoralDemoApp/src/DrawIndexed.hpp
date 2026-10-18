@@ -2,6 +2,7 @@
 #define DRAWINDEXED_HPP
 
 #include "Util.hpp"
+#include "FlyCamera.hpp"
 
 #include <Coral/Util/RAII.hpp>
 #include <Coral/Util/UniformBlockBuilder.hpp>
@@ -18,8 +19,11 @@ struct RenderObject
 struct Scene
 {
     const std::vector<RenderObject>& renderObjects;
-    CoBuffer cameraParams;
-    CoBuffer lightParams;
+    glm::mat4 viewMatrix;
+    glm::mat4 projectionMatrix;
+    glm::vec3 lightDirection;
+    glm::vec3 lightColor;
+    glm::vec3 ambientColor;
 };
 
 /*!
@@ -31,9 +35,9 @@ public:
 
     bool initialize(CoContext context, const Scene& scene);
 
-    void draw(CoCommandBuffer commandBuffer);
+    void draw(CoCommandBuffer commandBuffer, const FlyCamera& camera);
 
-    void drawOptimized(CoCommandBuffer commandBuffer);
+    void drawOptimized(CoCommandBuffer commandBuffer, const FlyCamera& camera);
 
 private:
 
@@ -41,10 +45,13 @@ private:
 
     Coral::ShaderModulePtr mVertexShader;
     Coral::ShaderModulePtr mFragmentShader;
-    Coral::GraphicsPipelinePtr mGraphicsPipeline;
 
-    CoBuffer mCameraParams;
-    CoBuffer mLightParams;
+    Util::UniformBlockBuilder mCameraParamsBuilder;
+    Coral::BufferPtr mCameraParams;
+    Util::UniformBlockBuilder mLightParamsBuilder;
+    Coral::BufferPtr mLightParams;
+
+    Coral::GraphicsPipelinePtr mGraphicsPipeline;
 
     struct InstanceData
     {
