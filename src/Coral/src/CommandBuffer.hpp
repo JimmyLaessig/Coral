@@ -207,13 +207,6 @@ public:
      * \param info Structure containing the viewport
      */
     virtual bool cmdSetViewport(const CoViewportInfo& info) = 0;
-    
-    /*!
-     * \brief Blit the content of \p source to \p dest
-     * \param source The source image
-     * \param target The destination image
-     */
-    virtual bool cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr target) = 0;
 
 }; // class CommandBuffer
 

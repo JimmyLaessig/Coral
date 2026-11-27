@@ -112,13 +112,6 @@ coCommandBufferGenerateMipMaps(CoCommandBuffer commandBuffer, CoImage image)
 
 
 CoResult
-coCommandBufferBlitImage(CoCommandBuffer commandBuffer, CoImage source, CoImage dest)
-{
-    return CO_FAILED;
-}
-
-
-CoResult
 coCommandBufferBindVertexBuffer(CoCommandBuffer commandBuffer, CoBuffer buffer, uint32_t location, size_t offset, size_t stride)
 {
     return commandBuffer->impl->cmdBindVertexBuffer(buffer->impl, location, offset, stride) ? CO_SUCCESS : CO_FAILED;
