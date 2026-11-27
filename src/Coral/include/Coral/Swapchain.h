@@ -2,24 +2,30 @@
 #define CORAL_SWAPCHAIN_H
 
 #include <Coral/Export.h>
-#include <Coral/Framebuffer.h>
-#include <Coral/Semaphore.h>
 #include <Coral/Fence.h>
+#include <Coral/Image.h>
+#include <Coral/Semaphore.h>
 
 /*!
  * Structure specifying the parameters of a newly created swapchain object
  */
 typedef struct 
 {
-    /// Pointer to the native window handle
+    /*!
+     * Pointer to the native window handle
+     */
     void* nativeWindowHandle;
-    /// The pixel format of the swapchain images
+    /*!
+     * The pixel format of the swapchain images
+     */
     CoPixelFormat format;
-    /// Pointer to the pixel format of the depth-stencil image. If nullptr, no depth-stencil image is created
-    CoPixelFormat* depthFormat;
-    /// Minimum number of images in the swapchain
+    /*!
+     * Minimum number of images in the swapchain
+     */
     uint32_t minImageCount;
-    /// Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
+    /*!
+     * Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
+     */
     bool lockToVSync;
 } CoSwapchainCreateConfig;
 
@@ -47,9 +53,9 @@ CORAL_API void coDestroySwapchain(CoSwapchain swapchain);
 typedef struct
 {
     /*!
-     * The framebuffer used to render to the swapchain image
+     * The swapchain image
      */
-    CoFramebuffer framebuffer;
+    CoImage image;
 
     /*!
      * Index of the swapchain image
@@ -66,14 +72,26 @@ typedef struct
 CORAL_API uint32_t coSwapchainGetImageCount(const CoSwapchain swapchain);
 
 /*!
+ * \brief Get the extent of the swapchain image
+ * \param Valid handle to a CoSwapchain object
+ * \return Returns the extent of the images in the swapchain
+ */
+CORAL_API CoExtent coSwapchainGetImageExtent(const CoSwapchain swapchain);
+
+/*!
  * \brief Acquire the next swapchain image 
  * \param swapchain Valid handle to a CoSwapchain object
  * \param signalSemaphore Optional handle to a CoSemaphore object to be signaled once the image
  *        is acquired.
  * \param signalFence Optional handle to a CoFence object to be signaled once the image is acquired.
- * \param info Pointer to a CoAcquiredImageInfo structure in which the framebuffer of the next
- *        swapchain image info is returned
+ * \param info Pointer to a CoAcquiredImageInfo structure in which the next swapchain image info is
+ *             returned.
+ * \return Returns CO_SUCCESS if the image has been acuired successfully or
+ *         CO_WARING_SWAPCHAIN_RESIZED if the swapchain has been resized due to window size change.
  */
-CORAL_API CoResult coSwapchainAcquireNextImage(CoSwapchain swapchain, CoSemaphore signalSemaphore,  CoFence signalFence, CoAcquiredImageInfo* pInfo);
+CORAL_API CoResult coSwapchainAcquireNextImage(CoSwapchain swapchain, 
+                                               CoSemaphore signalSemaphore,  
+                                               CoFence signalFence, 
+                                               CoAcquiredImageInfo* pInfo);
 
 #endif // !CORAL_SWAPCHAIN_H

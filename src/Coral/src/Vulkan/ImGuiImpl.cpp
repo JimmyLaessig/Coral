@@ -12,32 +12,20 @@ namespace Coral::Vulkan
 {
 
 bool
-ImGui_ImplCoral_Init(Coral::Vulkan::ContextImpl& context, const CoFramebufferLayout& signature, uint32_t swapchainImageCount)
+ImGui_ImplCoral_Init(Coral::Vulkan::ContextImpl& context, 
+                     CoPixelFormat swapchainFormat,
+                     uint32_t swapchainImageCount)
 {
     auto queue = static_cast<Coral::Vulkan::CommandQueueImpl*>(context.getGraphicsQueue());
 
     std::vector<VkFormat> colorAttachments;
-    for (auto format : std::span(signature.pColorAttachments, signature.colorAttachmentCount))
-    {
-        colorAttachments.push_back(Coral::Vulkan::convert(format.format));
-    }
+    colorAttachments.push_back(Coral::Vulkan::convert(swapchainFormat));
     
     VkPipelineRenderingCreateInfo renderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO };
     renderingCreateInfo.colorAttachmentCount    = static_cast<uint32_t>(colorAttachments.size());
     renderingCreateInfo.pColorAttachmentFormats = colorAttachments.data();
     renderingCreateInfo.depthAttachmentFormat   = VK_FORMAT_UNDEFINED;
     renderingCreateInfo.stencilAttachmentFormat = VK_FORMAT_UNDEFINED;
-    
-    if (auto format = signature.depthStencilAttachment)
-    {
-        auto vkFormat = Coral::Vulkan::convert(format->format);
-        renderingCreateInfo.depthAttachmentFormat = vkFormat;
-
-        if (Coral::Vulkan::isStencilFormat(format->format))
-        {
-            renderingCreateInfo.stencilAttachmentFormat = vkFormat;
-        }
-    }
 
     ImGui_ImplVulkan_InitInfo vkInitInfo{};
     vkInitInfo.ApiVersion                  = VK_API_VERSION_1_3;

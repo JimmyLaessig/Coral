@@ -389,19 +389,19 @@ GraphicsPipelineImpl::init(const Coral::GraphicsPipeline::CreateConfig& config)
     //-------------------------------------------------------------
 
     std::vector<VkFormat> colorAttachments;
-    for (auto format : config.framebufferLayout.colorAttachments)
+    for (auto format : config.colorAttachments)
     {
         colorAttachments.push_back(Coral::Vulkan::convert(format.format));
     };
 
     VkFormat depthStencilFormat{ VK_FORMAT_UNDEFINED };
-    if (config.framebufferLayout.depthStencilAttachment)
+    if (config.depthStencilAttachment)
     {
-        depthStencilFormat = Coral::Vulkan::convert(config.framebufferLayout.depthStencilAttachment->format);
+        depthStencilFormat = Coral::Vulkan::convert(config.depthStencilAttachment->format);
     }
 
     VkPipelineRenderingCreateInfo renderingCreateInfo
-    { 
+    {
         .sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
         .colorAttachmentCount    = static_cast<uint32_t>(colorAttachments.size()),
         .pColorAttachmentFormats = colorAttachments.data(),

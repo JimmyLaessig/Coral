@@ -84,9 +84,9 @@ DrawIndirect::initialize(CoContext context,
     pipelineConfig.blendMode.srcFactor  = CO_BLEND_FACTOR_ONE;
     pipelineConfig.blendMode.destFactor = CO_BLEND_FACTOR_ZERO;
 
-    pipelineConfig.framebufferLayout.pColorAttachments      = colorAttachmentInfos.data();
-    pipelineConfig.framebufferLayout.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
-    pipelineConfig.framebufferLayout.depthStencilAttachment = &depthStencilInfo;
+    pipelineConfig.pColorAttachments      = colorAttachmentInfos.data();
+    pipelineConfig.colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size());
+    pipelineConfig.depthStencilAttachment = &depthStencilInfo;
 
     if (coContextCreateGraphicsPipeline(context, &pipelineConfig, std::out_ptr(mGraphicsPipeline)) != CO_SUCCESS)
     {

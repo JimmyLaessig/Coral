@@ -1,7 +1,6 @@
 #ifndef CORAL_IMGUI_IMPL_CORAL_H
 #define CORAL_IMGUI_IMPL_CORAL_H
 
-#include <Coral/Framebuffer.h>
 #include <Coral/CommandBuffer.h>
 
 #include <imgui.h>
@@ -9,7 +8,7 @@
 typedef struct  
 {
     CoContext context;
-    CoFramebufferLayout framebufferLayout;
+    CoPixelFormat swapchainFormat;
     uint32_t swapchainImageCount;
 
 } ImGui_ImplCoral_InitInfo;

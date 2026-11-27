@@ -4,9 +4,9 @@
 #include <Coral/GraphicsPipeline.h>
 
 #include "CoralFwd.hpp"
-#include "Framebuffer.hpp"
 
 #include <vector>
+#include <optional>
 
 namespace Coral
 {
@@ -49,8 +49,16 @@ public:
     struct CreateConfig
     {
         std::vector<ShaderModulePtr> shaderModules;
+        
+        /*!
+         *
+         */
+        std::vector<CoColorAttachmentInfo> colorAttachments;
 
-        Framebuffer::Layout framebufferLayout;
+        /*!
+         *
+         */
+        std::optional<CoDepthStencilAttachmentInfo> depthStencilAttachment;
 
         /*!
          * The face culling mode of the pipeline

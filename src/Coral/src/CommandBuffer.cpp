@@ -52,23 +52,25 @@ CoResult
 coCommandBufferBeginRenderPass(CoCommandBuffer commandBuffer, const CoBeginRenderPassInfo* beginInfo)
 {
     Coral::BeginRenderPassInfo info{};
-    info.framebuffer = beginInfo->framebuffer->impl.get();
-    for (const auto& attachment : std::span(beginInfo->pClearColors, beginInfo->clearColorsCount))
+
+    for (const auto& attachment : std::span(beginInfo->pColorAttachments, beginInfo->colorAttachmentCount))
     {
-        ClearColor clearColor
-        {
-            attachment.clearOp,
-            { attachment.color[0], attachment.color[1], attachment.color[2], attachment.color[3] }
+        ColorAttachment ca = {
+            .image   = attachment.image->impl,
+            .binding = attachment.binding,
+            .clear   = attachment.clear,
         };
         
-        if (!info.clearColor.emplace(attachment.attachment, clearColor).second)
-        {
-            return CO_FAILED;
-        }
+        info.colorAttachments.push_back(ca);
     }
-    if (beginInfo->clearDepthStencil)
+    if (beginInfo->depthStencilAttachment)
     {
-        info.clearDepth = *beginInfo->clearDepthStencil;
+        DepthStencilAttachment dsa =
+        {
+            .image = beginInfo->depthStencilAttachment->image->impl,
+            .clear = beginInfo->depthStencilAttachment->clear,
+        };
+        info.depthStencilAttachment = dsa;
     }
     return commandBuffer->impl->cmdBeginRenderPass(info) ? CO_SUCCESS : CO_FAILED;
 }

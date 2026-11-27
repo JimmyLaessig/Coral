@@ -18,19 +18,27 @@ CORAL_API CoResult coContextGetComputeQueue(const CoContext context, CoCommandQu
 
 CORAL_API CoResult coContextGetTransferQueue(const CoContext context, CoCommandQueue* pQueue);
 
+/*!
+ * Structure containing the parameters for presenting the swapchain
+ */
 typedef struct
 {
-    /// List of semaphores to wait for before presentation can start.
-    /**
+    /*!
+     * The swapchain to present
+     */
+    CoSwapchain swapchain;
+
+    /*!
+     * List of semaphores to wait for before presentation can start.
      * \note: The caller must ensure that the waitSemaphores are submitted as signalSemaphores of a command buffer
      * submission. Otherwise, execution will not start.
      */
     CoSemaphore* pWaitSemaphores;
 
+    /*!
+     * The number of elements in the pWaitSemaphores array
+     */
     uint32_t waitSemaphoreCount;
-
-    /// The swapchain to present
-    CoSwapchain swapchain;
 
 } CoPresentInfo;
 

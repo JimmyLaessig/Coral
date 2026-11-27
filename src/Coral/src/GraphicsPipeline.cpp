@@ -61,14 +61,14 @@ coContextCreateGraphicsPipeline(CoContext context, const CoGraphicsPipelineCreat
     }
 
     configImpl.shaderModules = shaderModules;
-    for (auto attachment : std::span(pConfig->framebufferLayout.pColorAttachments, pConfig->framebufferLayout.colorAttachmentCount))
+    for (auto attachment : std::span(pConfig->pColorAttachments, pConfig->colorAttachmentCount))
     {
-        configImpl.framebufferLayout.colorAttachments.push_back(attachment);
+        configImpl.colorAttachments.push_back(attachment);
     }
 
-    if (pConfig->framebufferLayout.depthStencilAttachment)
+    if (pConfig->depthStencilAttachment)
     {
-        configImpl.framebufferLayout.depthStencilAttachment = *pConfig->framebufferLayout.depthStencilAttachment;
+        configImpl.depthStencilAttachment = *pConfig->depthStencilAttachment;
     }
 
     if (auto impl = context->impl->createGraphicsPipeline(configImpl))

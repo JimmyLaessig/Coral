@@ -2,14 +2,15 @@
 #define CORAL_IMGUI_HPP
 
 #include "Fwd.hpp"
-#include "Framebuffer.hpp"
+
+#include <Coral/Core.h>
 
 #include <imgui.h>
 
 namespace Coral::Vulkan
 {
 
-bool ImGui_ImplCoral_Init(Coral::Vulkan::ContextImpl& context, const CoFramebufferLayout& signature, uint32_t swapchainImageCount);
+bool ImGui_ImplCoral_Init(Coral::Vulkan::ContextImpl& context, CoPixelFormat format, uint32_t swapchainImageCount);
 
 bool ImGui_ImplCoral_CreateFontsTexture();
 

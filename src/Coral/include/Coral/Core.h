@@ -1,5 +1,5 @@
-#ifndef CORAL_TYPES_H
-#define CORAL_TYPES_H
+#ifndef CORAL_CORE_H
+#define CORAL_CORE_H
 
 #include <Coral/Export.h>
 
@@ -28,6 +28,8 @@ typedef enum
     // An invalid argument was passed to a function
     CO_ERROR_INVALID_ARGUMENT,
 
+    // The swapchain was resized
+    CO_WARING_SWAPCHAIN_RESIZED,
 } CoResult;
 
 typedef uint8_t CoByte;
@@ -222,4 +224,4 @@ typedef enum
     CO_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
 } CoDescriptorType;
 
-#endif // !CORAL_TYPES_H
+#endif // !CORAL_CORE_H

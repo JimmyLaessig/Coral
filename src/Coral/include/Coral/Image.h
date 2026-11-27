@@ -45,13 +45,13 @@ CORAL_API CoResult coContextCreateImage(CoContext context, const CoImageCreateCo
 
 CORAL_API void coDestroyImage(CoImage image);
 
-/// Get the width and height of the image
-CORAL_API void coImageGetExtent(const CoImage image, CoExtent* pExtent);
-
-/// Get the pixel format of the Image
-CORAL_API CoPixelFormat coImageGetPixelFormat(const CoImage image);
-
-/// Get the number of mipmap levels
-CORAL_API uint32_t coImageGetMipLevelCount(const CoImage image);
+///// Get the width and height of the image
+//CORAL_API void coImageGetExtent(const CoImage image, CoExtent* pExtent);
+//
+///// Get the pixel format of the Image
+//CORAL_API CoPixelFormat coImageGetPixelFormat(const CoImage image);
+//
+///// Get the number of mipmap levels
+//CORAL_API uint32_t coImageGetMipLevelCount(const CoImage image);
 
 #endif // !CORAL_IMAGE_HPP

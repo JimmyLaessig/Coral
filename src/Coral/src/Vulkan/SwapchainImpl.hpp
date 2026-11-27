@@ -68,12 +68,6 @@ private:
     // The swapchain images
     std::vector<Coral::ImagePtr> mSwapchainImages;
 
-    // The depth-stencil image used as depth attachment for the swapchain image framebuffers
-    Coral::ImagePtr mSwapchainDepthImage;
-
-    // The swapchain framebuffers
-    std::vector<Coral::FramebufferPtr> mFramebuffers;
-
     // Fences to be signaled once the swapchain image has been acquired
     std::vector<Coral::FencePtr> mCurrentImageFences;
 

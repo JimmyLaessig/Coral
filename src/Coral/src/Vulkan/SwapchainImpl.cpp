@@ -106,9 +106,7 @@ SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
     mTransitionToColorAttachment.clear();
     mTransitionToPresent.clear();
     mImagePresentableSemaphore.clear();
-    mFramebuffers.clear();
     mSwapchainImages.clear();
-    mSwapchainDepthImage.reset();
     mCurrentImageFences.clear();
 
     auto surfaceFormat = chooseSwapchainFormat(context().getVkPhysicalDevice(), mSurface, convert(config.format));
@@ -167,31 +165,7 @@ SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
         return false;
     }
 
-    // Create the depth buffer
-    if (config.depthFormat)
-    {
-        auto depthFormat = Coral::Vulkan::convert(*config.depthFormat);
-
-        if (!isDepthFormat(*config.depthFormat))
-        {
-            return false;
-        }
-
-        Coral::Image::CreateConfig depthImageConfig{};
-        depthImageConfig.format        = *config.depthFormat;
-        depthImageConfig.extent.width  = createInfo.imageExtent.width;
-        depthImageConfig.extent.height = createInfo.imageExtent.height;
-
-        auto swapchainImage = context().createImage(depthImageConfig);
-        if (!swapchainImage)
-        {
-            return false;
-        }
-
-        mSwapchainDepthImage = swapchainImage.value();
-    }
-
-    // Create the swapchain images, framebuffers, semaphores and fences
+    // Create the swapchain images, semaphores and fences
     for (size_t i = 0; i < mSwapchainImageCount; ++i)
     {
         // Create swapchain images
@@ -208,12 +182,6 @@ SwapchainImpl::initSwapchain(const Coral::Swapchain::CreateConfig& config)
 
         mSwapchainImages.push_back(image);
 
-        Coral::Framebuffer::CreateConfig framebufferConfig{};
-        framebufferConfig.colorAttachments = { { mSwapchainImages[i], 0 } };
-        framebufferConfig.depthAttachment  = mSwapchainDepthImage;
-
-        // Create the framebuffer for this swapchain image
-        mFramebuffers.push_back(context().createFramebuffer(framebufferConfig).value());
         // Create the imageAcquiredSemaphore
         mImageAcquiredSemaphore.push_back(context().createSemaphore({}).value());
         // Create the mImagePresentableSemaphore
@@ -318,12 +286,10 @@ SwapchainImpl::acquireNextSwapchainImage(SemaphorePtr signalSemaphore, Coral::Fe
         return {};
     }
 
-    // Fetch the acquired swapchain image and its framebuffer. The acquired swapchain image must be
-    // transitioned to VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL before rendering. This is done via
-    // a built-in command buffer
-    auto image       = std::static_pointer_cast<ImageImpl>(mSwapchainImages.at(mCurrentSwapchainIndex));
-    auto framebuffer = mFramebuffers.at(mCurrentSwapchainIndex);
-
+    // Fetch the acquired swapchain image. The acquired swapchain image must be transitioned to
+    // VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL before rendering. This is done via a built-in
+    // command buffer.
+    auto image             = std::static_pointer_cast<ImageImpl>(mSwapchainImages.at(mCurrentSwapchainIndex));
     auto commandBuffer     = commandQueue->createCommandBuffer({}).value();
     auto commandBufferImpl = std::static_pointer_cast<CommandBufferImpl>(commandBuffer);
 
@@ -364,8 +330,8 @@ SwapchainImpl::acquireNextSwapchainImage(SemaphorePtr signalSemaphore, Coral::Fe
 
     return AcquiredImageInfo
     {
-        .index       = mCurrentSwapchainIndex,
-        .framebuffer = framebuffer,
+        .index = mCurrentSwapchainIndex,
+        .image = image,
     };
 }
 

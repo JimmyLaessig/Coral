@@ -6,8 +6,6 @@
 #include <Coral/Resources/Sphere.hpp>
 #include <Coral/Resources/uvtest_png.hpp>
 
-
-
 #define GLFW_EXPOSE_NATIVE_WIN32
 #pragma warning( push )
 #pragma warning (disable: 4005)
@@ -58,29 +56,37 @@ CoralDemoApp::initialize()
 
     glfwShowWindow(mWindow);
 
-    CoContextCreateConfig contextConfig
-    {
+    CoContextCreateConfig contextConfig = {
         .graphicsAPI      = CO_GRAPHICS_API_VULKAN,
         .pApplicationName = "Coral Demo Application",
     };
-    
 
     if (coCreateContext(&contextConfig, std::out_ptr(mContext)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
     }
 
-    auto depthFormat = CO_PIXEL_FORMAT_DEPTH24_STENCIL8;
+    auto swapchainColorFormat = CO_PIXEL_FORMAT_RGBA8_SRGB;
+    auto depthFormat          = CO_PIXEL_FORMAT_DEPTH24_STENCIL8;
 
-    CoSwapchainCreateConfig swapchainConfig
-    {
+    CoSwapchainCreateConfig swapchainConfig = {
         .nativeWindowHandle = glfwGetWin32Window(mWindow),
-        .format             = CO_PIXEL_FORMAT_RGBA8_SRGB,
-        .depthFormat        = &depthFormat,
+        .format             = swapchainColorFormat,
         .minImageCount      = 2,
     };
 
     if (coContextCreateSwapchain(mContext.get(), &swapchainConfig, std::out_ptr(mSwapchain)) != CO_SUCCESS)
+    {
+        return EXIT_FAILURE;
+    }
+
+    CoImageCreateConfig depthImageConfig = {
+        .extent     = coSwapchainGetImageExtent(mSwapchain.get()),
+        .hasMipMaps = false,
+        .format     = depthFormat,
+        .usageHint  = CO_IMAGE_USAGE_HINT_FRAMEBUFFER_ATTACHMENT,
+    };
+    if (coContextCreateImage(mContext.get(), &depthImageConfig, std::out_ptr(mDepthImage)) != CO_SUCCESS)
     {
         return EXIT_FAILURE;
     }
@@ -93,18 +99,10 @@ CoralDemoApp::initialize()
 
     ImGui_ImplGlfw_InitForVulkan(mWindow, true);
 
-    std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
-    CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
-
-    ImGui_ImplCoral_InitInfo initInfo
-    {
-        .context                    = mContext.get(),
-        .framebufferLayout = {
-            .pColorAttachments      = colorAttachmentInfos.data(),
-            .colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size()),
-            .depthStencilAttachment = &depthStencilInfo,
-         },
-        .swapchainImageCount        = swapchainImageCount,
+    ImGui_ImplCoral_InitInfo initInfo = {
+        .context             = mContext.get(),
+        .swapchainFormat     = swapchainColorFormat,
+        .swapchainImageCount = swapchainImageCount,
     };
 
     if (ImGui_ImplCoral_Init(&initInfo) != CO_SUCCESS)
@@ -305,12 +303,29 @@ CoralDemoApp::run()
         auto renderFinishedSemaphore = renderFinishedSemaphores[currentFrameIndex].get();
 
         CoAcquiredImageInfo info{};
-        if (coSwapchainAcquireNextImage(mSwapchain.get(),
-                                        imageReadySemaphore,
-                                        nullptr,
-                                        &info) != CO_SUCCESS)
+
+        switch (coSwapchainAcquireNextImage(mSwapchain.get(),
+                                            imageReadySemaphore,
+                                            nullptr,
+                                            &info))
         {
-            return EXIT_FAILURE;
+            case CO_SUCCESS: break;
+            case CO_WARING_SWAPCHAIN_RESIZED:
+            {
+                CoImageCreateConfig depthImageConfig = {
+                    .extent     = coSwapchainGetImageExtent(mSwapchain.get()),
+                    .hasMipMaps = false,
+                    .format     = CO_PIXEL_FORMAT_DEPTH24_STENCIL8,
+                    .usageHint  = CO_IMAGE_USAGE_HINT_FRAMEBUFFER_ATTACHMENT,
+                };
+                if (coContextCreateImage(mContext.get(), &depthImageConfig, std::out_ptr(mDepthImage)) != CO_SUCCESS)
+                {
+                    return EXIT_FAILURE;
+                }
+
+                break;
+            }
+            default: return EXIT_FAILURE;
         }
 
         auto mousePos   = ImGui::GetMousePos();
@@ -347,21 +362,26 @@ CoralDemoApp::run()
 
         coCommandBufferBegin(commandBuffer.get());
 
-        CoClearColor clearColor{ 0, CO_CLEAR_OP_CLEAR, { 1.f, 1.f, 1.f, 1.f } };
-        CoClearDepthStencil clearDepth{ CO_CLEAR_OP_CLEAR, 1.f, 0 };
+        CoColorAttachment colorAttachment = {
+            .image   = info.image,
+            .binding = 0,
+            .clear   = { CO_CLEAR_OP_CLEAR, { 1.f, 1.f, 1.f, 1.f } }
+        };
 
-        CoBeginRenderPassInfo beginRenderPassInfo
-        {
-            .framebuffer       = info.framebuffer,
-            .pClearColors      = &clearColor,
-            .clearColorsCount  = 1,
-            .clearDepthStencil = &clearDepth,
+        CoDepthStencilAttachment depthStencil = {
+            .image = mDepthImage.get(),
+            .clear = { CO_CLEAR_OP_CLEAR, 1.f, 0 }
+        };
+
+        CoBeginRenderPassInfo beginRenderPassInfo = {
+            .pColorAttachments      = &colorAttachment,
+            .colorAttachmentCount   = 1,
+            .depthStencilAttachment = &depthStencil,
         };
 
         coCommandBufferBeginRenderPass(commandBuffer.get(), &beginRenderPassInfo);
 
-        CoViewportInfo viewport
-        {
+        CoViewportInfo viewport = {
             .viewport = CoRectangle{ 0, 0, static_cast<uint32_t>(width),  static_cast<uint32_t>(height) },
             .minDepth = 0.f,
             .maxDepth = 1.f,
@@ -386,32 +406,45 @@ CoralDemoApp::run()
             mDrawIndirect.draw(commandBuffer.get(), mCamera);
         }
 
+        coCommandBufferEndRenderPass(commandBuffer.get());
+
+        colorAttachment.clear.clearOp = CO_CLEAR_OP_LOAD;
+        CoBeginRenderPassInfo beginImGuiRenderPassInfo = {
+            .pColorAttachments      = &colorAttachment,
+            .colorAttachmentCount   = 1,
+            .depthStencilAttachment = nullptr,
+        };
+
+        coCommandBufferBeginRenderPass(commandBuffer.get(), &beginImGuiRenderPassInfo);
+
         ImGui_ImplCoral_NewFrame(mContext.get());
 
         ImGui_ImplCoral_RenderDrawData(mContext.get(), ImGui::GetDrawData(), commandBuffer.get());
 
         coCommandBufferEndRenderPass(commandBuffer.get());
+
         coCommandBufferEnd(commandBuffer.get());
 
-        CoCommandBufferSubmitInfo submitInfo{};
-        auto cb                       = commandBuffer.get();
-        submitInfo.pCommandBuffers    = &cb;
-        submitInfo.commandBufferCount = 1;
-        submitInfo.pWaitSemaphores    = &imageReadySemaphore;
-        submitInfo.waitSemaphoreCount = 1;
-
-        submitInfo.pSignalSemaphores    = &renderFinishedSemaphore;
-        submitInfo.signalSemaphoreCount = 1;
+        auto cb = commandBuffer.get();
+        CoCommandBufferSubmitInfo submitInfo = {
+            .pCommandBuffers      = &cb,
+            .commandBufferCount   = 1,
+            .pWaitSemaphores      = &imageReadySemaphore,
+            .waitSemaphoreCount   = 1,
+            .pSignalSemaphores    = &renderFinishedSemaphore,
+            .signalSemaphoreCount = 1,
+        };
 
         if (coCommandQueueSubmit(queue, &submitInfo, nullptr) != CO_SUCCESS)
         {
             return EXIT_FAILURE;
         }
 
-        CoPresentInfo presentInfo{};
-        presentInfo.swapchain          = mSwapchain.get();
-        presentInfo.pWaitSemaphores    = &renderFinishedSemaphore;
-        presentInfo.waitSemaphoreCount = 1;
+        CoPresentInfo presentInfo = {
+            .swapchain          = mSwapchain.get(),
+            .pWaitSemaphores    = &renderFinishedSemaphore,
+            .waitSemaphoreCount = 1,
+        };
 
         if (coCommandQueuePresent(queue, &presentInfo) != CO_SUCCESS)
         {

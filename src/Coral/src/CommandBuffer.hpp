@@ -7,27 +7,32 @@
 #include <functional>
 #include <optional>
 #include <span>
-#include <string_view>
-#include <map>
 
 namespace Coral
 {
 
-struct ClearColor
+struct ColorAttachment
 {
-    CoClearOp clearOp;
-    float color[4];
+    ImagePtr image;
+
+    uint32_t binding;
+
+    CoClearColor clear;
 };
 
+struct DepthStencilAttachment
+{
+    ImagePtr image;
+
+    CoClearDepthStencil clear;
+};
 
 struct BeginRenderPassInfo
 {
-    Framebuffer* framebuffer{ nullptr };
+    std::vector<ColorAttachment> colorAttachments;
 
-    std::map<uint32_t, ClearColor> clearColor;
-    std::optional<CoClearDepthStencil> clearDepth;
+    std::optional<DepthStencilAttachment> depthStencilAttachment;
 };
-
 
 struct CopyBufferInfo
 {

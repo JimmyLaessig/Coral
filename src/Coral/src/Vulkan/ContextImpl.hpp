@@ -45,8 +45,6 @@ public:
 
     std::expected<Coral::FencePtr, Coral::Fence::CreateError> createFence(const Coral::Fence::CreateConfig& config)  override;
 
-    std::expected<Coral::FramebufferPtr, Coral::Framebuffer::CreateError> createFramebuffer(const Coral::Framebuffer::CreateConfig& config) override;
-
     std::expected<Coral::ImagePtr, Coral::Image::CreateError> createImage(const Coral::Image::CreateConfig& config) override;
 
     std::expected<Coral::GraphicsPipelinePtr, Coral::GraphicsPipeline::CreateError> createGraphicsPipeline(const Coral::GraphicsPipeline::CreateConfig& config) override;
