@@ -67,8 +67,6 @@ public:
 
     bool cmdGenerateMipMaps(Coral::ImagePtr image) override;
 
-    bool cmdBlitImage(Coral::ImagePtr source, Coral::ImagePtr dest) override;
-
     VkCommandBuffer getVkCommandBuffer();
 
     [[nodiscard]] std::unordered_set<ResourcePtr> releaseRetainedResources();

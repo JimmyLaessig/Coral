@@ -73,13 +73,6 @@ typedef enum
     Points,
 } CoPrimitiveType;
 
-typedef enum
-{
-    COLOR,
-    DEPTH,
-    COLOR_AND_DEPTH
-} CoBlitAttachment;
-
 /*!
  * Structure specifying the clear color of a Framebuffer attachment
  */
@@ -213,8 +206,6 @@ typedef struct
 CORAL_API CoResult coCommandBufferUpdateBufferData(CoCommandBuffer commandBuffer, const CoUpdateBufferDataInfo* info);
 
 CORAL_API CoResult coCommandBufferUpdateImageData(CoCommandBuffer commandBuffer, const CoUpdateImageDataInfo* info);
-
-CORAL_API CoResult coCommandBufferBlitImage(CoCommandBuffer commandBuffer, CoImage source, CoImage dest);
 
 CORAL_API CoResult coCommandBufferGenerateMipMaps(CoCommandBuffer commandBuffer, CoImage image);
 
