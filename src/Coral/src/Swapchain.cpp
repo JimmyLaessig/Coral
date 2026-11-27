@@ -8,7 +8,7 @@ using namespace Coral;
 CoSwapchain_T::CoSwapchain_T(std::shared_ptr<Coral::Swapchain> impl)
     : impl(impl)
 {
-    mFramebuffers.resize(impl->swapchainImageCount());
+    mImages.resize(impl->swapchainImageCount());
 }
 
 
@@ -20,10 +20,6 @@ coContextCreateSwapchain(CoContext context, const CoSwapchainCreateConfig* pConf
     config.format             = pConfig->format;
     config.lockToVSync        = pConfig->lockToVSync;
     config.minImageCount      = pConfig->minImageCount;
-    if (pConfig->depthFormat)
-    {
-        config.depthFormat = *pConfig->depthFormat;
-    }
 
     auto impl = context->impl->createSwapchain(config);
     if (impl)
@@ -50,20 +46,23 @@ coSwapchainAcquireNextImage(const CoSwapchain swapchain, CoSemaphore signalSemap
     auto result = swapchain->impl->acquireNextSwapchainImage(signalSemaphore ? signalSemaphore->impl : nullptr, 
                                                              signalFence ? signalFence->impl : nullptr);
 
-    auto& framebuffer = swapchain->mFramebuffers[result.index];
+    auto& image = swapchain->mImages[result.index];
 
-    // Update the cached swapchain image framebuffer if the image has changed since the last acquire.
+    CoResult res = CO_SUCCESS;
+
+    // Update the cached swapchain image if the image has changed since the last acquire.
     // This happens when the swapchain is recreated due to a window resize or other event that
     // invalidates the swapchain.
-    if (!framebuffer || framebuffer->impl != result.framebuffer)
+    if (!image || image->impl != result.image)
     {
-        framebuffer.reset(new CoFramebuffer_T{ result.framebuffer });
+        image.reset(new CoImage_T{ result.image });
+        res = CO_WARING_SWAPCHAIN_RESIZED;
     }
 
-    pInfo->framebuffer            = framebuffer.get();
-    pInfo->index                  = result.index;
+    pInfo->image = image.get();
+    pInfo->index = result.index;
 
-    return CO_SUCCESS;
+    return res;
 }
 
 
@@ -71,4 +70,11 @@ uint32_t
 coSwapchainGetImageCount(const CoSwapchain swapchain)
 {
     return swapchain->impl->swapchainImageCount();
+}
+
+
+CoExtent
+coSwapchainGetImageExtent(const CoSwapchain swapchain)
+{
+    return swapchain->impl->swapchainExtent();
 }

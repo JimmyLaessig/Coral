@@ -4,7 +4,6 @@
 #include <Coral/Export.h>
 
 #include <Coral/DescriptorSet.h>
-#include <Coral/Framebuffer.h>
 #include <Coral/ShaderModule.h>
 
 #include <cstdint>
@@ -160,17 +159,64 @@ typedef enum
     CO_TOPOLOGY_LINE_LIST,
 } CoTopology;
 
+/*!
+ * Structure specifying the attributes of a color attachment
+ */
+typedef struct
+{
+    /*!
+     * Format of the attachment
+     */
+    CoPixelFormat format;
+
+    /*!
+     * Binding index of the attachment
+     */
+    uint32_t binding;
+
+} CoColorAttachmentInfo;
 
 /*!
- * Configuration to create a graphics pipeline object
+ * Structure specifying the attributes of a depth-stencil attachment
+ */
+typedef struct
+{
+    /*!
+     * Format of the attachment
+     */
+    CoPixelFormat format;
+
+} CoDepthStencilAttachmentInfo;
+
+/*!
+ * Structure specifying the parameters of a newly created graphics pipeline object
  */
 typedef struct 
 {
+    /*!
+     * The shader module of the vertex stage
+     */
     CoShaderModule vertexShaderModule;
 
+    /*!
+     * The shader module of the fragment stage
+     */
     CoShaderModule fragmentShaderModule;
 
-    CoFramebufferLayout framebufferLayout;
+    /*!
+     * Pointer to a list of CoColorAttachmentInfo structures
+     */
+    const CoColorAttachmentInfo* pColorAttachments;
+
+    /*!
+     * Number of elements in the pColorAttachments array
+     */
+    uint32_t colorAttachmentCount;
+
+    /*!
+     * Pointer to a CoDepthStencilAttachmentInfo instance. Can be nullptr.
+     */
+    const CoDepthStencilAttachmentInfo* depthStencilAttachment;
 
     /// The face culling mode of the pipeline 
     /**

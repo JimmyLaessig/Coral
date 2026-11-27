@@ -315,10 +315,7 @@ createTexture(CoContext context, std::span<const uint8_t> buffer)
     coCommandBufferBegin(commandBuffer.get());
     coCommandBufferUpdateImageData(commandBuffer.get(), &updateInfo);
 
-    if (coImageGetMipLevelCount(image.get()) > 1)
-    {
-        coCommandBufferGenerateMipMaps(commandBuffer.get(), image.get());
-    }
+    coCommandBufferGenerateMipMaps(commandBuffer.get(), image.get());
 
     coCommandBufferEnd(commandBuffer.get());
     auto cb = commandBuffer.get();

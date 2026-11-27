@@ -3,7 +3,6 @@
 #include "BufferImpl.hpp"
 #include "CommandQueueImpl.hpp"
 #include "ContextImpl.hpp"
-#include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
 #include "GraphicsPipelineImpl.hpp"
 #include "DescriptorSetImpl.hpp"
@@ -41,6 +40,29 @@ convert(CoClearOp clearOp)
         assert(false);
         return VK_ATTACHMENT_LOAD_OP_DONT_CARE;
     }
+}
+
+
+VkRect2D
+getRenderArea(const Coral::BeginRenderPassInfo& info)
+{
+    VkRect2D rect = { { 0 , 0 }, { 0 , 0 } };
+
+    for (const auto& attachment : info.colorAttachments)
+    {
+        auto image  = attachment.image;
+        rect.extent = { image->width(), image->height() };
+        return rect;
+    }
+
+    if (info.depthStencilAttachment)
+    {
+        auto image  = info.depthStencilAttachment->image;
+        rect.extent = { image->width(), image->height() };
+        return rect;
+    }
+
+    return rect;
 }
 
 } // namespace
@@ -105,75 +127,49 @@ CommandBufferImpl::end()
 bool
 CommandBufferImpl::cmdBeginRenderPass(const Coral::BeginRenderPassInfo& info)
 {
-    if (info.framebuffer == nullptr)
-    {
-        return false;
-    }
-    
-    auto framebuffer = static_cast<Coral::Vulkan::FramebufferImpl*>(info.framebuffer);
-
-    const auto& colorAttachments = framebuffer->colorAttachments();
-    const auto& depthAttachment  = framebuffer->depthAttachment();
-
-    if (colorAttachments.size() != info.clearColor.size())
-    {
-        return false;
-    }
-
     std::vector<VkRenderingAttachmentInfo> attachments;
-    for (const auto& [attachment, image] : colorAttachments)
+    for (const auto& [image, binding, clear] : info.colorAttachments)
     {
-        VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
- 
-        auto clearColor = info.clearColor.find(attachment);
-        if (clearColor == info.clearColor.end())
-        {
-            return false;
-        }
+        auto impl = std::static_pointer_cast<ImageImpl>(image);
 
-        attachmentInfo.loadOp                      = ::convert(clearColor->second.clearOp);
-        attachmentInfo.clearValue.color.float32[0] = clearColor->second.color[0];
-        attachmentInfo.clearValue.color.float32[1] = clearColor->second.color[1];
-        attachmentInfo.clearValue.color.float32[2] = clearColor->second.color[2];
-        attachmentInfo.clearValue.color.float32[3] = clearColor->second.color[3];
+        VkRenderingAttachmentInfo attachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+
+        attachmentInfo.loadOp                      = ::convert(clear.clearOp);
+        attachmentInfo.clearValue.color.float32[0] = clear.color[0];
+        attachmentInfo.clearValue.color.float32[1] = clear.color[1];
+        attachmentInfo.clearValue.color.float32[2] = clear.color[2];
+        attachmentInfo.clearValue.color.float32[3] = clear.color[3];
 
         attachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         attachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL_KHR;
-        attachmentInfo.imageView        = image->getVkImageView();
+        attachmentInfo.imageView        = impl->getVkImageView();
         attachmentInfo.resolveMode      = VK_RESOLVE_MODE_NONE;
         attachmentInfo.resolveImageView = VK_NULL_HANDLE;
 
         attachments.push_back(attachmentInfo);
     }
 
+    auto [width, height] = getRenderArea(info);
+
     VkRenderingInfo renderingInfo{ VK_STRUCTURE_TYPE_RENDERING_INFO };
-    renderingInfo.colorAttachmentCount     = static_cast<uint32_t>(attachments.size());
-    renderingInfo.pColorAttachments        = attachments.data();
-    renderingInfo.layerCount               = 1;
-    renderingInfo.renderArea.offset.x      = 0;
-    renderingInfo.renderArea.offset.y      = 0;
-    renderingInfo.renderArea.extent.width  = framebuffer->width();
-    renderingInfo.renderArea.extent.height = framebuffer->height();
+    renderingInfo.colorAttachmentCount = static_cast<uint32_t>(attachments.size());
+    renderingInfo.pColorAttachments    = attachments.data();
+    renderingInfo.layerCount           = 1;
+    renderingInfo.renderArea           = getRenderArea(info);
 
     VkRenderingAttachmentInfo depthAttachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
 
-    if (depthAttachment)
+    if (info.depthStencilAttachment)
     {
-        if (!info.clearDepth)
-        {
-            return false;
-        }
+        auto impl = std::static_pointer_cast<ImageImpl>(info.depthStencilAttachment->image);
 
-        auto image = std::static_pointer_cast<Coral::Vulkan::ImageImpl>(depthAttachment);
-
-        // Clear the depth attachment
-        depthAttachmentInfo.loadOp                          = ::convert(info.clearDepth->clearOp);
-        depthAttachmentInfo.clearValue.depthStencil.depth   = info.clearDepth->depth;
-        depthAttachmentInfo.clearValue.depthStencil.stencil = info.clearDepth->stencil;
+        depthAttachmentInfo.loadOp                          = ::convert(info.depthStencilAttachment->clear.clearOp);
+        depthAttachmentInfo.clearValue.depthStencil.depth   = info.depthStencilAttachment->clear.depth;
+        depthAttachmentInfo.clearValue.depthStencil.stencil = info.depthStencilAttachment->clear.stencil;
 
         depthAttachmentInfo.storeOp          = VK_ATTACHMENT_STORE_OP_STORE;
         depthAttachmentInfo.imageLayout      = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL;
-        depthAttachmentInfo.imageView        = image->getVkImageView();
+        depthAttachmentInfo.imageView        = impl->getVkImageView();
         depthAttachmentInfo.resolveMode      = VK_RESOLVE_MODE_NONE;
         depthAttachmentInfo.resolveImageView = VK_NULL_HANDLE;
 

@@ -66,17 +66,15 @@ DrawIndexed::initialize(CoContext context,
     std::vector<CoColorAttachmentInfo> colorAttachmentInfos{ { CO_PIXEL_FORMAT_RGBA8_SRGB, 0 } };
     CoDepthStencilAttachmentInfo depthStencilInfo{ CO_PIXEL_FORMAT_DEPTH24_STENCIL8 };
 
-    CoGraphicsPipelineCreateConfig pipelineConfig
-    {
+    CoGraphicsPipelineCreateConfig pipelineConfig = {
         .vertexShaderModule   = mVertexShader.get(),
         .fragmentShaderModule = mFragmentShader.get(),
-        .framebufferLayout = {
-            .pColorAttachments      = colorAttachmentInfos.data(),
-            .colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size()),
-            .depthStencilAttachment = &depthStencilInfo,
-        },
-        .faceCullingMode =
-        {
+        
+        .pColorAttachments      = colorAttachmentInfos.data(),
+        .colorAttachmentCount   = static_cast<uint32_t>(colorAttachmentInfos.size()),
+        .depthStencilAttachment = &depthStencilInfo,
+        
+        .faceCullingMode = {
             .cullMode    = CO_CULL_MODE_BACK,
             .orientation = CO_FRONT_FACE_ORIENTATION_CCW,
         },

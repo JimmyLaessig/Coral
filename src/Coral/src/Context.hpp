@@ -6,7 +6,6 @@
 #include "CommandBuffer.hpp"
 #include "CommandQueue.hpp"
 #include "Fence.hpp"
-#include "Framebuffer.hpp"
 #include "Image.hpp"
 #include "GraphicsPipeline.hpp"
 #include "Sampler.hpp"
@@ -29,7 +28,6 @@ class Buffer;
 class CommandBuffer;
 class CommandQueue;
 class Fence;
-class Framebuffer;
 class Image;
 class GraphicsPipeline;
 class Sampler;
@@ -41,7 +39,6 @@ using ContextPtr       = std::shared_ptr<Context>;
 using BufferPtr        = std::shared_ptr<Buffer>;
 using CommandBufferPtr = std::shared_ptr<CommandBuffer>;
 using FencePtr         = std::shared_ptr<Fence>;
-using FramebufferPtr   = std::shared_ptr<Framebuffer>;
 using ImagePtr         = std::shared_ptr<Image>;
 using GraphicsPipelinePtr = std::shared_ptr<GraphicsPipeline>;
 using SamplerPtr       = std::shared_ptr<Sampler>;
@@ -85,9 +82,6 @@ public:
 
     /// Create a new Fence object
     virtual std::expected<Coral::FencePtr, Coral::Fence::CreateError> createFence(const Coral::Fence::CreateConfig& config) = 0;
-
-    /// Create a new Framebuffer object
-    virtual std::expected<Coral::FramebufferPtr, Coral::Framebuffer::CreateError> createFramebuffer(const Coral::Framebuffer::CreateConfig& config) = 0;
 
     /// Create a new Image object
     virtual std::expected<Coral::ImagePtr, Coral::Image::CreateError> createImage(const Coral::Image::CreateConfig& config) = 0;

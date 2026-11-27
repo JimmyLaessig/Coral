@@ -6,7 +6,6 @@
 #include <Coral/CommandQueue.h>
 #include <Coral/Context.h>
 #include <Coral/Fence.h>
-#include <Coral/Framebuffer.h>
 #include <Coral/Image.h>
 #include <Coral/GraphicsPipeline.h>
 #include <Coral/Sampler.h>

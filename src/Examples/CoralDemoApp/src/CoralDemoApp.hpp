@@ -43,6 +43,7 @@ private:
     Coral::ContextPtr mContext;
 
     Coral::SwapchainPtr mSwapchain;
+    Coral::ImagePtr mDepthImage;
 
     std::shared_ptr<Util::Mesh> mMesh;
     std::shared_ptr<Util::Material> mMaterial;

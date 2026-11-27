@@ -4,7 +4,6 @@
 #include "CommandQueueImpl.hpp"
 #include "BufferImpl.hpp"
 #include "FenceImpl.hpp"
-#include "FramebufferImpl.hpp"
 #include "ImageImpl.hpp"
 #include "GraphicsPipelineImpl.hpp"
 #include "SamplerImpl.hpp"
@@ -317,13 +316,6 @@ std::expected<Coral::FencePtr, Coral::Fence::CreateError>
 ContextImpl::createFence(const Coral::Fence::CreateConfig& config)
 {
     return create<Coral::Fence, FenceImpl, Coral::Fence::CreateError>(config);
-}
-
-
-std::expected<Coral::FramebufferPtr, Coral::Framebuffer::CreateError>
-ContextImpl::createFramebuffer(const Coral::Framebuffer::CreateConfig& config)
-{
-    return create<Coral::Framebuffer, FramebufferImpl, Coral::Framebuffer::CreateError>(config);
 }
 
 

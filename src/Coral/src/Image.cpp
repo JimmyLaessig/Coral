@@ -26,23 +26,23 @@ coDestroyImage(CoImage image)
 }
 
 
-void
-coImageGetExtent(const CoImage image, CoExtent* pExtent)
-{
-    pExtent->width  = image->impl->width();
-    pExtent->height = image->impl->height();
-}
+//void
+//coImageGetExtent(const CoImage image, CoExtent* pExtent)
+//{
+//    pExtent->width  = image->impl->width();
+//    pExtent->height = image->impl->height();
+//}
+//
+//
+//CoPixelFormat
+//coImageGetPixelFormat(const CoImage image)
+//{
+//    return image->impl->format();
+//}
 
 
-CoPixelFormat
-coImageGetPixelFormat(const CoImage image)
-{
-    return image->impl->format();
-}
-
-
-uint32_t
-coImageGetMipLevelCount(const CoImage image)
-{
-    return image->impl->getMipLevels();
-}
+//uint32_t
+//coImageGetMipLevelCount(const CoImage image)
+//{
+//    return image->impl->getMipLevels();
+//}

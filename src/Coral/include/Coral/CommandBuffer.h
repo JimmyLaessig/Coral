@@ -2,14 +2,12 @@
 #define CORAL_COMMANDBUFFER_H
 
 #include <Coral/CommandQueue.h>
-#include <Coral/Image.h>
+
 #include <Coral/Buffer.h>
-#include <Coral/GraphicsPipeline.h>
-#include <Coral/Sampler.h>
-
 #include <Coral/DescriptorSet.h>
-
-#include <Coral/Framebuffer.h>
+#include <Coral/GraphicsPipeline.h>
+#include <Coral/Image.h>
+#include <Coral/Sampler.h>
 
 /*!
  * Structure specifying the parameters of a newly created CommandBuffer object
@@ -81,35 +79,81 @@ typedef enum
 } CoBlitAttachment;
 
 /*!
- * Structure specifying the clear color of a Framebuffer attachment
+ * Structure specifying the clear operation of a color attachment
  */
-typedef struct 
+typedef struct
 {
     /*!
-     * The index of the attachment to clear
-     */
-    uint32_t attachment;
-
-    /*!
-     * The clear operation
+     * The clear operation of the attachment
      */
     CoClearOp clearOp;
 
     /*!
-     * The color
+     * The clear color value
      */
     float color[4];
 
 } CoClearColor;
 
-
-///
+/*!
+ * Structure specifying the parameters of a color attachment
+ */
 typedef struct
 {
+    /*!
+     * Image of the attachment
+     */
+    CoImage image;
+
+    /*!
+     * Binding index of the attachment
+     */
+    uint32_t binding;
+
+    /*!
+     * Clear operation of the attachment
+     */
+    CoClearColor clear;
+
+} CoColorAttachment;
+
+/*!
+ * Structure specifying the clear operation of a depth-stencil attachment
+ */
+typedef struct
+{
+    /*!
+     * The clear operation of the attachment
+     */
     CoClearOp clearOp;
+
+    /*!
+     * The clear depth value
+     */
     float depth;
+
+    /*!
+     * The clear stencil value
+     */
     uint8_t stencil;
 } CoClearDepthStencil;
+
+/*!
+ * Structure specifying the parameters of a depth-stencil attachment
+ */
+typedef struct
+{
+    /*!
+    * Image of the attachment
+    */
+    CoImage image;
+
+    /*!
+     * Clear operation of the attachment
+     */
+    CoClearDepthStencil clear;
+
+} CoDepthStencilAttachment;
 
 /*!
  * Structure specifying the render pass begin information
@@ -117,25 +161,20 @@ typedef struct
 typedef struct 
 {
     /*!
-     * The FrameBuffer containing the attachments that are used within the render pass
+     * Pointer to a list of CoColorAttachmentInfo structures
      */
-    CoFramebuffer framebuffer;
+    const CoColorAttachment* pColorAttachments;
+     
+    /*!
+     * Number of elements in the pColorAttachments array
+     */
+    uint32_t colorAttachmentCount;
 
     /*!
-     * Pointer to an array of \ref CoClearColor structures containing clear values for each attachment.  
+     * Pointer to a CoDepthStencilAttachmentInfo instance.
+     * If nullptr, no depth-stencil attachment is written to and no depth test can be performed.
      */
-    CoClearColor* pClearColors;
-    
-    /*!
-     * The number of elements in \ref pClearColors
-     */
-    uint32_t clearColorsCount;
-
-    /*!
-     * Pointer to a CoClearDepthStencil structure containing the clear value for the depth-stencil 
-     * attachment.
-     */
-    CoClearDepthStencil* clearDepthStencil;
+    const CoDepthStencilAttachment* depthStencilAttachment;
 
 } CoBeginRenderPassInfo;
 

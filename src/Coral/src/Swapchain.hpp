@@ -5,12 +5,10 @@
 #include <Coral/Image.h>
 
 #include "CoralFwd.hpp"
-#include "Framebuffer.hpp"
 #include "Image.hpp"
 
 #include <cstdint>
-#include <optional>
-
+#include <vector>
 
 namespace Coral
 {
@@ -26,9 +24,9 @@ struct AcquiredImageInfo
     uint32_t index{ 0 };
 
     /*!
-     * The framebuffer used to render to this swapchain image
+     * The swapchain image
      */
-    Coral::FramebufferPtr framebuffer{ nullptr };
+    ImagePtr image{ nullptr };
 
 }; // struct AcquiredImageInfo
 
@@ -42,15 +40,13 @@ public:
 
     struct CreateConfig
     {
-        /// Pointer to the native window handle
+        //! Pointer to the native window handle
         void* nativeWindowHandle;
-        /// The pixel format of the swapchain images
+        //! The pixel format of the swapchain images
         CoPixelFormat format;
-        /// Pointer to the pixel format of the depth-stencil image. If nullptr, no depth-stencil image is created
-        std::optional<CoPixelFormat> depthFormat;
-        /// Minimum number of images in the swapchain
+        //! Minimum number of images in the swapchain
         uint32_t minImageCount;
-        /// Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
+        //! Flag indicating if the swapchain's refresh rate should be locked to vertical synchronization of the monitor
         bool lockToVSync;
     };
 
@@ -81,7 +77,7 @@ struct CoSwapchain_T
 
     std::shared_ptr<Coral::Swapchain> impl;
 
-    std::vector<std::unique_ptr<CoFramebuffer_T>> mFramebuffers;
+    std::vector<std::unique_ptr<CoImage_T>> mImages;
 
 }; // struct CoSwapchain_T
 
